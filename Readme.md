@@ -1,4 +1,4 @@
-# PyStereoVision
+# PyStereoVisionToolkit
 
 Implement a stereovision acquisition and processing library in Python for research purpose.
 
