@@ -10,55 +10,55 @@
 #
 # External dependencies
 #
-from ctypes import *
-from time import sleep
+import ctypes
+import time
 
 
 #
 # Camera information structure
 #
-class tPvCameraInfoEx( Structure ) :
+class tPvCameraInfoEx( ctypes.Structure ) :
     
     _fields_ = [
-    ("StructVer",c_ulong),
-    ("UniqueId", c_ulong),
-    ("CameraName", c_char*32),
-    ("ModelName", c_char*32),
-    ("PartNumber", c_char*32),
-    ("SerialNumber", c_char*32),
-    ("FirmwareVersion", c_char*32),
-    ("PermittedAccess", c_long),
-    ("InterfaceId",c_ulong),
-    ("InterfaceType",c_int)
+    ("StructVer", ctypes.c_ulong),
+    ("UniqueId", ctypes.c_ulong),
+    ("CameraName", ctypes.c_char*32),
+    ("ModelName", ctypes.c_char*32),
+    ("PartNumber", ctypes.c_char*32),
+    ("SerialNumber", ctypes.c_char*32),
+    ("FirmwareVersion", ctypes.c_char*32),
+    ("PermittedAccess", ctypes.c_long),
+    ("InterfaceId", ctypes.c_ulong),
+    ("InterfaceType", ctypes.c_int)
     ]
 
 
 #
 # Frame structure
 #
-class tPvFrame( Structure ) :
+class tPvFrame( ctypes.Structure ) :
 
     _fields_ = [
-    ("ImageBuffer",POINTER(c_char)),
-    ("ImageBufferSize",c_ulong),
-    ("AncillaryBuffer",c_int),
-    ("AncillaryBufferSize",c_int),
-    ("Context",c_int*4),
-    ("_reserved1",c_ulong*8),
-    ("Status",c_int),
-    ("ImageSize",c_ulong),
-    ("AncillarySize",c_ulong),
-    ("Width",c_ulong),
-    ("Height",c_ulong),
-    ("RegionX",c_ulong),
-    ("RegionY",c_ulong),
-    ("Format",c_int),
-    ("BitDepth",c_ulong),
-    ("BayerPattern",c_int),
-    ("FrameCount",c_ulong),
-    ("TimestampLo",c_ulong),
-    ("TimestampHi",c_ulong),
-    ("_reserved2",c_ulong*32)    
+    ("ImageBuffer", ctypes.POINTER(ctypes.c_char)),
+    ("ImageBufferSize", ctypes.c_ulong),
+    ("AncillaryBuffer", ctypes.c_int),
+    ("AncillaryBufferSize", ctypes.c_int),
+    ("Context", ctypes.c_int*4),
+    ("_reserved1", ctypes.c_ulong*8),
+    ("Status", ctypes.c_int),
+    ("ImageSize", ctypes.c_ulong),
+    ("AncillarySize", ctypes.c_ulong),
+    ("Width", ctypes.c_ulong),
+    ("Height", ctypes.c_ulong),
+    ("RegionX", ctypes.c_ulong),
+    ("RegionY", ctypes.c_ulong),
+    ("Format", ctypes.c_int),
+    ("BitDepth", ctypes.c_ulong),
+    ("BayerPattern", ctypes.c_int),
+    ("FrameCount", ctypes.c_ulong),
+    ("TimestampLo", ctypes.c_ulong),
+    ("TimestampHi", ctypes.c_ulong),
+    ("_reserved2", ctypes.c_ulong*32)    
     ]
     
     #
@@ -66,8 +66,8 @@ class tPvFrame( Structure ) :
     #
     def __init__( self, frameSize ) :
 		
-        self.ImageBuffer = create_string_buffer( frameSize )
-        self.ImageBufferSize = c_ulong( frameSize )
+        self.ImageBuffer = ctypes.create_string_buffer( frameSize )
+        self.ImageBufferSize = ctypes.c_ulong( frameSize )
         self.AncillaryBuffer = 0
         self.AncillaryBufferSize = 0
 
@@ -79,24 +79,24 @@ if __name__ == "__main__" :
 	
 	
 	# Load PvAPI library
-	driver = cdll.LoadLibrary( "libPvAPI.so" )
+	driver = ctypes.cdll.LoadLibrary( "libPvAPI.so" )
 	
 	# Initialize the library
 	driver.PvInitialize()
 	
 	# Print version
-	pMajor, pMinor = c_int(), c_int()
-	driver.PvVersion( byref(pMajor), byref(pMinor) )
+	pMajor, pMinor = ctypes.c_int(), ctypes.c_int()
+	driver.PvVersion( ctypes.byref(pMajor), ctypes.byref(pMinor) )
 	print( 'libPvAPI version {}.{}'.format( pMajor.value, pMinor.value ) )
 	
 	# Wait for cameras
 	print( 'Waiting for cameras...' )
 	while not driver.PvCameraCount() :
-		sleep( 1 )
+		time.sleep( 1 )
 	
 	# Camera list
 	camera_list = ( tPvCameraInfoEx * 20 )()
-	camera_number = driver.PvCameraListEx( byref(camera_list), 20, None, sizeof(tPvCameraInfoEx) )
+	camera_number = driver.PvCameraListEx( ctypes.byref(camera_list), 20, None, ctypes.sizeof(tPvCameraInfoEx) )
 	print( '{} camera found'.format( camera_number ) )
 	print( 'Camera list :\n' )
 	for i in range( camera_number ) :
