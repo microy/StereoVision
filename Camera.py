@@ -12,6 +12,8 @@
 #
 import ctypes
 import time
+import cmd
+import socket
 
 
 #
@@ -73,34 +75,156 @@ class tPvFrame( ctypes.Structure ) :
 
 
 #
+# Shell to interface the PvAPI library
+#
+class Shell( cmd.Cmd ) :
+	
+	
+	#
+	# Shell customization
+	#
+	prompt = '> '
+	intro = '\n~~ AVT PvAPI SDK Interface ~~\n'
+	ruler = '-'
+
+
+	#
+	# Pre main loop event
+	#
+	def preloop( self ) :
+		
+		# Load PvAPI library
+		self.driver = ctypes.cdll.LoadLibrary( 'libPvAPI.so' )
+		
+		# Initialize the library
+		if self.driver.PvInitialize() :
+			print( 'libPvAPI initialisation failed.' )
+		
+	
+	#
+	# Post main loop event
+	#
+	def postloop( self ) :
+
+		# Release the library
+		self.driver.PvUnInitialize()
+
+
+	#
+	# Print livPvAPI version number
+	#
+	def do_version( self, line ) :
+		
+		pMajor, pMinor = ctypes.c_int(), ctypes.c_int()
+		self.driver.PvVersion( ctypes.byref(pMajor), ctypes.byref(pMinor) )
+		print( 'libPvAPI version {}.{}'.format( pMajor.value, pMinor.value ) )
+	
+	
+	#
+	# List available cameras
+	#
+	def do_cameralist( self, line ) :
+		
+		self.camera_list = ( tPvCameraInfoEx * 20 )()
+		self.camera_number = self.driver.PvCameraListEx( ctypes.byref(self.camera_list), 20, None, ctypes.sizeof(tPvCameraInfoEx) )
+		print( '{} camera found'.format( self.camera_number ) )
+		print( 'Camera list :\n' )
+		for i in range( self.camera_number ) :
+			print( 'Camera {} : {} {} {}'.format( i, self.camera_list[i].CameraName, self.camera_list[i].ModelName, self.camera_list[i].UniqueID ) )
+
+
+	#
+	# Connect a camera via its ID
+	#
+	def do_connect( self, camera_id ) :
+		
+		self.camera_handle = ctypes.c_void_p()
+		if self.driver.PvCameraOpen( camera_id, 0, ctypes.byref(self.camera_handle) ) :
+			print( 'Camera connection failed' )
+
+
+	#
+	# Connect a camera via its IP address
+	#
+	def do_ipconnect( self, ip_address ) :
+		
+		self.camera_handle = ctypes.c_void_p()
+		if self.driver.PvCameraOpenByAddr( socket.inet_aton(ip_address), 0, ctypes.byref(self.camera_handle) ) :
+			print( 'Camera connection failed' )
+
+	#
+	# Disconnect the camera
+	#
+	def do_disconnect( self, line ) :
+		
+		if self.driver.PvCameraClose( self.camera_handle ) :
+			print( 'Camera disconnection failed' )
+
+
+		
+	#
+	# Quit gracefully with Ctrl + D
+	#
+	def do_EOF( self, line ) :
+		
+		return True
+	
+	
+	#
+	# Handle empty lines
+	#
+	def emptyline( self ) :
+		
+         pass
+
+
+#
 # Main
 #
 if __name__ == "__main__" :
 	
+	Shell().cmdloop()
+
 	
-	# Load PvAPI library
-	driver = ctypes.cdll.LoadLibrary( "libPvAPI.so" )
 	
-	# Initialize the library
-	driver.PvInitialize()
 	
-	# Print version
-	pMajor, pMinor = ctypes.c_int(), ctypes.c_int()
-	driver.PvVersion( ctypes.byref(pMajor), ctypes.byref(pMinor) )
-	print( 'libPvAPI version {}.{}'.format( pMajor.value, pMinor.value ) )
+	#~ # Load PvAPI library
+	#~ driver = ctypes.cdll.LoadLibrary( "libPvAPI.so" )
+	#~ 
+	#~ # Initialize the library
+	#~ driver.PvInitialize()
+	#~ 
+	#~ # Print version
+	#~ pMajor, pMinor = ctypes.c_int(), ctypes.c_int()
+	#~ driver.PvVersion( ctypes.byref(pMajor), ctypes.byref(pMinor) )
+	#~ print( 'libPvAPI version {}.{}'.format( pMajor.value, pMinor.value ) )
+	#~ 
+	#~ # Wait for cameras
+	#~ print( 'Waiting for cameras...' )
+	#~ while not driver.PvCameraCount() :
+		#~ time.sleep( 1 )
+	#~ 
+	#~ # Camera list
+	#~ camera_list = ( tPvCameraInfoEx * 20 )()
+	#~ camera_number = driver.PvCameraListEx( ctypes.byref(camera_list), 20, None, ctypes.sizeof(tPvCameraInfoEx) )
+	#~ print( '{} camera found'.format( camera_number ) )
+	#~ print( 'Camera list :\n' )
+	#~ for i in range( camera_number ) :
+		#~ print( 'Camera {} : {}'.format( i, camera_list[i].UniqueID ) )
+	#~ 
+	#~ # Release the library
+	#~ driver.PvUnInitialize()
 	
-	# Wait for cameras
-	print( 'Waiting for cameras...' )
-	while not driver.PvCameraCount() :
-		time.sleep( 1 )
 	
-	# Camera list
-	camera_list = ( tPvCameraInfoEx * 20 )()
-	camera_number = driver.PvCameraListEx( ctypes.byref(camera_list), 20, None, ctypes.sizeof(tPvCameraInfoEx) )
-	print( '{} camera found'.format( camera_number ) )
-	print( 'Camera list :\n' )
-	for i in range( camera_number ) :
-		print( 'Camera {} : {}'.format( i, camera_list[i].UniqueID ) )
 	
-	# Release the library
-	driver.PvUnInitialize()
+	
+#~ import cv2
+#~ if __name__ == '__main__':
+    #~ cv2.namedWindow("Cam", 1)
+    #~ capture = cv2.VideoCapture()
+    #~ capture.open( 800 )
+    #~ while True:
+        #~ img = capture.read()[1]
+        #~ cv2.imshow("Cam", img)
+        #~ if cv2.waitKey(10) == 27: break
+    #~ cv2.destroyWindow("Cam")
