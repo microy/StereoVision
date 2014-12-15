@@ -18,22 +18,6 @@ import os
 
 
 #
-# Vimba handle constant to access Vimba system features
-#
-VmbHandle = ctypes.c_void_p(1)
-
-
-#
-# Vimba version information structure
-#
-class VmbVersionInfo( ctypes.Structure ) :
-	
-	_fields_ = [('major', ctypes.c_uint32),
-				('minor', ctypes.c_uint32),
-				('patch', ctypes.c_uint32)]
-
-
-#
 # Vimba frame structure
 #
 class VmbFrame( ctypes.Structure ) :
@@ -76,28 +60,31 @@ class Shell( cmd.Cmd ) :
 	#
 	def preloop( self ) :
 		
+		# Vimba handle constant to access Vimba system features
+		VmbHandle = ctypes.c_void_p(1)
+
 		# Get Vimba installation directory
 		vimba_path = "/" + "/".join(os.environ.get("GENICAM_GENTL64_PATH").split("/")[1:-3]) + "/VimbaC/DynamicLib/x86_64bit/libVimbaC.so"
 		
 		# Load Vimba library
-		self.driver = ctypes.cdll.LoadLibrary( vimba_path )
+		self.vimba = ctypes.cdll.LoadLibrary( vimba_path )
 		
 		# Initialize the library
-		if self.driver.VmbStartup() :
+		if self.vimba.VmbStartup() :
 			print( 'Vimba initialisation failed' )
 			
 		# Test GigE vision transport layer connection
 		gige_vtl_present = ctypes.c_bool()
-		self.driver.VmbFeatureBoolGet( VmbHandle, "GeVTLIsPresent", ctypes.byref(gige_vtl_present) )
+		self.vimba.VmbFeatureBoolGet( VmbHandle, "GeVTLIsPresent", ctypes.byref(gige_vtl_present) )
 		if not gige_vtl_present :
 			print( 'Could not find the presence of a GigE transport layer' )
 			
 		# Set the waiting duration for discovery packets to return
-		if self.driver.VmbFeatureIntSet( VmbHandle, "GeVDiscoveryAllDuration", 250 ) :
+		if self.vimba.VmbFeatureIntSet( VmbHandle, "GeVDiscoveryAllDuration", 250 ) :
 			print( 'Could not set the discovery waiting duration' )
 			
 		# Send discovery packets to GigE cameras
-		if self.driver.VmbFeatureCommandRun( VmbHandle, "GeVDiscoveryAllOnce" ) :
+		if self.vimba.VmbFeatureCommandRun( VmbHandle, "GeVDiscoveryAllOnce" ) :
 			print( 'Could not ping GigE cameras over the network' )
 		
 	
@@ -107,36 +94,20 @@ class Shell( cmd.Cmd ) :
 	def postloop( self ) :
 
 		# Release the library
-		self.driver.VmbShutdown()
+		self.vimba.VmbShutdown()
 
 
 	#
-	# Print Vimba version number
-	#
-	def do_version( self, line ) :
-		
-		version_info = VmbVersionInfo()
-		self.driver.VmbVersionQuery( ctypes.byref(version_info), ctypes.sizeof(version_info) )
-		print( 'Vimba version {}.{}.{}'.format( version_info.major, version_info.minor, version_info.patch ) )
-	
-	#
-	#
-	#
-	def do_cameranumber( self, line ) :
-		
-		camera_number = ctypes.c_uint32()
-		self.driver.VmbCamerasList( None, 0, ctypes.byref(camera_number), 0 )
-		print( 'Camera found : {}'.format( camera_number.value ) )
-	
-	
-	#
-	# Connect a camera via its ID
+	# Connect the two cameras with their IP address
 	#
 	def do_connect( self, camera_id ) :
 		
-		self.camera_handle = ctypes.c_void_p()
-		if self.driver.VmbCameraOpen( camera_id, 1, ctypes.byref(self.camera_handle) ) :
-			print( 'Camera connection failed' )
+		self.camera_1_handle = ctypes.c_void_p()
+		if self.vimba.VmbCameraOpen( '10.129.11.231', 1, ctypes.byref(self.camera_1_handle) ) :
+			print( 'Camera 1 connection failed' )
+		self.camera_2_handle = ctypes.c_void_p()
+		if self.vimba.VmbCameraOpen( '10.129.11.232', 1, ctypes.byref(self.camera_2_handle) ) :
+			print( 'Camera 2 connection failed' )
 
 		
 	#
@@ -144,8 +115,10 @@ class Shell( cmd.Cmd ) :
 	#
 	def do_disconnect( self, line ) :
 		
-		if self.driver.VmbCameraClose( self.camera_handle ) :
-			print( 'Camera disconnection failed' )
+		if self.vimba.VmbCameraClose( self.camera_1_handle ) :
+			print( 'Camera 1 disconnection failed' )
+		if self.vimba.VmbCameraClose( self.camera_2_handle ) :
+			print( 'Camera 2 disconnection failed' )
 
 
 	#
