@@ -66,6 +66,10 @@ class Shell( cmd.Cmd ) :
 	prompt = '> '
 	intro = '\n~~ AVT Vimba SDK Interface ~~\n'
 	ruler = '-'
+	doc_header = ''
+	misc_header = ''
+	undoc_header = ''
+
 
 	#
 	# Pre main loop event
@@ -145,12 +149,12 @@ class Shell( cmd.Cmd ) :
 
 
 	#
-	# Quit gracefully with Ctrl + D
+	# Quit gracefully
 	#
-	def do_EOF( self, line ) :
+	def do_exit( self, line ) :
 		
 		return True
-	
+
 	
 	#
 	# Handle empty lines
