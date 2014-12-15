@@ -1,11 +1,11 @@
 # PyStereoVisionToolkit
 
 Implement a stereovision acquisition and processing library in Python for research purpose.
-
+Use the AVT PvAPI or Vimba SDK to access the Manta GigabitEthernet cameras.
 
 Requirements :
 
-- `NumPy`, `SimpleCV`
+- `NumPy`, `OpenCV`
 
 
 Copyright (c) 2014 Michaël Roy (microygh@gmail.com)
