@@ -54,13 +54,26 @@ class VmbFrame( Structure ) :
 # Main
 #
 if __name__ == "__main__" :
+
+
+	#
+	# Initialization
+	#
 	
+	# Camera handles
+	camera_1 = c_void_p()
+	camera_2 = c_void_p()
+	
+	# Image frames
+	frame_1 = VmbFrame()
+	frame_2 = VmbFrame()
 	
 	# Temporary image for display
 	image_displayed = numpy.zeros( (height, 2*width), dtype=numpy.uint8 )
 	
 	# Number of images saved
 	image_count = 0
+
 
 	#
 	# Vimba initialization
@@ -82,10 +95,6 @@ if __name__ == "__main__" :
 	#
 	print( 'Camera connection...' )
 	
-	# Initialize camera handles
-	camera_1 = c_void_p()
-	camera_2 = c_void_p()
-	
 	# Connect the cameras
 	vimba.VmbCameraOpen( '10.129.11.231', 1, byref(camera_1) )
 	vimba.VmbCameraOpen( '10.129.11.232', 1, byref(camera_2) )
@@ -95,10 +104,6 @@ if __name__ == "__main__" :
 	# Start image acquisition
 	#
 	print( 'Start acquisition...' )
-	
-	# Prepare the frames
-	frame_1 = VmbFrame()
-	frame_2 = VmbFrame()
 	
 	# Announce the frames
 	vimba.VmbFrameAnnounce( camera_1, byref(frame_1), sizeof(frame_1) )
@@ -138,7 +143,7 @@ if __name__ == "__main__" :
 		image_displayed[ 0:height, 0:width ] = image_1
 		image_displayed[ 0:height, width:2*width ] = image_2
 		
-		# Display the image
+		# Display the image (scaled down)
 		cv2.imshow( "Cameras", cv2.resize( image_displayed, None, fx=0.2, fy=0.2 ) )
 		
 		# Keyboard interruption
