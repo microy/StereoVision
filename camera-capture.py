@@ -120,9 +120,14 @@ if __name__ == "__main__" :
 	while True :
 
 		# Capture one frame synchronously
-		vimba.VmbCaptureFrameWait( camera_1, byref(frame_1), 2000 )
-		vimba.VmbCaptureFrameWait( camera_2, byref(frame_2), 2000 )
+		vimba.VmbCaptureFrameWait( camera_1, byref(frame_1), 1000 )
+		vimba.VmbCaptureFrameWait( camera_2, byref(frame_2), 1000 )
 		
+		# Check frame status
+		if frame_1.receiveStatus or frame_2.receiveStatus :
+			print( 'Frame dropped...' )
+			continue
+
 		# Convert images to numpy arrays
 		image_1 = numpy.fromstring( frame_1.buffer[ 0 : payloadsize ], dtype=numpy.uint8 )
 		image_1.shape = ( height, width )
