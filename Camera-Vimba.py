@@ -18,6 +18,14 @@ import os
 
 
 #
+# Image parameters from the camera
+#
+width = 2452
+height = 2056
+payloadsize = 5041312
+
+
+#
 # Vimba frame structure
 #
 class VmbFrame( ctypes.Structure ) :
@@ -36,6 +44,14 @@ class VmbFrame( ctypes.Structure ) :
 				('offsetY', ctypes.c_uint32),
 				('frameID', ctypes.c_uint64),
 				('timestamp', ctypes.c_uint64)]
+	
+	def __init__( self ) :
+
+		self.ImageBuffer = ctypes.create_string_buffer( payloadsize )
+		self.ImageBufferSize = ctypes.c_ulong( payloadsize )
+		self.AncillaryBuffer = ctypes.create_string_buffer(0)
+		self.AncillaryBufferSize = 0
+
 
 
 #
@@ -111,7 +127,35 @@ class Shell( cmd.Cmd ) :
 
 		
 	#
-	# Disconnect the camera
+	# Capture an image from the cameras
+	#
+	def do_capture( self, line ) :
+
+		# Start capture
+		if self.vimba.VmbCaptureStart( self.camera_1_handle ) :
+			print( 'Camera 1 capture start failed' )
+		if self.vimba.VmbCaptureStart( self.camera_2_handle ) :
+			print( 'Camera 2 capture start failed' )
+
+		# Prepare the frames
+		frame_1 = VmbFrame()
+		frame_2 = VmbFrame()
+		
+		# Announce the frames
+		print( self.vimba.VmbFrameAnnounce( self.camera_1_handle, ctypes.byref(frame_1), ctypes.sizeof(frame_1) ) )
+#			print( 'Frame announce on camera 1 failed' )
+		if self.vimba.VmbFrameAnnounce( self.camera_2_handle, ctypes.byref(frame_2), ctypes.sizeof(frame_2) ) :
+			print( 'Frame announce on camera 2 failed' )
+
+		# End capture
+		if self.vimba.VmbCaptureEnd( self.camera_1_handle ) :
+			print( 'Camera 1 capture end failed' )
+		if self.vimba.VmbCaptureEnd( self.camera_2_handle ) :
+			print( 'Camera 2 capture end failed' )
+
+		
+	#
+	# Disconnect the cameras
 	#
 	def do_disconnect( self, line ) :
 		
