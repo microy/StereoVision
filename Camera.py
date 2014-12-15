@@ -45,10 +45,8 @@ class VmbFrame( Structure ) :
 	
 	def __init__( self ) :
 
-		self.ImageBuffer = create_string_buffer( payloadsize )
-		self.ImageBufferSize = c_ulong( payloadsize )
-		self.AncillaryBuffer = create_string_buffer(0)
-		self.AncillaryBufferSize = 0
+		self.buffer = create_string_buffer( payloadsize )
+		self.bufferSize = c_uint32( payloadsize )
 
 
 #
@@ -93,7 +91,7 @@ if __name__ == "__main__" :
 	# Connect the cameras
 	vimba.VmbCameraOpen( '10.129.11.231', 1, byref(camera_1_handle) )
 	vimba.VmbCameraOpen( '10.129.11.232', 1, byref(camera_2_handle) )
-		
+	
 	
 	#
 	# Image acquisition
@@ -107,6 +105,8 @@ if __name__ == "__main__" :
 	# Prepare the frames
 	frame_1 = VmbFrame()
 	frame_2 = VmbFrame()
+	
+	print( frame_1.bufferSize )
 	
 	# Announce the frames
 	print( vimba.VmbFrameAnnounce( camera_1_handle, byref(frame_1), sizeof(frame_1) ) )
@@ -130,7 +130,7 @@ if __name__ == "__main__" :
 	#
 	# Vimba shutdown
 	#
-	print( 'Shutdown Vimba... ' )
+	print( 'Vimba shutdown... ' )
 	
 	# Release the library
 	vimba.VmbShutdown()
