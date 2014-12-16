@@ -14,7 +14,7 @@ from ctypes import *
 import os
 import cv2
 import numpy
-
+import time
 
 #
 # Image parameters from the camera
@@ -73,6 +73,10 @@ if __name__ == "__main__" :
 	
 	# Number of images saved
 	image_count = 0
+
+	# Frame per second counter
+	frame_counter = 0
+	fps = 0
 
 
 	#
@@ -141,10 +145,13 @@ if __name__ == "__main__" :
 	# Start capture engine
 	vimba.VmbCaptureStart( camera_1 )
 	vimba.VmbCaptureStart( camera_2 )
+	
+	# Initialize the clock for counting the frame per second
+	time_start = time.clock()
 
 	# Live display
 	while True :
-
+		
 		# Queue frames
 		vimba.VmbCaptureFrameQueue( camera_1, byref(frame_1), None )
 		vimba.VmbCaptureFrameQueue( camera_2, byref(frame_2), None )
@@ -164,7 +171,7 @@ if __name__ == "__main__" :
 		# Check frame status
 		if frame_1.receiveStatus or frame_2.receiveStatus :
 			continue
-			
+
 		# Convert images to numpy arrays
 		image_1 = numpy.fromstring( frame_1.buffer[ 0 : payloadsize ], dtype=numpy.uint8 )
 		image_1.shape = ( height, width )
@@ -175,8 +182,22 @@ if __name__ == "__main__" :
 		image_displayed[ 0:height, 0:width ] = image_1
 		image_displayed[ 0:height, width:2*width ] = image_2
 		
+		# Resize image for display
+		image_final = cv2.resize( image_displayed, None, fx=0.3, fy=0.3 )
+
+		# Frame per second counter
+		frame_counter += 1
+		time_elapsed = time.clock() - time_start
+		if time_elapsed > 0.5 :
+			fps = frame_counter / time_elapsed
+			frame_counter = 0
+			time_start = time.clock()
+		
+		# Write FPS counter on the displayed image
+		cv2.putText( image_final, '{:.2f} FPS'.format( fps ), (10, 35), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255) )
+		
 		# Display the image (scaled down)
-		cv2.imshow( "Cameras", cv2.resize( image_displayed, None, fx=0.3, fy=0.3 ) )
+		cv2.imshow( "Cameras", image_final )
 		
 		# Keyboard interruption
 		key = cv2.waitKey(1) & 0xFF
@@ -191,7 +212,7 @@ if __name__ == "__main__" :
 		elif key == 32 :
 			
 			# Save images to disk 
-			image_count = image_count + 1
+			image_count += 1
 			print( 'Save images {} to disk...'.format( image_count ) )
 			cv2.imwrite( 'camera1-{:0>2}.png'.format(image_count), image_1 )
 			cv2.imwrite( 'camera2-{:0>2}.png'.format(image_count), image_2 )
