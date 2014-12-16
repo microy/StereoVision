@@ -134,17 +134,17 @@ while True :
 	vimba.VmbCaptureFrameQueue( camera_1, byref(frame_1), None )
 	vimba.VmbCaptureFrameQueue( camera_2, byref(frame_2), None )
 
-	# Start Acquisition
+	# Start acquisition
 	vimba.VmbFeatureCommandRun( camera_1, "AcquisitionStart" )
 	vimba.VmbFeatureCommandRun( camera_2, "AcquisitionStart" )
 
-	# Capture one frame synchronously
-	vimba.VmbCaptureFrameWait( camera_1, byref(frame_1), 1000 )
-	vimba.VmbCaptureFrameWait( camera_2, byref(frame_2), 1000 )
-	
 	# Stop acquisition
 	vimba.VmbFeatureCommandRun( camera_1, "AcquisitionStop" )
 	vimba.VmbFeatureCommandRun( camera_2, "AcquisitionStop" )
+	
+	# Capture one frame synchronously
+	vimba.VmbCaptureFrameWait( camera_1, byref(frame_1), 1000 )
+	vimba.VmbCaptureFrameWait( camera_2, byref(frame_2), 1000 )
 	
 	# Convert images to numpy arrays
 	image_1 = numpy.fromstring( frame_1.buffer[ 0 : payloadsize ], dtype=numpy.uint8 )
