@@ -99,7 +99,15 @@ if __name__ == "__main__" :
 	vimba.VmbCameraOpen( '10.129.11.231', 1, byref(camera_1) )
 	vimba.VmbCameraOpen( '10.129.11.232', 1, byref(camera_2) )
 	
-	
+	# Configure the cameras
+	vimba.VmbFeatureEnumSet( camera_1, "AcquisitionMode", "Continuous" ) 
+	vimba.VmbFeatureEnumSet( camera_1, "FrameStartTriggerMode", "Freerun" )
+	vimba.VmbFeatureEnumSet( camera_1, "PixelFormat", "Mono8" )
+	vimba.VmbFeatureEnumSet( camera_2, "AcquisitionMode", "Continuous" ) 
+	vimba.VmbFeatureEnumSet( camera_2, "FrameStartTriggerMode", "Freerun" )
+	vimba.VmbFeatureEnumSet( camera_2, "PixelFormat", "Mono8" )
+    
+    
 	#
 	# Start image acquisition
 	#
@@ -113,10 +121,6 @@ if __name__ == "__main__" :
 	vimba.VmbCaptureStart( camera_1 )
 	vimba.VmbCaptureStart( camera_2 )
 
-	# Queue frames
-	vimba.VmbCaptureFrameQueue( camera_1, byref(frame_1), None )
-	vimba.VmbCaptureFrameQueue( camera_2, byref(frame_2), None )
-	
 	# Start Acquisition
 	vimba.VmbFeatureCommandRun( camera_1, "AcquisitionStart" )
 	vimba.VmbFeatureCommandRun( camera_2, "AcquisitionStart" )
@@ -124,6 +128,10 @@ if __name__ == "__main__" :
 	# Live display
 	while True :
 
+		# Queue frames
+		vimba.VmbCaptureFrameQueue( camera_1, byref(frame_1), None )
+		vimba.VmbCaptureFrameQueue( camera_2, byref(frame_2), None )
+	
 		# Capture one frame synchronously
 		vimba.VmbCaptureFrameWait( camera_1, byref(frame_1), 1000 )
 		vimba.VmbCaptureFrameWait( camera_2, byref(frame_2), 1000 )
