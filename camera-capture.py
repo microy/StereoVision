@@ -146,10 +146,6 @@ while True :
 	vimba.VmbFeatureCommandRun( camera_1, "AcquisitionStop" )
 	vimba.VmbFeatureCommandRun( camera_2, "AcquisitionStop" )
 	
-	# Check frame status
-	if frame_1.receiveStatus or frame_2.receiveStatus :
-		continue
-
 	# Convert images to numpy arrays
 	image_1 = numpy.fromstring( frame_1.buffer[ 0 : payloadsize ], dtype=numpy.uint8 )
 	image_1.shape = ( height, width )
@@ -211,6 +207,7 @@ vimba.VmbCaptureEnd( camera_2 )
 # Revoke frames
 vimba.VmbFrameRevokeAll( camera_1 )
 vimba.VmbFrameRevokeAll( camera_2 )
+
 
 #
 # Camera disconnection
