@@ -101,12 +101,12 @@ vimba.VmbCameraOpen( '10.129.11.232', 1, byref(camera_2) )
 # Adjust packet size automatically on each camera
 vimba.VmbFeatureCommandRun( camera_1, "GVSPAdjustPacketSize" )
 is_command_done = c_bool( False )
-while is_command_done == False :
+while not is_command_done :
 	if vimba.VmbFeatureCommandIsDone( camera_1, "GVSPAdjustPacketSize", byref(is_command_done) ) :
 		break
 vimba.VmbFeatureCommandRun( camera_2, "GVSPAdjustPacketSize" )
 is_command_done = c_bool( False )
-while is_command_done == False :
+while not is_command_done :
 	if vimba.VmbFeatureCommandIsDone( camera_2, "GVSPAdjustPacketSize", byref(is_command_done) ) :
 		break
 
