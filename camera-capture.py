@@ -59,7 +59,7 @@ if __name__ == "__main__" :
 	#
 	# Initialization
 	#
-	
+
 	# Camera handles
 	camera_1 = c_void_p()
 	camera_2 = c_void_p()
@@ -89,6 +89,15 @@ if __name__ == "__main__" :
 	# Initialize the library
 	vimba.VmbStartup()
 		
+	# Vimba handle constant to access Vimba system features
+#	vimba_handle = c_void_p(1)
+	
+	# Set the waiting duration for discovery packets to return
+#	vimba.VmbFeatureIntSet( vimba_handle, "GeVDiscoveryAllDuration", 250 )
+
+	# Send discovery packets to GigE cameras
+#	vimba.VmbFeatureCommandRun( vimba_handle, "GeVDiscoveryAllOnce" )
+
 
 	#
 	# Camera connection
@@ -98,16 +107,28 @@ if __name__ == "__main__" :
 	# Connect the cameras
 	vimba.VmbCameraOpen( '10.129.11.231', 1, byref(camera_1) )
 	vimba.VmbCameraOpen( '10.129.11.232', 1, byref(camera_2) )
-	
+
+	# Adjust packet size automatically on each camera
+	vimba.VmbFeatureCommandRun( camera_1, "GVSPAdjustPacketSize" )
+	is_command_done = c_bool( False )
+	while is_command_done == False :
+		if vimba.VmbFeatureCommandIsDone( camera_1, "GVSPAdjustPacketSize", byref(is_command_done) ) :
+			break
+	vimba.VmbFeatureCommandRun( camera_2, "GVSPAdjustPacketSize" )
+	is_command_done = c_bool( False )
+	while is_command_done == False :
+		if vimba.VmbFeatureCommandIsDone( camera_2, "GVSPAdjustPacketSize", byref(is_command_done) ) :
+			break
+
 	# Configure the cameras
-	vimba.VmbFeatureEnumSet( camera_1, "AcquisitionMode", "Continuous" ) 
-	vimba.VmbFeatureEnumSet( camera_1, "FrameStartTriggerMode", "Freerun" )
-	vimba.VmbFeatureEnumSet( camera_1, "PixelFormat", "Mono8" )
-	vimba.VmbFeatureEnumSet( camera_2, "AcquisitionMode", "Continuous" ) 
-	vimba.VmbFeatureEnumSet( camera_2, "FrameStartTriggerMode", "Freerun" )
-	vimba.VmbFeatureEnumSet( camera_2, "PixelFormat", "Mono8" )
-    
-    
+#	vimba.VmbFeatureEnumSet( camera_1, "AcquisitionMode", "Continuous" )
+#	vimba.VmbFeatureEnumSet( camera_1, "FrameStartTriggerMode", "Freerun" )
+#	vimba.VmbFeatureEnumSet( camera_1, "PixelFormat", "Mono8" )
+#	vimba.VmbFeatureEnumSet( camera_2, "AcquisitionMode", "Continuous" )
+#	vimba.VmbFeatureEnumSet( camera_2, "FrameStartTriggerMode", "Freerun" )
+#	vimba.VmbFeatureEnumSet( camera_2, "PixelFormat", "Mono8" )
+
+
 	#
 	# Start image acquisition
 	#
@@ -121,26 +142,29 @@ if __name__ == "__main__" :
 	vimba.VmbCaptureStart( camera_1 )
 	vimba.VmbCaptureStart( camera_2 )
 
-	# Start Acquisition
-	vimba.VmbFeatureCommandRun( camera_1, "AcquisitionStart" )
-	vimba.VmbFeatureCommandRun( camera_2, "AcquisitionStart" )
-
 	# Live display
 	while True :
 
 		# Queue frames
 		vimba.VmbCaptureFrameQueue( camera_1, byref(frame_1), None )
 		vimba.VmbCaptureFrameQueue( camera_2, byref(frame_2), None )
-	
+
+		# Start Acquisition
+		vimba.VmbFeatureCommandRun( camera_1, "AcquisitionStart" )
+		vimba.VmbFeatureCommandRun( camera_2, "AcquisitionStart" )
+
 		# Capture one frame synchronously
 		vimba.VmbCaptureFrameWait( camera_1, byref(frame_1), 1000 )
 		vimba.VmbCaptureFrameWait( camera_2, byref(frame_2), 1000 )
 		
+		# Stop acquisition
+		vimba.VmbFeatureCommandRun( camera_1, "AcquisitionStop" )
+		vimba.VmbFeatureCommandRun( camera_2, "AcquisitionStop" )
+		
 		# Check frame status
 		if frame_1.receiveStatus or frame_2.receiveStatus :
-			print( 'Frame dropped...' )
 			continue
-
+			
 		# Convert images to numpy arrays
 		image_1 = numpy.fromstring( frame_1.buffer[ 0 : payloadsize ], dtype=numpy.uint8 )
 		image_1.shape = ( height, width )
@@ -152,10 +176,10 @@ if __name__ == "__main__" :
 		image_displayed[ 0:height, width:2*width ] = image_2
 		
 		# Display the image (scaled down)
-		cv2.imshow( "Cameras", cv2.resize( image_displayed, None, fx=0.2, fy=0.2 ) )
+		cv2.imshow( "Cameras", cv2.resize( image_displayed, None, fx=0.3, fy=0.3 ) )
 		
 		# Keyboard interruption
-		key = cv2.waitKey(0) & 0xFF
+		key = cv2.waitKey(1) & 0xFF
 		
 		# Escape key
 		if key == 27 :
@@ -166,7 +190,7 @@ if __name__ == "__main__" :
 		# Space key
 		elif key == 32 :
 			
-			# Save images to disk
+			# Save images to disk 
 			image_count = image_count + 1
 			print( 'Save images {} to disk...'.format( image_count ) )
 			cv2.imwrite( 'camera1-{:0>2}.png'.format(image_count), image_1 )
@@ -181,10 +205,6 @@ if __name__ == "__main__" :
 	#
 	print( 'Stop acquisition...' )
 
-	# Stop acquisition
-	vimba.VmbFeatureCommandRun( camera_1, "AcquisitionStop" )
-	vimba.VmbFeatureCommandRun( camera_2, "AcquisitionStop" )
-	
 	# Stop capture engine
 	vimba.VmbCaptureEnd( camera_1 )
 	vimba.VmbCaptureEnd( camera_2 )
