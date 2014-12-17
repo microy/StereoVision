@@ -112,6 +112,14 @@ while not command_done :
 	if vimba.VmbFeatureCommandIsDone( camera_2, "GVSPAdjustPacketSize", byref(command_done) ) :
 		break
 
+# Configure the cameras
+vimba.VmbFeatureEnumSet( camera_1, "AcquisitionMode", "Continuous" )
+vimba.VmbFeatureEnumSet( camera_1, "FrameStartTriggerMode", "Freerun" )
+vimba.VmbFeatureEnumSet( camera_1, "PixelFormat", "Mono8" )
+vimba.VmbFeatureEnumSet( camera_2, "AcquisitionMode", "Continuous" )
+vimba.VmbFeatureEnumSet( camera_2, "FrameStartTriggerMode", "Freerun" )
+vimba.VmbFeatureEnumSet( camera_2, "PixelFormat", "Mono8" )
+
 
 #
 # Start image acquisition
