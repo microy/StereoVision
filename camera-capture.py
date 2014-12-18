@@ -10,7 +10,7 @@
 #
 # External dependencies
 #
-from ctypes import *
+import ctypes
 import os
 import cv2
 import numpy
@@ -20,29 +20,29 @@ import time
 #
 # Vimba frame structure
 #
-class VmbFrame( Structure ) :
+class VmbFrame( ctypes.Structure ) :
 	
 	# VmbFrame structure fields
-	_fields_ = [('buffer', POINTER(c_char)),
-			('bufferSize', c_uint32),
-			('context', c_void_p * 4),
-			('receiveStatus', c_int32),
-			('receiveFlags', c_uint32),
-			('imageSize', c_uint32),
-			('ancillarySize', c_uint32),
-			('pixelFormat', c_uint32),
-			('width', c_uint32),
-			('height', c_uint32),
-			('offsetX', c_uint32),
-			('offsetY', c_uint32),
-			('frameID', c_uint64),
-			('timestamp', c_uint64)]
+	_fields_ = [('buffer', ctypes.POINTER(ctypes.c_char)),
+			('bufferSize', ctypes.c_uint32),
+			('context', ctypes.c_void_p * 4),
+			('receiveStatus', ctypes.c_int32),
+			('receiveFlags', ctypes.c_uint32),
+			('imageSize', ctypes.c_uint32),
+			('ancillarySize', ctypes.c_uint32),
+			('pixelFormat', ctypes.c_uint32),
+			('width', ctypes.c_uint32),
+			('height', ctypes.c_uint32),
+			('offsetX', ctypes.c_uint32),
+			('offsetY', ctypes.c_uint32),
+			('frameID', ctypes.c_uint64),
+			('timestamp', ctypes.c_uint64)]
 	
 	# Initialize the image buffer
 	def __init__( self, frame_size ) :
 
-		self.buffer = create_string_buffer( frame_size )
-		self.bufferSize = c_uint32( frame_size )
+		self.buffer = ctypes.create_string_buffer( frame_size )
+		self.bufferSize = ctypes.c_uint32( frame_size )
 
 
 #
@@ -55,8 +55,8 @@ height = 2056
 payloadsize = 5041312
 
 # Camera handles
-camera_1 = c_void_p()
-camera_2 = c_void_p()
+camera_1 = ctypes.c_void_p()
+camera_2 = ctypes.c_void_p()
 
 # Image frames
 frame_1 = VmbFrame( payloadsize )
@@ -82,13 +82,13 @@ print( 'Vimba initialization...' )
 vimba_path = "/" + "/".join(os.environ.get("GENICAM_GENTL64_PATH").split("/")[1:-3]) + "/VimbaC/DynamicLib/x86_64bit/libVimbaC.so"
 	
 # Load Vimba library
-vimba = cdll.LoadLibrary( vimba_path )
+vimba = ctypes.cdll.LoadLibrary( vimba_path )
 
 # Initialize the library
 vimba.VmbStartup()
 	
-# Send discovery packets to GigE cameras
-vimba.VmbFeatureCommandRun( c_void_p(1), "GeVDiscoveryAllOnce" )
+# Send discovery packet to GigE cameras
+vimba.VmbFeatureCommandRun( ctypes.c_void_p(1), "GeVDiscoveryAllOnce" )
 
 
 #
