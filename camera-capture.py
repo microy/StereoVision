@@ -18,52 +18,49 @@ import time
 
 
 #
-# Default image parameters from our cameras (AVT Manta G504B)
-#
-width = 2452
-height = 2056
-payloadsize = 5041312
-
-
-#
 # Vimba frame structure
 #
 class VmbFrame( Structure ) :
 	
 	# VmbFrame structure fields
 	_fields_ = [('buffer', POINTER(c_char)),
-				('bufferSize', c_uint32),
-				('context', c_void_p * 4),
-				('receiveStatus', c_int32),
-				('receiveFlags', c_uint32),
-				('imageSize', c_uint32),
-				('ancillarySize', c_uint32),
-				('pixelFormat', c_uint32),
-				('width', c_uint32),
-				('height', c_uint32),
-				('offsetX', c_uint32),
-				('offsetY', c_uint32),
-				('frameID', c_uint64),
-				('timestamp', c_uint64)]
+			('bufferSize', c_uint32),
+			('context', c_void_p * 4),
+			('receiveStatus', c_int32),
+			('receiveFlags', c_uint32),
+			('imageSize', c_uint32),
+			('ancillarySize', c_uint32),
+			('pixelFormat', c_uint32),
+			('width', c_uint32),
+			('height', c_uint32),
+			('offsetX', c_uint32),
+			('offsetY', c_uint32),
+			('frameID', c_uint64),
+			('timestamp', c_uint64)]
 	
 	# Initialize the image buffer
-	def __init__( self ) :
+	def __init__( self, frame_size ) :
 
-		self.buffer = create_string_buffer( payloadsize )
-		self.bufferSize = c_uint32( payloadsize )
+		self.buffer = create_string_buffer( frame_size )
+		self.bufferSize = c_uint32( frame_size )
 
 
 #
 # Initialization
 #
 
+# Default image parameters from our cameras (AVT Manta G504B)
+width = 2452
+height = 2056
+payloadsize = 5041312
+
 # Camera handles
 camera_1 = c_void_p()
 camera_2 = c_void_p()
 
 # Image frames
-frame_1 = VmbFrame()
-frame_2 = VmbFrame()
+frame_1 = VmbFrame( payloadsize )
+frame_2 = VmbFrame( payloadsize )
 
 # Temporary image for display
 image_temp = numpy.zeros( (height, 2*width), dtype=numpy.uint8 )
@@ -90,6 +87,14 @@ vimba = cdll.LoadLibrary( vimba_path )
 # Initialize the library
 vimba.VmbStartup()
 	
+# Set the waiting duration for discovery packets to return
+#vimba.VmbFeatureIntSet( c_void_p(1), "GeVDiscoveryAllDuration", 250 )
+
+# Send discovery packets to GigE cameras
+#vimba.VmbFeatureCommandRun( c_void_p(1), "GeVDiscoveryAllOnce" )
+#vimba.VmbFeatureCommandRun( c_void_p(1), "GeVDiscoveryAllAuto" )
+#time.sleep( 0.2 )
+
 
 #
 # Camera connection
@@ -102,23 +107,23 @@ vimba.VmbCameraOpen( '10.129.11.232', 1, byref(camera_2) )
 
 # Adjust packet size automatically on each camera
 vimba.VmbFeatureCommandRun( camera_1, "GVSPAdjustPacketSize" )
-command_done = c_bool( False )
-while not command_done :
-	if vimba.VmbFeatureCommandIsDone( camera_1, "GVSPAdjustPacketSize", byref(command_done) ) :
-		break
+#command_done = c_bool( False )
+#while not command_done :
+#	if vimba.VmbFeatureCommandIsDone( camera_1, "GVSPAdjustPacketSize", byref(command_done) ) :
+#		break
 vimba.VmbFeatureCommandRun( camera_2, "GVSPAdjustPacketSize" )
-command_done = c_bool( False )
-while not command_done :
-	if vimba.VmbFeatureCommandIsDone( camera_2, "GVSPAdjustPacketSize", byref(command_done) ) :
-		break
+#command_done = c_bool( False )
+#while not command_done :
+#	if vimba.VmbFeatureCommandIsDone( camera_2, "GVSPAdjustPacketSize", byref(command_done) ) :
+#		break
 
-# Configure the cameras
-vimba.VmbFeatureEnumSet( camera_1, "AcquisitionMode", "Continuous" )
-vimba.VmbFeatureEnumSet( camera_1, "FrameStartTriggerMode", "Freerun" )
-vimba.VmbFeatureEnumSet( camera_1, "PixelFormat", "Mono8" )
-vimba.VmbFeatureEnumSet( camera_2, "AcquisitionMode", "Continuous" )
-vimba.VmbFeatureEnumSet( camera_2, "FrameStartTriggerMode", "Freerun" )
-vimba.VmbFeatureEnumSet( camera_2, "PixelFormat", "Mono8" )
+# Configure the cameras (default parameters)
+#vimba.VmbFeatureEnumSet( camera_1, "AcquisitionMode", "Continuous" )
+#vimba.VmbFeatureEnumSet( camera_1, "FrameStartTriggerMode", "Freerun" )
+#vimba.VmbFeatureEnumSet( camera_1, "PixelFormat", "Mono8" )
+#vimba.VmbFeatureEnumSet( camera_2, "AcquisitionMode", "Continuous" )
+#vimba.VmbFeatureEnumSet( camera_2, "FrameStartTriggerMode", "Freerun" )
+#vimba.VmbFeatureEnumSet( camera_2, "PixelFormat", "Mono8" )
 
 
 #
@@ -134,6 +139,10 @@ vimba.VmbFrameAnnounce( camera_2, byref(frame_2), sizeof(frame_2) )
 vimba.VmbCaptureStart( camera_1 )
 vimba.VmbCaptureStart( camera_2 )
 
+# Start acquisition
+vimba.VmbFeatureCommandRun( camera_1, "AcquisitionStart" )
+vimba.VmbFeatureCommandRun( camera_2, "AcquisitionStart" )
+
 # Initialize the clock for counting the number of frames per second
 time_start = time.clock()
 
@@ -144,23 +153,20 @@ while True :
 	vimba.VmbCaptureFrameQueue( camera_1, byref(frame_1), None )
 	vimba.VmbCaptureFrameQueue( camera_2, byref(frame_2), None )
 
-	# Start acquisition
-	vimba.VmbFeatureCommandRun( camera_1, "AcquisitionStart" )
-	vimba.VmbFeatureCommandRun( camera_2, "AcquisitionStart" )
-
-	# Stop acquisition
-	vimba.VmbFeatureCommandRun( camera_1, "AcquisitionStop" )
-	vimba.VmbFeatureCommandRun( camera_2, "AcquisitionStop" )
-	
 	# Get frames back
 	vimba.VmbCaptureFrameWait( camera_1, byref(frame_1), 1000 )
 	vimba.VmbCaptureFrameWait( camera_2, byref(frame_2), 1000 )
 	
+	# Check frame validity
+	if frame_1.receiveStatus or frame_2.receiveStatus :
+		print( 'Frame dropped...' )
+		continue
+	
 	# Convert frames to numpy arrays
-	image_1 = numpy.fromstring( frame_1.buffer[ 0 : payloadsize ], dtype=numpy.uint8 )
-	image_1.shape = ( height, width )
-	image_2 = numpy.fromstring( frame_2.buffer[ 0 : payloadsize ], dtype=numpy.uint8 )
-	image_2.shape = ( height, width )
+	image_1 = numpy.fromstring( frame_1.buffer[ 0 : payloadsize ], dtype=numpy.uint8 ).reshape( height, width )
+	image_2 = numpy.fromstring( frame_2.buffer[ 0 : payloadsize ], dtype=numpy.uint8 ).reshape( height, width )
+#	image_1 = numpy.array( [ord(frame_1.buffer[x]) for x in range(payloadsize)] ).reshape( height, width )
+#	image_2 = numpy.array( [ord(frame_2.buffer[x]) for x in range(payloadsize)] ).reshape( height, width )
 
 	# Prepare image for display
 	image_temp[ 0:height, 0:width ] = image_1
@@ -181,7 +187,7 @@ while True :
 	cv2.putText( image_final, '{:.2f} FPS'.format( fps_counter ), (10, 35), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255) )
 	
 	# Display the image (scaled down)
-	cv2.imshow( "Cameras", image_final )
+	cv2.imshow( "Stereo Cameras", image_final )
 	
 	# Keyboard interruption
 	key = cv2.waitKey(1) & 0xFF
@@ -210,9 +216,17 @@ cv2.destroyAllWindows()
 #
 print( 'Stop acquisition...' )
 
+# Stop acquisition
+vimba.VmbFeatureCommandRun( camera_1, "AcquisitionStop" )
+vimba.VmbFeatureCommandRun( camera_2, "AcquisitionStop" )
+
 # Stop capture engine
 vimba.VmbCaptureEnd( camera_1 )
 vimba.VmbCaptureEnd( camera_2 )
+
+# Flush the frame queue
+vimba.VmbCaptureQueueFlush( camera_1 )
+vimba.VmbCaptureQueueFlush( camera_2 )
 
 # Revoke frames
 vimba.VmbFrameRevokeAll( camera_1 )
