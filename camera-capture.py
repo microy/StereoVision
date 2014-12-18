@@ -96,13 +96,17 @@ vimba.VmbFeatureCommandRun( c_void_p(1), "GeVDiscoveryAllOnce" )
 #
 print( 'Camera connection...' )
 
-# Connect the cameras
+# Connect the cameras via their serial number
 vimba.VmbCameraOpen( '50-0503323406', 1, byref(camera_1) )
 vimba.VmbCameraOpen( '50-0503326223', 1, byref(camera_2) )
 
 # Adjust packet size automatically on each camera
 vimba.VmbFeatureCommandRun( camera_1, "GVSPAdjustPacketSize" )
 vimba.VmbFeatureCommandRun( camera_2, "GVSPAdjustPacketSize" )
+
+# Configure frame software trigger
+print( vimba.VmbFeatureEnumSet( camera_1, "TriggerSource", "Software" ) )
+print( vimba.VmbFeatureEnumSet( camera_2, "TriggerSource", "Software" ) )
 
 
 #
@@ -118,6 +122,10 @@ vimba.VmbFrameAnnounce( camera_2, byref(frame_2), sizeof(frame_2) )
 vimba.VmbCaptureStart( camera_1 )
 vimba.VmbCaptureStart( camera_2 )
 
+# Start acquisition
+vimba.VmbFeatureCommandRun( camera_1, "AcquisitionStart" )
+vimba.VmbFeatureCommandRun( camera_2, "AcquisitionStart" )
+
 # Initialize the clock for counting the number of frames per second
 time_start = time.clock()
 
@@ -127,14 +135,10 @@ while True :
 	# Queue frames
 	vimba.VmbCaptureFrameQueue( camera_1, byref(frame_1), None )
 	vimba.VmbCaptureFrameQueue( camera_2, byref(frame_2), None )
-
-	# Start acquisition
-	vimba.VmbFeatureCommandRun( camera_1, "AcquisitionStart" )
-	vimba.VmbFeatureCommandRun( camera_2, "AcquisitionStart" )
-
-	# Stop acquisition
-	vimba.VmbFeatureCommandRun( camera_1, "AcquisitionStop" )
-	vimba.VmbFeatureCommandRun( camera_2, "AcquisitionStop" )
+	
+	# Send software trigger
+	vimba.VmbFeatureCommandRun( camera_1, "TriggerSoftware" )
+	vimba.VmbFeatureCommandRun( camera_2, "TriggerSoftware" )
 
 	# Get frames back
 	vimba.VmbCaptureFrameWait( camera_1, byref(frame_1), 1000 )
@@ -195,6 +199,10 @@ cv2.destroyAllWindows()
 # Stop image acquisition
 #
 print( 'Stop acquisition...' )
+
+# Stop acquisition
+vimba.VmbFeatureCommandRun( camera_1, "AcquisitionStop" )
+vimba.VmbFeatureCommandRun( camera_2, "AcquisitionStop" )
 
 # Stop capture engine
 vimba.VmbCaptureEnd( camera_1 )
