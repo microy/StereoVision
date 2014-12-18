@@ -105,8 +105,8 @@ vimba.VmbFeatureCommandRun( camera_1, "GVSPAdjustPacketSize" )
 vimba.VmbFeatureCommandRun( camera_2, "GVSPAdjustPacketSize" )
 
 # Configure frame software trigger
-print( vimba.VmbFeatureEnumSet( camera_1, "TriggerSource", "Software" ) )
-print( vimba.VmbFeatureEnumSet( camera_2, "TriggerSource", "Software" ) )
+vimba.VmbFeatureEnumSet( camera_1, "TriggerSource", "Software" )
+vimba.VmbFeatureEnumSet( camera_2, "TriggerSource", "Software" )
 
 
 #
