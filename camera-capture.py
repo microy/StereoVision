@@ -87,13 +87,8 @@ vimba = cdll.LoadLibrary( vimba_path )
 # Initialize the library
 vimba.VmbStartup()
 	
-# Set the waiting duration for discovery packets to return
-#vimba.VmbFeatureIntSet( c_void_p(1), "GeVDiscoveryAllDuration", 250 )
-
 # Send discovery packets to GigE cameras
-#vimba.VmbFeatureCommandRun( c_void_p(1), "GeVDiscoveryAllOnce" )
-#vimba.VmbFeatureCommandRun( c_void_p(1), "GeVDiscoveryAllAuto" )
-#time.sleep( 0.2 )
+vimba.VmbFeatureCommandRun( c_void_p(1), "GeVDiscoveryAllOnce" )
 
 
 #
@@ -102,28 +97,12 @@ vimba.VmbStartup()
 print( 'Camera connection...' )
 
 # Connect the cameras
-vimba.VmbCameraOpen( '10.129.11.231', 1, byref(camera_1) )
-vimba.VmbCameraOpen( '10.129.11.232', 1, byref(camera_2) )
+vimba.VmbCameraOpen( '50-0503323406', 1, byref(camera_1) )
+vimba.VmbCameraOpen( '50-0503326223', 1, byref(camera_2) )
 
 # Adjust packet size automatically on each camera
 vimba.VmbFeatureCommandRun( camera_1, "GVSPAdjustPacketSize" )
-#command_done = c_bool( False )
-#while not command_done :
-#	if vimba.VmbFeatureCommandIsDone( camera_1, "GVSPAdjustPacketSize", byref(command_done) ) :
-#		break
 vimba.VmbFeatureCommandRun( camera_2, "GVSPAdjustPacketSize" )
-#command_done = c_bool( False )
-#while not command_done :
-#	if vimba.VmbFeatureCommandIsDone( camera_2, "GVSPAdjustPacketSize", byref(command_done) ) :
-#		break
-
-# Configure the cameras (default parameters)
-#vimba.VmbFeatureEnumSet( camera_1, "AcquisitionMode", "Continuous" )
-#vimba.VmbFeatureEnumSet( camera_1, "FrameStartTriggerMode", "Freerun" )
-#vimba.VmbFeatureEnumSet( camera_1, "PixelFormat", "Mono8" )
-#vimba.VmbFeatureEnumSet( camera_2, "AcquisitionMode", "Continuous" )
-#vimba.VmbFeatureEnumSet( camera_2, "FrameStartTriggerMode", "Freerun" )
-#vimba.VmbFeatureEnumSet( camera_2, "PixelFormat", "Mono8" )
 
 
 #
@@ -139,10 +118,6 @@ vimba.VmbFrameAnnounce( camera_2, byref(frame_2), sizeof(frame_2) )
 vimba.VmbCaptureStart( camera_1 )
 vimba.VmbCaptureStart( camera_2 )
 
-# Start acquisition
-vimba.VmbFeatureCommandRun( camera_1, "AcquisitionStart" )
-vimba.VmbFeatureCommandRun( camera_2, "AcquisitionStart" )
-
 # Initialize the clock for counting the number of frames per second
 time_start = time.clock()
 
@@ -153,20 +128,25 @@ while True :
 	vimba.VmbCaptureFrameQueue( camera_1, byref(frame_1), None )
 	vimba.VmbCaptureFrameQueue( camera_2, byref(frame_2), None )
 
+	# Start acquisition
+	vimba.VmbFeatureCommandRun( camera_1, "AcquisitionStart" )
+	vimba.VmbFeatureCommandRun( camera_2, "AcquisitionStart" )
+
+	# Stop acquisition
+	vimba.VmbFeatureCommandRun( camera_1, "AcquisitionStop" )
+	vimba.VmbFeatureCommandRun( camera_2, "AcquisitionStop" )
+
 	# Get frames back
 	vimba.VmbCaptureFrameWait( camera_1, byref(frame_1), 1000 )
 	vimba.VmbCaptureFrameWait( camera_2, byref(frame_2), 1000 )
 	
 	# Check frame validity
 	if frame_1.receiveStatus or frame_2.receiveStatus :
-		print( 'Frame dropped...' )
 		continue
 	
 	# Convert frames to numpy arrays
 	image_1 = numpy.fromstring( frame_1.buffer[ 0 : payloadsize ], dtype=numpy.uint8 ).reshape( height, width )
 	image_2 = numpy.fromstring( frame_2.buffer[ 0 : payloadsize ], dtype=numpy.uint8 ).reshape( height, width )
-#	image_1 = numpy.array( [ord(frame_1.buffer[x]) for x in range(payloadsize)] ).reshape( height, width )
-#	image_2 = numpy.array( [ord(frame_2.buffer[x]) for x in range(payloadsize)] ).reshape( height, width )
 
 	# Prepare image for display
 	image_temp[ 0:height, 0:width ] = image_1
@@ -215,10 +195,6 @@ cv2.destroyAllWindows()
 # Stop image acquisition
 #
 print( 'Stop acquisition...' )
-
-# Stop acquisition
-vimba.VmbFeatureCommandRun( camera_1, "AcquisitionStop" )
-vimba.VmbFeatureCommandRun( camera_2, "AcquisitionStop" )
 
 # Stop capture engine
 vimba.VmbCaptureEnd( camera_1 )
