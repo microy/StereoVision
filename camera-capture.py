@@ -97,8 +97,8 @@ vimba.VmbFeatureCommandRun( ctypes.c_void_p(1), "GeVDiscoveryAllOnce" )
 print( 'Camera connection...' )
 
 # Connect the cameras via their serial number
-vimba.VmbCameraOpen( '50-0503323406', 1, byref(camera_1) )
-vimba.VmbCameraOpen( '50-0503326223', 1, byref(camera_2) )
+vimba.VmbCameraOpen( '50-0503323406', 1, ctypes.byref(camera_1) )
+vimba.VmbCameraOpen( '50-0503326223', 1, ctypes.byref(camera_2) )
 
 # Adjust packet size automatically on each camera
 vimba.VmbFeatureCommandRun( camera_1, "GVSPAdjustPacketSize" )
@@ -115,8 +115,8 @@ vimba.VmbFeatureEnumSet( camera_2, "TriggerSource", "Software" )
 print( 'Start acquisition...' )
 
 # Announce the frames
-vimba.VmbFrameAnnounce( camera_1, byref(frame_1), sizeof(frame_1) )
-vimba.VmbFrameAnnounce( camera_2, byref(frame_2), sizeof(frame_2) )
+vimba.VmbFrameAnnounce( camera_1, ctypes.byref(frame_1), ctypes.sizeof(frame_1) )
+vimba.VmbFrameAnnounce( camera_2, ctypes.byref(frame_2), ctypes.sizeof(frame_2) )
 
 # Start capture engine
 vimba.VmbCaptureStart( camera_1 )
@@ -133,16 +133,16 @@ time_start = time.clock()
 while True :
 	
 	# Queue frames
-	vimba.VmbCaptureFrameQueue( camera_1, byref(frame_1), None )
-	vimba.VmbCaptureFrameQueue( camera_2, byref(frame_2), None )
+	vimba.VmbCaptureFrameQueue( camera_1, ctypes.byref(frame_1), None )
+	vimba.VmbCaptureFrameQueue( camera_2, ctypes.byref(frame_2), None )
 	
 	# Send software trigger
 	vimba.VmbFeatureCommandRun( camera_1, "TriggerSoftware" )
 	vimba.VmbFeatureCommandRun( camera_2, "TriggerSoftware" )
 
 	# Get frames back
-	vimba.VmbCaptureFrameWait( camera_1, byref(frame_1), 1000 )
-	vimba.VmbCaptureFrameWait( camera_2, byref(frame_2), 1000 )
+	vimba.VmbCaptureFrameWait( camera_1, ctypes.byref(frame_1), 1000 )
+	vimba.VmbCaptureFrameWait( camera_2, ctypes.byref(frame_2), 1000 )
 	
 	# Check frame validity
 	if frame_1.receiveStatus or frame_2.receiveStatus :
