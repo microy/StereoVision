@@ -45,6 +45,10 @@ class VmbFrame( ctypes.Structure ) :
 		self.bufferSize = ctypes.c_uint32( frame_size )
 
 
+
+
+
+
 #
 # Initialization
 #
@@ -98,7 +102,36 @@ vimba.VmbCameraOpen( '50-0503323406', 1, ctypes.byref(camera_1) )
 vimba.VmbFeatureCommandRun( camera_1, "GVSPAdjustPacketSize" )
 
 # Configure frame software trigger
-vimba.VmbFeatureEnumSet( camera_1, "TriggerSource", "Software" )
+vimba.VmbFeatureEnumSet( camera_1, "TriggerSource", "Freerun" )
+
+
+
+CMPFUNC = ctypes.CFUNCTYPE( None, ctypes.c_void_p, ctypes.c_void_p )
+
+
+def FrameCallback( camera, pFrame ) :
+
+	print( 'Frame callback - Frame ID : {}...', pFrame.contents.frameID )
+
+	# Check frame validity
+	if pFrame.contents.receiveStatus :
+		print(' Frame status invalid...' )
+
+	# Convert frames to numpy arrays
+	image_1 = numpy.fromstring( frame_1.buffer[ 0 : payloadsize ], dtype=numpy.uint8 ).reshape( height, width )
+
+	# Resize image for display
+	image_final = cv2.resize( image_1, None, fx=0.5, fy=0.5 )
+
+	# Requeue the frame so it can be filled again
+	vimba.VmbCaptureFrameQueue( camera, pFrame, ctypes.byref(CMPFUNC( FrameCallback )) )
+
+
+frame_callback_function = CMPFUNC( FrameCallback )
+
+
+
+
 
 
 #
@@ -118,28 +151,29 @@ vimba.VmbFeatureCommandRun( camera_1, "AcquisitionStart" )
 # Initialize the clock for counting the number of frames per second
 time_start = time.clock()
 
+
+for i in range(3) :
+	
+	# Queue frames
+	vimba.VmbCaptureFrameQueue( camera_1, ctypes.byref(frame_1[i]), frame_callback_function )
+	
+
 # Live display
 while True :
 	
 	# Queue frames
-	vimba.VmbCaptureFrameQueue( camera_1, ctypes.byref(frame_1), None )
+#	vimba.VmbCaptureFrameQueue( camera_1, ctypes.byref(frame_1), None )
 	
 	# Send software trigger
-	vimba.VmbFeatureCommandRun( camera_1, "TriggerSoftware" )
+#	vimba.VmbFeatureCommandRun( camera_1, "TriggerSoftware" )
 
 	# Get frames back
-	vimba.VmbCaptureFrameWait( camera_1, ctypes.byref(frame_1), 1000 )
+#	vimba.VmbCaptureFrameWait( camera_1, ctypes.byref(frame_1), 1000 )
 	
 	# Check frame validity
-	if frame_1.receiveStatus :
-		continue
+#	if frame_1.receiveStatus :
+#		continue
 	
-	# Convert frames to numpy arrays
-	image_1 = numpy.fromstring( frame_1.buffer[ 0 : payloadsize ], dtype=numpy.uint8 ).reshape( height, width )
-
-	# Resize image for display
-	image_final = cv2.resize( image_1, None, fx=0.5, fy=0.5 )
-
 	# Frames per second counter
 	frame_counter += 1
 	time_elapsed = time.clock() - time_start
