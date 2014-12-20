@@ -63,6 +63,11 @@ camera_1 = ctypes.c_void_p()
 
 # Image frames
 frame_1 = VmbFrame( payloadsize )
+frame_2 = VmbFrame( payloadsize )
+frame_3 = VmbFrame( payloadsize )
+
+# Image
+image_1 = numpy.zeros( (width, height), dtype=numpy.uint8 )
 
 # Number of images saved
 image_count = 0
@@ -106,9 +111,6 @@ vimba.VmbFeatureEnumSet( camera_1, "TriggerSource", "Freerun" )
 
 
 
-CMPFUNC = ctypes.CFUNCTYPE( None, ctypes.c_void_p, ctypes.c_void_p )
-
-
 def FrameCallback( camera, pFrame ) :
 
 	print( 'Frame callback - Frame ID : {}...', pFrame.contents.frameID )
@@ -121,14 +123,19 @@ def FrameCallback( camera, pFrame ) :
 	image_1 = numpy.fromstring( frame_1.buffer[ 0 : payloadsize ], dtype=numpy.uint8 ).reshape( height, width )
 
 	# Resize image for display
-	image_final = cv2.resize( image_1, None, fx=0.5, fy=0.5 )
+	image_1 = cv2.resize( image_1, None, fx=0.5, fy=0.5 )
+	
+	# Requeue frame
+	QueueFrame( camera, pFrame )
 
+
+frame_callback_function = ctypes.CFUNCTYPE( None, ctypes.c_void_p, ctypes.c_void_p )( FrameCallback )
+
+
+def QueueFrame( camera, pFrame ) :
+	
 	# Requeue the frame so it can be filled again
-	vimba.VmbCaptureFrameQueue( camera, pFrame, ctypes.byref(CMPFUNC( FrameCallback )) )
-
-
-frame_callback_function = CMPFUNC( FrameCallback )
-
+	vimba.VmbCaptureFrameQueue( camera, pFrame, frame_callback_function )
 
 
 
@@ -152,11 +159,13 @@ vimba.VmbFeatureCommandRun( camera_1, "AcquisitionStart" )
 time_start = time.clock()
 
 
-for i in range(3) :
-	
+#for i in range(3) :
 	# Queue frames
-	vimba.VmbCaptureFrameQueue( camera_1, ctypes.byref(frame_1[i]), frame_callback_function )
-	
+#	vimba.VmbCaptureFrameQueue( camera_1, ctypes.byref(frame_1[i]), frame_callback_function )
+
+vimba.VmbCaptureFrameQueue( camera_1, ctypes.byref(frame_1), frame_callback_function )
+vimba.VmbCaptureFrameQueue( camera_1, ctypes.byref(frame_2), frame_callback_function )
+vimba.VmbCaptureFrameQueue( camera_1, ctypes.byref(frame_3), frame_callback_function )
 
 # Live display
 while True :
@@ -183,10 +192,10 @@ while True :
 		time_start = time.clock()
 	
 	# Write FPS counter on the displayed image
-	cv2.putText( image_final, '{:.2f} FPS'.format( fps_counter ), (10, 35), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255) )
+	cv2.putText( image_1, '{:.2f} FPS'.format( fps_counter ), (10, 35), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255) )
 	
 	# Display the image (scaled down)
-	cv2.imshow( "Stereo Cameras", image_final )
+	cv2.imshow( "Stereo Cameras", image_1 )
 	
 	# Keyboard interruption
 	key = cv2.waitKey(1) & 0xFF
