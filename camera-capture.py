@@ -10,7 +10,8 @@
 #
 # External dependencies
 #
-import ctypes
+from ctypes import Structure, POINTER, create_string_buffer, cdll, byref, sizeof
+from ctypes import c_void_p, c_char, c_int32, c_uint32, c_uint64
 import os
 import cv2
 import numpy
@@ -20,29 +21,29 @@ import time
 #
 # Vimba frame structure
 #
-class VmbFrame( ctypes.Structure ) :
+class VmbFrame( Structure ) :
 	
 	# VmbFrame structure fields
-	_fields_ = [('buffer', ctypes.POINTER(ctypes.c_char)),
-			('bufferSize', ctypes.c_uint32),
-			('context', ctypes.c_void_p * 4),
-			('receiveStatus', ctypes.c_int32),
-			('receiveFlags', ctypes.c_uint32),
-			('imageSize', ctypes.c_uint32),
-			('ancillarySize', ctypes.c_uint32),
-			('pixelFormat', ctypes.c_uint32),
-			('width', ctypes.c_uint32),
-			('height', ctypes.c_uint32),
-			('offsetX', ctypes.c_uint32),
-			('offsetY', ctypes.c_uint32),
-			('frameID', ctypes.c_uint64),
-			('timestamp', ctypes.c_uint64)]
+	_fields_ = [('buffer', POINTER(c_char)),
+			('bufferSize', c_uint32),
+			('context', c_void_p * 4),
+			('receiveStatus', c_int32),
+			('receiveFlags', c_uint32),
+			('imageSize', c_uint32),
+			('ancillarySize', c_uint32),
+			('pixelFormat', c_uint32),
+			('width', c_uint32),
+			('height', c_uint32),
+			('offsetX', c_uint32),
+			('offsetY', c_uint32),
+			('frameID', c_uint64),
+			('timestamp', c_uint64)]
 	
 	# Initialize the image buffer
 	def __init__( self, frame_size ) :
 
-		self.buffer = ctypes.create_string_buffer( frame_size )
-		self.bufferSize = ctypes.c_uint32( frame_size )
+		self.buffer = create_string_buffer( frame_size )
+		self.bufferSize = c_uint32( frame_size )
 
 
 #
@@ -55,8 +56,8 @@ height = 2056
 payloadsize = 5041312
 
 # Camera handles
-camera_1 = ctypes.c_void_p()
-camera_2 = ctypes.c_void_p()
+camera_1 = c_void_p()
+camera_2 = c_void_p()
 
 # Image frames
 frame_1 = VmbFrame( payloadsize )
@@ -82,13 +83,13 @@ print( 'Vimba initialization...' )
 vimba_path = "/" + "/".join(os.environ.get("GENICAM_GENTL64_PATH").split("/")[1:-3]) + "/VimbaC/DynamicLib/x86_64bit/libVimbaC.so"
 	
 # Load Vimba library
-vimba = ctypes.cdll.LoadLibrary( vimba_path )
+vimba = cdll.LoadLibrary( vimba_path )
 
 # Initialize the library
 vimba.VmbStartup()
 	
 # Send discovery packet to GigE cameras
-vimba.VmbFeatureCommandRun( ctypes.c_void_p(1), "GeVDiscoveryAllOnce" )
+vimba.VmbFeatureCommandRun( c_void_p(1), "GeVDiscoveryAllOnce" )
 
 
 #
@@ -97,8 +98,8 @@ vimba.VmbFeatureCommandRun( ctypes.c_void_p(1), "GeVDiscoveryAllOnce" )
 print( 'Camera connection...' )
 
 # Connect the cameras via their serial number
-vimba.VmbCameraOpen( '50-0503323406', 1, ctypes.byref(camera_1) )
-vimba.VmbCameraOpen( '50-0503326223', 1, ctypes.byref(camera_2) )
+vimba.VmbCameraOpen( '50-0503323406', 1, byref(camera_1) )
+vimba.VmbCameraOpen( '50-0503326223', 1, byref(camera_2) )
 
 # Adjust packet size automatically on each camera
 vimba.VmbFeatureCommandRun( camera_1, "GVSPAdjustPacketSize" )
@@ -115,8 +116,8 @@ vimba.VmbFeatureEnumSet( camera_2, "TriggerSource", "Software" )
 print( 'Start acquisition...' )
 
 # Announce the frames
-vimba.VmbFrameAnnounce( camera_1, ctypes.byref(frame_1), ctypes.sizeof(frame_1) )
-vimba.VmbFrameAnnounce( camera_2, ctypes.byref(frame_2), ctypes.sizeof(frame_2) )
+vimba.VmbFrameAnnounce( camera_1, byref(frame_1), sizeof(frame_1) )
+vimba.VmbFrameAnnounce( camera_2, byref(frame_2), sizeof(frame_2) )
 
 # Start capture engine
 vimba.VmbCaptureStart( camera_1 )
@@ -133,16 +134,16 @@ time_start = time.clock()
 while True :
 	
 	# Queue frames
-	vimba.VmbCaptureFrameQueue( camera_1, ctypes.byref(frame_1), None )
-	vimba.VmbCaptureFrameQueue( camera_2, ctypes.byref(frame_2), None )
+	vimba.VmbCaptureFrameQueue( camera_1, byref(frame_1), None )
+	vimba.VmbCaptureFrameQueue( camera_2, byref(frame_2), None )
 	
 	# Send software trigger
 	vimba.VmbFeatureCommandRun( camera_1, "TriggerSoftware" )
 	vimba.VmbFeatureCommandRun( camera_2, "TriggerSoftware" )
 
 	# Get frames back
-	vimba.VmbCaptureFrameWait( camera_1, ctypes.byref(frame_1), 1000 )
-	vimba.VmbCaptureFrameWait( camera_2, ctypes.byref(frame_2), 1000 )
+	vimba.VmbCaptureFrameWait( camera_1, byref(frame_1), 1000 )
+	vimba.VmbCaptureFrameWait( camera_2, byref(frame_2), 1000 )
 	
 	# Check frame validity
 	if frame_1.receiveStatus or frame_2.receiveStatus :
