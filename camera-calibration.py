@@ -13,47 +13,65 @@
 import cv2
 import numpy
 import glob
+import sys
 
 
-#
-# Find the chessboard
-#
+# Get image file names
+image_files = glob.glob( sys.argv[1] )
 
+# Chessboard pattern
+pattern_size = ( 9, 6 )
+pattern_points = numpy.zeros( (numpy.prod(pattern_size), 3), numpy.float32 )
+pattern_points[:,:2] = numpy.indices(pattern_size).T.reshape(-1, 2)
 
 # Termination criteria
-criteria = ( cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001 )
+term = ( cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_COUNT, 30, 0.1 )
 
-# Prepare object points, like (0,0,0), (1,0,0), (2,0,0) ....,(6,5,0)
-objp = numpy.zeros( (6*7, 3), np.float32 )
-objp[ :, :2 ] = numpy.mgrid[ 0:7, 0:6 ].T.reshape( -1, 2 )
+obj_points = []
+img_points = []
+h, w = 0, 0
 
-# Arrays to store object points and image points from all the images.
-objpoints = [] # 3d point in real world space
-imgpoints = [] # 2d points in image plane.
-
-# Find image files
-image_files = glob.glob( '*.png' )
-
-# For each image files
-for file_name in image_files:
-
-	# Read the image file
-    image = cv2.imread( file_name )
-
-    # Find the chess board corners
-    ret, corners = cv2.findChessboardCorners( image, (7,6), None )
-
-    # If found, add object points, image points (after refining them)
-    if ret == True :
+# For each image
+for filename in image_files :
+	
+	# Load the image
+	image = cv2.imread( filename, cv2.CV_LOAD_IMAGE_GRAYSCALE )
 		
-        objpoints.append(objp)
+	h, w = image.shape[:2]
+	
+	# Find the chessboard corners on the image
+	found_all, corners = cv2.findChessboardCorners( image, pattern_size )
+	
+	# Chessboard found
+	if found_all :
+		
+		# Refine the corner position
+		cv2.cornerSubPix( image, corners, (11, 11), (-1, -1), term )
 
-        corners2 = cv2.cornerSubPix( image, corners, (11,11), (-1,-1), criteria )
-        imgpoints.append( corners2 )
+		# Store image and corner informations
+		img_points.append( corners.reshape(-1, 2) )
+		obj_points.append( pattern_points )
+		
+		# Draw the chessboard corners on the image
+		image_color = cv2.cvtColor( image, cv2.COLOR_GRAY2BGR )
+		cv2.drawChessboardCorners( image_color, pattern_size, corners, found_all )
+		
+		# Display the image with the found corners
+		cv2.imshow( "Chessboard", image_color )
+		cv2.waitKey()
+	
+	# No chessboard found
+	else :
+		
+		print( "Chessboard no found..." )
 
-        # Draw and display the corners
-        image = cv2.drawChessboardCorners( image, (7,6), corners2, ret )
-        cv2.imshow( 'Chessboard', image )
-        cv2.waitKey( 0 )
 
+# Camera calibration
+rms, camera_matrix, dist_coefs, rvecs, tvecs = cv2.calibrateCamera( obj_points, img_points, (w, h), None, None )
+print "RMS:", rms
+print "Camera matrix:\n", camera_matrix
+print "Distortion coefficients:\n", dist_coefs.ravel()
+
+
+# Cleanup OpenCV windows
 cv2.destroyAllWindows()
