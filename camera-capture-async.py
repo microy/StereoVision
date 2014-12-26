@@ -10,43 +10,64 @@
 #
 # External dependencies
 #
-import ctypes
-import os
-import cv2
-import numpy
-import time
+import os, cv2, time
+import ctypes as ct
+import numpy as np
 
 
 #
 # Vimba frame structure
 #
-class VmbFrame( ctypes.Structure ) :
+class VmbFrame( ct.Structure ) :
 	
 	# VmbFrame structure fields
-	_fields_ = [('buffer', ctypes.POINTER(ctypes.c_char)),
-			('bufferSize', ctypes.c_uint32),
-			('context', ctypes.c_void_p * 4),
-			('receiveStatus', ctypes.c_int32),
-			('receiveFlags', ctypes.c_uint32),
-			('imageSize', ctypes.c_uint32),
-			('ancillarySize', ctypes.c_uint32),
-			('pixelFormat', ctypes.c_uint32),
-			('width', ctypes.c_uint32),
-			('height', ctypes.c_uint32),
-			('offsetX', ctypes.c_uint32),
-			('offsetY', ctypes.c_uint32),
-			('frameID', ctypes.c_uint64),
-			('timestamp', ctypes.c_uint64)]
+	_fields_ = [('buffer', ct.POINTER(ct.c_char)),
+			('bufferSize', ct.c_uint32),
+			('context', ct.c_void_p * 4),
+			('receiveStatus', ct.c_int32),
+			('receiveFlags', ct.c_uint32),
+			('imageSize', ct.c_uint32),
+			('ancillarySize', ct.c_uint32),
+			('pixelFormat', ct.c_uint32),
+			('width', ct.c_uint32),
+			('height', ct.c_uint32),
+			('offsetX', ct.c_uint32),
+			('offsetY', ct.c_uint32),
+			('frameID', ct.c_uint64),
+			('timestamp', ct.c_uint64)]
 	
 	# Initialize the image buffer
 	def __init__( self, frame_size ) :
 
-		self.buffer = ctypes.create_string_buffer( frame_size )
-		self.bufferSize = ctypes.c_uint32( frame_size )
+		self.buffer = ct.create_string_buffer( frame_size )
+		self.bufferSize = ct.c_uint32( frame_size )
 
 
 
 
+
+#
+# Frame callback function
+#
+def FrameCallback( camera, pFrame ) :
+
+        # Variables from main application
+        global vimba
+        global frame_callback_function
+        global image
+
+        # Print frame informations
+        print( 'Frame callback - Frame ID : {}...', pFrame.contents.frameID )
+        
+	# Check frame validity
+        if pFrame.contents.receiveStatus :
+                print(' Frame status invalid...' )
+
+	# Convert frames to numpy arrays
+        image = np.fromstring( frame_1.buffer[ 0 : payloadsize ], dtype=np.uint8 ).reshape( height, width )
+
+	# Requeue the frame so it can be filled again
+        vimba.VmbCaptureFrameQueue( camera, pFrame, frame_callback_function )
 
 
 #
@@ -59,7 +80,7 @@ height = 2056
 payloadsize = 5041312
 
 # Camera handles
-camera_1 = ctypes.c_void_p()
+camera = ct.c_void_p()
 
 # Image frames
 frame_1 = VmbFrame( payloadsize )
@@ -67,7 +88,7 @@ frame_2 = VmbFrame( payloadsize )
 frame_3 = VmbFrame( payloadsize )
 
 # Image
-image_1 = numpy.zeros( (width, height), dtype=numpy.uint8 )
+image = np.zeros( (width, height), dtype=np.uint8 )
 
 # Number of images saved
 image_count = 0
@@ -76,6 +97,8 @@ image_count = 0
 frame_counter = 0
 fps_counter = 0
 
+# Reference to frame callback function
+frame_callback_function = ct.CFUNCTYPE( None, ct.c_void_p, ct.c_void_p )( FrameCallback )
 
 #
 # Vimba initialization
@@ -86,13 +109,13 @@ print( 'Vimba initialization...' )
 vimba_path = "/" + "/".join(os.environ.get("GENICAM_GENTL64_PATH").split("/")[1:-3]) + "/VimbaC/DynamicLib/x86_64bit/libVimbaC.so"
 	
 # Load Vimba library
-vimba = ctypes.cdll.LoadLibrary( vimba_path )
+vimba = ct.cdll.LoadLibrary( vimba_path )
 
 # Initialize the library
 vimba.VmbStartup()
 	
 # Send discovery packet to GigE cameras
-vimba.VmbFeatureCommandRun( ctypes.c_void_p(1), "GeVDiscoveryAllOnce" )
+vimba.VmbFeatureCommandRun( ct.c_void_p(1), "GeVDiscoveryAllOnce" )
 
 
 #
@@ -101,44 +124,13 @@ vimba.VmbFeatureCommandRun( ctypes.c_void_p(1), "GeVDiscoveryAllOnce" )
 print( 'Camera connection...' )
 
 # Connect the cameras via their serial number
-vimba.VmbCameraOpen( '50-0503323406', 1, ctypes.byref(camera_1) )
+vimba.VmbCameraOpen( '50-0503323406', 1, ct.byref(camera) )
 
 # Adjust packet size automatically on each camera
-vimba.VmbFeatureCommandRun( camera_1, "GVSPAdjustPacketSize" )
+vimba.VmbFeatureCommandRun( camera, "GVSPAdjustPacketSize" )
 
 # Configure frame software trigger
-vimba.VmbFeatureEnumSet( camera_1, "TriggerSource", "Freerun" )
-
-
-
-def FrameCallback( camera, pFrame ) :
-
-	print( 'Frame callback - Frame ID : {}...', pFrame.contents.frameID )
-
-	# Check frame validity
-	if pFrame.contents.receiveStatus :
-		print(' Frame status invalid...' )
-
-	# Convert frames to numpy arrays
-	image_1 = numpy.fromstring( frame_1.buffer[ 0 : payloadsize ], dtype=numpy.uint8 ).reshape( height, width )
-
-	# Resize image for display
-	image_1 = cv2.resize( image_1, None, fx=0.5, fy=0.5 )
-	
-	# Requeue frame
-	QueueFrame( camera, pFrame )
-
-
-frame_callback_function = ctypes.CFUNCTYPE( None, ctypes.c_void_p, ctypes.c_void_p )( FrameCallback )
-
-
-def QueueFrame( camera, pFrame ) :
-	
-	# Requeue the frame so it can be filled again
-	vimba.VmbCaptureFrameQueue( camera, pFrame, frame_callback_function )
-
-
-
+vimba.VmbFeatureEnumSet( camera, "TriggerSource", "Freerun" )
 
 
 #
@@ -147,13 +139,13 @@ def QueueFrame( camera, pFrame ) :
 print( 'Start acquisition...' )
 
 # Announce the frames
-vimba.VmbFrameAnnounce( camera_1, ctypes.byref(frame_1), ctypes.sizeof(frame_1) )
+vimba.VmbFrameAnnounce( camera, ct.byref(frame_1), ct.sizeof(frame_1) )
 
 # Start capture engine
-vimba.VmbCaptureStart( camera_1 )
+vimba.VmbCaptureStart( camera )
 
 # Start acquisition
-vimba.VmbFeatureCommandRun( camera_1, "AcquisitionStart" )
+vimba.VmbFeatureCommandRun( camera, "AcquisitionStart" )
 
 # Initialize the clock for counting the number of frames per second
 time_start = time.clock()
@@ -161,27 +153,14 @@ time_start = time.clock()
 
 #for i in range(3) :
 	# Queue frames
-#	vimba.VmbCaptureFrameQueue( camera_1, ctypes.byref(frame_1[i]), frame_callback_function )
+#	vimba.VmbCaptureFrameQueue( camera_1, ct.byref(frame_1[i]), frame_callback_function )
 
-vimba.VmbCaptureFrameQueue( camera_1, ctypes.byref(frame_1), frame_callback_function )
-vimba.VmbCaptureFrameQueue( camera_1, ctypes.byref(frame_2), frame_callback_function )
-vimba.VmbCaptureFrameQueue( camera_1, ctypes.byref(frame_3), frame_callback_function )
+vimba.VmbCaptureFrameQueue( camera, ct.byref(frame_1), frame_callback_function )
+vimba.VmbCaptureFrameQueue( camera, ct.byref(frame_2), frame_callback_function )
+vimba.VmbCaptureFrameQueue( camera, ct.byref(frame_3), frame_callback_function )
 
 # Live display
 while True :
-	
-	# Queue frames
-#	vimba.VmbCaptureFrameQueue( camera_1, ctypes.byref(frame_1), None )
-	
-	# Send software trigger
-#	vimba.VmbFeatureCommandRun( camera_1, "TriggerSoftware" )
-
-	# Get frames back
-#	vimba.VmbCaptureFrameWait( camera_1, ctypes.byref(frame_1), 1000 )
-	
-	# Check frame validity
-#	if frame_1.receiveStatus :
-#		continue
 	
 	# Frames per second counter
 	frame_counter += 1
@@ -191,11 +170,14 @@ while True :
 		frame_counter = 0
 		time_start = time.clock()
 	
+	# Resize image for display
+	image = cv2.resize( image, None, fx=0.5, fy=0.5 )
+	
 	# Write FPS counter on the displayed image
-	cv2.putText( image_1, '{:.2f} FPS'.format( fps_counter ), (10, 35), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255) )
+	cv2.putText( image, '{:.2f} FPS'.format( fps_counter ), (10, 35), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255) )
 	
 	# Display the image (scaled down)
-	cv2.imshow( "Stereo Cameras", image_1 )
+	cv2.imshow( "Stereo Cameras", image )
 	
 	# Keyboard interruption
 	key = cv2.waitKey(1) & 0xFF
@@ -224,16 +206,16 @@ cv2.destroyAllWindows()
 print( 'Stop acquisition...' )
 
 # Stop acquisition
-vimba.VmbFeatureCommandRun( camera_1, "AcquisitionStop" )
+vimba.VmbFeatureCommandRun( camera, "AcquisitionStop" )
 
 # Stop capture engine
-vimba.VmbCaptureEnd( camera_1 )
+vimba.VmbCaptureEnd( camera )
 
 # Flush the frame queue
-vimba.VmbCaptureQueueFlush( camera_1 )
+vimba.VmbCaptureQueueFlush( camera )
 
 # Revoke frames
-vimba.VmbFrameRevokeAll( camera_1 )
+vimba.VmbFrameRevokeAll( camera )
 
 
 #
@@ -242,7 +224,7 @@ vimba.VmbFrameRevokeAll( camera_1 )
 print( 'Camera disconnection...' )
 
 # Close the cameras
-vimba.VmbCameraClose( camera_1 )
+vimba.VmbCameraClose( camera )
 
 
 #
