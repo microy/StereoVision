@@ -3,7 +3,8 @@
 
 
 #
-# Application to capture images from two AVT Manta cameras with the Vimba SDK
+# Application to capture images asynchronously
+# from two AVT Manta cameras with the Vimba SDK
 #
 
 
@@ -44,8 +45,6 @@ class VmbFrame( ct.Structure ) :
 
 
 
-
-
 #
 # Frame callback function
 #
@@ -59,15 +58,18 @@ def FrameCallback( camera, pFrame ) :
         # Print frame informations
         print( 'Frame callback - Frame ID : {}...', pFrame.contents.frameID )
         
-	# Check frame validity
+		# Check frame validity
         if pFrame.contents.receiveStatus :
-                print(' Frame status invalid...' )
+                print('Frame status invalid...' )
 
-	# Convert frames to numpy arrays
-        image = np.fromstring( frame_1.buffer[ 0 : payloadsize ], dtype=np.uint8 ).reshape( height, width )
+		# Convert frames to numpy arrays
+        image = np.fromstring( pFrame.contents.buffer[ 0 : payloadsize ], dtype=np.uint8 ).reshape( height, width )
 
-	# Requeue the frame so it can be filled again
+		# Requeue the frame so it can be filled again
         vimba.VmbCaptureFrameQueue( camera, pFrame, frame_callback_function )
+
+
+
 
 
 #
@@ -82,13 +84,13 @@ payloadsize = 5041312
 # Camera handles
 camera = ct.c_void_p()
 
-# Image frames
-frame_1 = VmbFrame( payloadsize )
-frame_2 = VmbFrame( payloadsize )
-frame_3 = VmbFrame( payloadsize )
+# 3 image frames in the buffer
+frames = []
+for i in range( 3 ) :
+	frames.append( VmbFrame( payloadsize ) )
 
-# Image
-image = np.zeros( (width, height), dtype=np.uint8 )
+# The current image
+image = np.zeros( (height, width), dtype=np.uint8 )
 
 # Number of images saved
 image_count = 0
@@ -99,6 +101,9 @@ fps_counter = 0
 
 # Reference to frame callback function
 frame_callback_function = ct.CFUNCTYPE( None, ct.c_void_p, ct.c_void_p )( FrameCallback )
+
+
+
 
 #
 # Vimba initialization
@@ -118,6 +123,8 @@ vimba.VmbStartup()
 vimba.VmbFeatureCommandRun( ct.c_void_p(1), "GeVDiscoveryAllOnce" )
 
 
+
+
 #
 # Camera connection
 #
@@ -133,13 +140,16 @@ vimba.VmbFeatureCommandRun( camera, "GVSPAdjustPacketSize" )
 vimba.VmbFeatureEnumSet( camera, "TriggerSource", "Freerun" )
 
 
+
+
 #
 # Start image acquisition
 #
 print( 'Start acquisition...' )
 
 # Announce the frames
-vimba.VmbFrameAnnounce( camera, ct.byref(frame_1), ct.sizeof(frame_1) )
+for i in range( 3 ) :
+	vimba.VmbFrameAnnounce( camera, ct.byref(frames[i]), ct.sizeof(frames[i]) )
 
 # Start capture engine
 vimba.VmbCaptureStart( camera )
@@ -150,16 +160,16 @@ vimba.VmbFeatureCommandRun( camera, "AcquisitionStart" )
 # Initialize the clock for counting the number of frames per second
 time_start = time.clock()
 
+# Queue frames
+for i in range( 3 ) :
+	vimba.VmbCaptureFrameQueue( camera, ct.byref(frames[i]), frame_callback_function )
 
-#for i in range(3) :
-	# Queue frames
-#	vimba.VmbCaptureFrameQueue( camera_1, ct.byref(frame_1[i]), frame_callback_function )
 
-vimba.VmbCaptureFrameQueue( camera, ct.byref(frame_1), frame_callback_function )
-vimba.VmbCaptureFrameQueue( camera, ct.byref(frame_2), frame_callback_function )
-vimba.VmbCaptureFrameQueue( camera, ct.byref(frame_3), frame_callback_function )
 
+
+#
 # Live display
+#
 while True :
 	
 	# Frames per second counter
@@ -171,13 +181,13 @@ while True :
 		time_start = time.clock()
 	
 	# Resize image for display
-	image = cv2.resize( image, None, fx=0.5, fy=0.5 )
+	image_displayed = cv2.resize( image, None, fx=0.5, fy=0.5 )
 	
 	# Write FPS counter on the displayed image
-	cv2.putText( image, '{:.2f} FPS'.format( fps_counter ), (10, 35), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255) )
+	cv2.putText( image_displayed, '{:.2f} FPS'.format( fps_counter ), (10, 35), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255) )
 	
 	# Display the image (scaled down)
-	cv2.imshow( "Stereo Cameras", image )
+	cv2.imshow( "Stereo Cameras", image_displayed )
 	
 	# Keyboard interruption
 	key = cv2.waitKey(1) & 0xFF
@@ -194,10 +204,14 @@ while True :
 		# Save images to disk 
 		image_count += 1
 		print( 'Save image {} to disk...'.format( image_count ) )
-		cv2.imwrite( 'camera1-{:0>2}.png'.format(image_count), image_1 )
-			
+		cv2.imwrite( 'camera1-{:0>2}.png'.format(image_count), image )
+
+
+
 # Cleanup OpenCV
 cv2.destroyAllWindows()
+
+
 
 
 #
@@ -218,6 +232,8 @@ vimba.VmbCaptureQueueFlush( camera )
 vimba.VmbFrameRevokeAll( camera )
 
 
+
+
 #
 # Camera disconnection
 #
@@ -225,6 +241,7 @@ print( 'Camera disconnection...' )
 
 # Close the cameras
 vimba.VmbCameraClose( camera )
+
 
 
 #
