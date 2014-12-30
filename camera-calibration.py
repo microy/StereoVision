@@ -11,7 +11,7 @@
 # External dependencies
 #
 import cv2
-import numpy
+import numpy as np
 import glob
 import sys
 
@@ -21,8 +21,8 @@ image_files = glob.glob( sys.argv[1] )
 
 # Chessboard pattern
 pattern_size = ( 9, 6 )
-pattern_points = numpy.zeros( (numpy.prod(pattern_size), 3), numpy.float32 )
-pattern_points[:,:2] = numpy.indices(pattern_size).T.reshape(-1, 2)
+pattern_points = np.zeros( (np.prod(pattern_size), 3), np.float32 )
+pattern_points[:,:2] = np.indices(pattern_size).T.reshape(-1, 2)
 
 # Termination criteria
 term = ( cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_COUNT, 30, 0.1 )
