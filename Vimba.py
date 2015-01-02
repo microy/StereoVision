@@ -16,9 +16,9 @@ import numpy as np
 
 
 #
-# Vimba driver
+# Access to the Vimba C library
 #
-class VmbDriver( object ) :
+class VmbSystem( object ) :
 
 	# Initialize the Vimba driver
 	def Startup( self ) :
@@ -82,10 +82,10 @@ class VmbCamera( object ) :
 	payloadsize = 5041312
 	
 	# Initialisation
-	def __init__( self, vimba_driver ) :
+	def __init__( self, vimba_system ) :
 		
 		# Vimba handle
-		self.vimba = vimba_driver.vimba
+		self.vimba = vimba_system.vimba
 		
 		# Camera handle
 		self.handle = ct.c_void_p()
@@ -207,7 +207,7 @@ class VmbCamera( object ) :
 				self.image = np.fromstring( frame.contents.buffer[ 0 : self.payloadsize ], dtype=np.uint8 ).reshape( self.height, self.width )
 
 				# Requeue the frame so it can be filled again
-				vimba.VmbCaptureFrameQueue( camera, frame, self.frame_callback_function )
+				self.vimba.VmbCaptureFrameQueue( camera, frame, self.frame_callback_function )
 
 		# Return a C-type handle to the frame callback function
 		return ct.CFUNCTYPE( None, ct.c_void_p, ct.c_void_p )( FrameCallback )

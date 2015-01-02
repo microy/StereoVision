@@ -22,7 +22,7 @@ fps_buffer = collections.deque( 10*[0], 10 )
 
 # Vimba initialization
 print( 'Vimba initialization...' )
-vimba = Vimba.VmbDriver()
+vimba = Vimba.VmbSystem()
 vimba.Startup()
 
 # Camera connection
