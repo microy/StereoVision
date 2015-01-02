@@ -11,10 +11,9 @@
 #
 # External dependencies
 #
-import os, cv2, time
+import collections, cv2, os, time
 import ctypes as ct
 import numpy as np
-import collections
 
 
 #
