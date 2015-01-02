@@ -14,6 +14,7 @@
 import os, cv2, time
 import ctypes as ct
 import numpy as np
+import collections
 
 
 #
@@ -70,8 +71,8 @@ image_temp = np.zeros( (height, 2*width), dtype=np.uint8 )
 image_count = 0
 
 # Frame per second counter
-frame_counter = 0
 fps_counter = 0
+fps_buffer = collections.deque( 10*[0], 10 )
 
 
 
@@ -132,9 +133,6 @@ vimba.VmbCaptureStart( camera_2 )
 vimba.VmbFeatureCommandRun( camera_1, "AcquisitionStart" )
 vimba.VmbFeatureCommandRun( camera_2, "AcquisitionStart" )
 
-# Initialize the clock for counting the number of frames per second
-time_start = time.clock()
-
 
 
 #
@@ -142,6 +140,9 @@ time_start = time.clock()
 #
 while True :
 	
+	# Initialize the clock for counting the number of frames per second
+	time_start = time.clock()
+
 	# Queue frames
 	vimba.VmbCaptureFrameQueue( camera_1, ct.byref(frame_1), None )
 	vimba.VmbCaptureFrameQueue( camera_2, ct.byref(frame_2), None )
@@ -169,14 +170,6 @@ while True :
 	# Resize image for display
 	image_final = cv2.resize( image_temp, None, fx=0.3, fy=0.3 )
 
-	# Frames per second counter
-	frame_counter += 1
-	time_elapsed = time.clock() - time_start
-	if time_elapsed > 0.5 :
-		fps_counter = frame_counter / time_elapsed
-		frame_counter = 0
-		time_start = time.clock()
-	
 	# Write FPS counter on the displayed image
 	cv2.putText( image_final, '{:.2f} FPS'.format( fps_counter ), (10, 35), cv2.FONT_HERSHEY_SIMPLEX, 1, (255,255,255) )
 	
@@ -200,6 +193,13 @@ while True :
 		print( 'Save images {} to disk...'.format( image_count ) )
 		cv2.imwrite( 'camera1-{:0>2}.png'.format(image_count), image_1 )
 		cv2.imwrite( 'camera2-{:0>2}.png'.format(image_count), image_2 )
+		
+	# Frames per second counter
+	fps_buffer.pop()
+	fps_buffer.appendleft( time.clock() - time_start )
+	fps_counter = 10.0 / sum( fps_buffer )
+	
+
 
 			
 # Cleanup OpenCV
