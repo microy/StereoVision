@@ -68,8 +68,7 @@ Vimba.VmbStartup()
 vimba = Vimba.vimba
 
 # Camera connection
-camera = Vimba.VmbCamera()
-camera.Connect( '50-0503323406' )
+camera = Vimba.VmbCamera( '50-0503323406' )
 
 # Reference to frame callback function
 frame_callback_function = ct.CFUNCTYPE( None, ct.c_void_p, ct.c_void_p )( FrameCallback )

@@ -1,4 +1,3 @@
-#! /usr/bin/env python
 # -*- coding:utf-8 -*- 
 
 
@@ -95,7 +94,7 @@ class VmbCamera( object ) :
 	#
 	# Connect the camera
 	#
-	def Connect( self, id_string ) :
+	def __init__( self, id_string ) :
 		
 		# Camera handle
 		self.handle = ct.c_void_p()
@@ -296,16 +295,12 @@ class VmbStereoCamera( object ) :
 	#
 	# Connect the cameras
 	#
-	def Connect( self, id_string_1, id_string_2 ) :
+	def __init__( self, id_string_1, id_string_2 ) :
 		
 		# Initialize the cameras
-		self.camera_1 = VmbCamera()
-		self.camera_2 = VmbCamera()
+		self.camera_1 = VmbCamera( id_string_1 )
+		self.camera_2 = VmbCamera( id_string_2 )
 		
-		# Connect the cameras
-		self.camera_1.Connect( id_string_1 )
-		self.camera_2.Connect( id_string_2 )
-	
 		# Image parameters
 		self.width = self.camera_1.width
 		self.height = self.camera_1.height
@@ -394,15 +389,11 @@ class VmbDualCamera( object ) :
 	#
 	# Connect the cameras
 	#
-	def Connect( self, id_string_1, id_string_2 ) :
+	def __init__( self, id_string_1, id_string_2 ) :
 		
 		# Initialize the cameras
-		self.camera_1 = VmbCamera()
-		self.camera_2 = VmbCamera()
-		
-		# Connect the cameras
-		self.camera_1.Connect( id_string_1 )
-		self.camera_2.Connect( id_string_2 )
+		self.camera_1 = VmbCamera( id_string_1 )
+		self.camera_2 = VmbCamera( id_string_2 )
 		
 
 	#
