@@ -64,12 +64,11 @@ fps_counter = 1.0
 fps_buffer = collections.deque( 10*[1.0], 10 )
 
 # Vimba initialization
-vimba_system = Vimba.VmbSystem()
-vimba_system.Startup()
-vimba = vimba_system.vimba
+Vimba.VmbStartup()
+vimba = Vimba.vimba
 
 # Camera connection
-camera = Vimba.VmbCamera( vimba_system )
+camera = Vimba.VmbCamera()
 camera.Connect( '50-0503323406' )
 
 # Reference to frame callback function
@@ -123,4 +122,4 @@ camera.CaptureStop()
 camera.Disconnect()
 
 # Vimba shutdown
-vimba_system.Shutdown()
+vimba.VmbShutdown()
