@@ -16,31 +16,38 @@ import numpy as np
 
 
 #
-# Access to the Vimba C library
+# Global access to the Vimba library
 #
-class VmbSystem( object ) :
+vimba = None
 
-	# Initialize the Vimba driver
-	def Startup( self ) :
 
-		# Get Vimba installation directory
-		vimba_path = "/" + "/".join(os.environ.get("GENICAM_GENTL64_PATH").split("/")[1:-3])
-		vimba_path += "/VimbaC/DynamicLib/x86_64bit/libVimbaC.so"
-			
-		# Load Vimba library
-		self.vimba = ct.cdll.LoadLibrary( vimba_path )
-
-		# Initialize the library
-		self.vimba.VmbStartup()
-			
-		# Send discovery packet to GigE cameras
-		self.vimba.VmbFeatureCommandRun( ct.c_void_p(1), "GeVDiscoveryAllOnce" )
-
-	# Release the Vimba driver
-	def Shutdown( self ):
+#
+# Initialize the Vimba library
+#
+def VmbStartup() :
+	
+	# Get Vimba installation directory
+	vimba_path = "/" + "/".join(os.environ.get("GENICAM_GENTL64_PATH").split("/")[1:-3])
+	vimba_path += "/VimbaC/DynamicLib/x86_64bit/libVimbaC.so"
 		
-		# Release the library
-		self.vimba.VmbShutdown()
+	# Load Vimba library
+	global vimba
+	vimba = ct.cdll.LoadLibrary( vimba_path )
+
+	# Initialize the library
+	vimba.VmbStartup()
+		
+	# Send discovery packet to GigE cameras
+	vimba.VmbFeatureCommandRun( ct.c_void_p(1), "GeVDiscoveryAllOnce" )
+	
+
+#
+# Release the Vimba library
+#
+def VmbShutdown() :
+	
+	# Release the library
+	vimba.VmbShutdown()
 
 
 #
@@ -75,65 +82,80 @@ class VmbFrame( ct.Structure ) :
 # Vimba camera
 #
 class VmbCamera( object ) :
+
 	
+	#
 	# Default image parameters of our cameras (AVT Manta G504B)
+	#
 	width = 2452
 	height = 2056
 	payloadsize = 5041312
+
 	
-	# Initialisation
-	def __init__( self, vimba_system ) :
-		
-		# Vimba handle
-		self.vimba = vimba_system.vimba
+	#
+	# Initialisation of the camera and its ID
+	#
+	def __init__( self, id_string ) :
 		
 		# Camera handle
 		self.handle = ct.c_void_p()
-	
-	# Connect to a camera using its ID (serial number, IP address...)
-	def Connect( self, id_string ) :
-		
-		# Backup camera ID
+
+		# Camera ID (serial number, IP address...)
 		self.id_string = id_string
 		
+	
+	#
+	# Connect the camera
+	#
+	def Connect( self ) :
+		
 		# Connect the camera
-		self.vimba.VmbCameraOpen( id_string, 1, ct.byref(self.handle) )
+		vimba.VmbCameraOpen( self.id_string, 1, ct.byref(self.handle) )
 
 		# Adjust packet size automatically
-		self.vimba.VmbFeatureCommandRun( self.handle, "GVSPAdjustPacketSize" )
+		vimba.VmbFeatureCommandRun( self.handle, "GVSPAdjustPacketSize" )
 		
 		# Initialize the image
 		self.image = np.zeros( (self.height, self.width), dtype=np.uint8 )	
 	
+
+	#
 	# Disconnect the camera
+	#
 	def Disconnect( self ) :
 		
 		# Close the camera
-		self.vimba.VmbCameraClose( self.handle )
+		vimba.VmbCameraClose( self.handle )
 
-	# Start the acquisition
-	def CaptureStart( self ) :
+
+	#
+	# Start the synchronous acquisition
+	#
+	def CaptureStartSync( self ) :
 
 		# Create an image frame
 		self.frame = VmbFrame( self.payloadsize )
 		
 		# Announce the frames
-		self.vimba.VmbFrameAnnounce( self.handle, ct.byref(self.frame), ct.sizeof(self.frame) )
+		vimba.VmbFrameAnnounce( self.handle, ct.byref(self.frame), ct.sizeof(self.frame) )
 
 		# Start capture engine
-		self.vimba.VmbCaptureStart( self.handle )
+		vimba.VmbCaptureStart( self.handle )
 
 		# Queue a frame
-		self.vimba.VmbCaptureFrameQueue( self.handle, ct.byref(self.frame), None )
+		vimba.VmbCaptureFrameQueue( self.handle, ct.byref(self.frame), None )
 
 		# Start acquisition
-		self.vimba.VmbFeatureCommandRun( self.handle, "AcquisitionStart" )
+		vimba.VmbFeatureCommandRun( self.handle, "AcquisitionStart" )
 
-	# Capture a frame
+
+	#
+	# Capture a synchronous frame
+	#
 	def CaptureFrame( self ) :
 		
 		# Capture a frame
-		self.vimba.VmbCaptureFrameWait( self.handle, ct.byref(self.frame), 1000 )
+		vimba.VmbCaptureFrameWait( self.handle, ct.byref(self.frame), 1000 )
 		
 		# Check frame validity
 		if self.frame.receiveStatus :
@@ -144,24 +166,30 @@ class VmbCamera( object ) :
 		self.image = np.fromstring( self.frame.buffer[ 0 : self.payloadsize ], dtype=np.uint8 ).reshape( self.height, self.width )
 
 		# Queue another frame
-		self.vimba.VmbCaptureFrameQueue( self.handle, ct.byref(self.frame), None )
+		vimba.VmbCaptureFrameQueue( self.handle, ct.byref(self.frame), None )
 
+
+	#
 	# Stop the acquisition
+	#
 	def CaptureStop( self ) :
 
 		# Stop acquisition
-		self.vimba.VmbFeatureCommandRun( self.handle, "AcquisitionStop" )
+		vimba.VmbFeatureCommandRun( self.handle, "AcquisitionStop" )
 
 		# Flush the frame queue
-		self.vimba.VmbCaptureQueueFlush( self.handle )
+		vimba.VmbCaptureQueueFlush( self.handle )
 
 		# Stop capture engine
-		self.vimba.VmbCaptureEnd( self.handle )
+		vimba.VmbCaptureEnd( self.handle )
 
 		# Revoke frames
-		self.vimba.VmbFrameRevokeAll( self.handle )
+		vimba.VmbFrameRevokeAll( self.handle )
 
+
+	#
 	# Start the acquisition asynchronously
+	#
 	def CaptureStartAsync( self ) :
 
 		# Create 3 frames to fill in the camera buffer
@@ -172,19 +200,22 @@ class VmbCamera( object ) :
 
 		# Announce the frames
 		for i in range( 3 ) :
-			self.vimba.VmbFrameAnnounce( self.handle, ct.byref(frames[i]), ct.sizeof(frames[i]) )
+			vimba.VmbFrameAnnounce( self.handle, ct.byref(frames[i]), ct.sizeof(frames[i]) )
 			
 		# Start capture engine
-		self.vimba.VmbCaptureStart( self.handle )
+		vimba.VmbCaptureStart( self.handle )
 
 		# Queue frames
 		for i in range( 3 ) :
-			self.vimba.VmbCaptureFrameQueue( self.handle, ct.byref(frames[i]), self.frame_callback_function )
+			vimba.VmbCaptureFrameQueue( self.handle, ct.byref(frames[i]), self.frame_callback_function )
 	
 		# Start acquisition
-		self.vimba.VmbFeatureCommandRun( self.handle, "AcquisitionStart" )
+		vimba.VmbFeatureCommandRun( self.handle, "AcquisitionStart" )
 		
+
+	#
 	# Create a frame callback function
+	#
 	def GetFrameCallbackFunction( self ) :
 
 		# Define the frame callback function
@@ -202,12 +233,15 @@ class VmbCamera( object ) :
 			self.image = np.fromstring( frame.contents.buffer[ 0 : self.payloadsize ], dtype=np.uint8 ).reshape( self.height, self.width )
 
 			# Requeue the frame so it can be filled again
-			self.vimba.VmbCaptureFrameQueue( camera, frame, self.frame_callback_function )
+			vimba.VmbCaptureFrameQueue( camera, frame, self.frame_callback_function )
 
 		# Return a C-type handle to the frame callback function
 		return ct.CFUNCTYPE( None, ct.c_void_p, ct.c_void_p )( FrameCallback )
 
+
+	#
 	# Live display
+	#
 	def LiveDisplay( self ) :
 		
 		# Frame per second counter
@@ -218,7 +252,7 @@ class VmbCamera( object ) :
 		cv2.namedWindow( self.id_string )
 
 		# Start image acquisition
-		self.CaptureStart()
+		self.CaptureStartSync()
 
 		# Start live display
 		while True :
@@ -264,31 +298,44 @@ class VmbCamera( object ) :
 #
 class VmbStereoCamera( object ) :
 	
-	# Default image parameters of our cameras (AVT Manta G504B)
-	width = 2452
-	height = 2056
 
-	# Initialisation
-	def __init__( self, vimba_system ) :
+	#
+	# Initiailize the cameras and their ID
+	#
+	def __init__( self, id_string_1, id_string_2 ) :
 		
-		# Stereo cameras
-		self.camera_1 = VmbCamera( vimba_system )
-		self.camera_2 = VmbCamera( vimba_system )
+		# Initialize the cameras
+		self.camera_1 = VmbCamera( id_string_1 )
+		self.camera_2 = VmbCamera( id_string_2 )
+		
+	#
+	# Connect the cameras
+	#
+	def Connect( self ) :
+		
+		# Connect the cameras
+		self.camera_1.Connect()
+		self.camera_2.Connect()
 	
-	# Connect to the cameras using their ID (serial number, IP address...)
-	def Connect( self, id_string_1, id_string_2 ) :
+		# Image parameters
+		self.width = self.camera_1.width
+		self.height = self.camera_1.height
 		
-		self.camera_1.Connect( id_string_1 )
-		self.camera_2.Connect( id_string_2 )
-		
-	# Disconnect the camera
+
+
+	#
+	# Disconnect the cameras
+	#
 	def Disconnect( self ) :
 		
 		# Close the cameras
 		self.camera_1.Disconnect()
 		self.camera_2.Disconnect()
 
+
+	#
 	# Live display
+	#
 	def LiveDisplay( self ) :
 		
 		# Frame per second counter
@@ -302,8 +349,8 @@ class VmbStereoCamera( object ) :
 		cv2.namedWindow( "Stereo Camera" )
 
 		# Start image acquisition
-		self.camera_1.CaptureStart()
-		self.camera_2.CaptureStart()
+		self.camera_1.CaptureStartSync()
+		self.camera_2.CaptureStartSync()
 
 		# Start live display
 		while True :
@@ -337,7 +384,7 @@ class VmbStereoCamera( object ) :
 				# Exit live display
 				break
 				
-			# Frames per second counter
+			# Frame per second counter
 			fps_buffer.pop()
 			fps_buffer.appendleft( time.clock() - time_start )
 			fps_counter = 10.0 / sum( fps_buffer )
@@ -351,31 +398,43 @@ class VmbStereoCamera( object ) :
 
 
 #
-# Vimba dual camera
+# View two cameras using two different threads
 #
 class VmbDualCamera( object ) :
 	
-	# Initialisation
-	def __init__( self, vimba_system ) :
+
+	#
+	# Initiailize the cameras and their ID
+	#
+	def __init__( self, id_string_1, id_string_2 ) :
 		
-		# Stereo cameras
-		self.camera_1 = VmbCamera( vimba_system )
-		self.camera_2 = VmbCamera( vimba_system )
-	
-	# Connect to the cameras using their ID (serial number, IP address...)
-	def Connect( self, id_string_1, id_string_2 ) :
+		# Initialize the cameras
+		self.camera_1 = VmbCamera( id_string_1 )
+		self.camera_2 = VmbCamera( id_string_2 )
 		
-		self.camera_1.Connect( id_string_1 )
-		self.camera_2.Connect( id_string_2 )
+	#
+	# Connect the cameras
+	#
+	def Connect( self ) :
 		
+		# Connect the cameras
+		self.camera_1.Connect()
+		self.camera_2.Connect()
+		
+
+	#
 	# Disconnect the camera
+	#
 	def Disconnect( self ) :
 		
 		# Close the cameras
 		self.camera_1.Disconnect()
 		self.camera_2.Disconnect()
 
+
+	#
 	# Live display
+	#
 	def LiveDisplay( self ) :
 
 		# Start parallel image acquisition
@@ -383,6 +442,8 @@ class VmbDualCamera( object ) :
 		thread_2 = LiveCameraThread( self.camera_2 )
 		thread_1.start()
 		thread_2.start()
+		thread_1.join()
+		thread_2.join()
 
 
 #
@@ -390,7 +451,10 @@ class VmbDualCamera( object ) :
 #
 class LiveCameraThread( threading.Thread ) :
 	
+
+	#
 	# Initialisation
+	#
 	def __init__( self, camera ) :
 		
 		# Initialise the thread
@@ -399,7 +463,10 @@ class LiveCameraThread( threading.Thread ) :
 		# Camera handle
 		self.camera = camera
 	
+
+	#
 	# Run the thread
+	#
 	def run( self ) :
 		
 		# Live camera display
