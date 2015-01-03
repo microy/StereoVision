@@ -113,7 +113,7 @@ while True :
 		break
 		
 # Cleanup OpenCV
-cv2.destroyAllWindows()
+cv2.destroyWindow( "Camera" )
 
 # Stop image acquisition
 camera.CaptureStop()
