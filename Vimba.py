@@ -10,7 +10,7 @@
 #
 # External dependencies
 #
-import os
+import collections, cv2, os, time
 import ctypes as ct
 import numpy as np
 
@@ -93,6 +93,9 @@ class VmbCamera( object ) :
 	# Connect to a camera using its ID (serial number, IP address...)
 	def Connect( self, id_string ) :
 		
+		# Backup camera ID
+		self.id_string = id_string
+		
 		# Connect the camera
 		self.vimba.VmbCameraOpen( id_string, 1, ct.byref(self.handle) )
 
@@ -105,7 +108,7 @@ class VmbCamera( object ) :
 	# Disconnect the camera
 	def Disconnect( self ) :
 		
-		# Close the cameras
+		# Close the camera
 		self.vimba.VmbCameraClose( self.handle )
 
 	# Start the acquisition
@@ -187,19 +190,67 @@ class VmbCamera( object ) :
 		# Define the frame callback function
 		def FrameCallback( camera, frame ) :
 
-				# Print frame informations
-				print( 'Frame callback - Frame ID : ', frame.contents.frameID )
+			# Print frame informations
+			print( 'Frame callback - Frame ID : ', frame.contents.frameID )
 				
-				# Check frame validity
-				if frame.contents.receiveStatus :
-					print( 'Invalid frame status...' )
-					return
+			# Check frame validity
+			if frame.contents.receiveStatus :
+				print( 'Invalid frame status...' )
+				return
 
-				# Convert frames to numpy arrays
-				self.image = np.fromstring( frame.contents.buffer[ 0 : self.payloadsize ], dtype=np.uint8 ).reshape( self.height, self.width )
+			# Convert frames to numpy arrays
+			self.image = np.fromstring( frame.contents.buffer[ 0 : self.payloadsize ], dtype=np.uint8 ).reshape( self.height, self.width )
 
-				# Requeue the frame so it can be filled again
-				self.vimba.VmbCaptureFrameQueue( camera, frame, self.frame_callback_function )
+			# Requeue the frame so it can be filled again
+			self.vimba.VmbCaptureFrameQueue( camera, frame, self.frame_callback_function )
 
 		# Return a C-type handle to the frame callback function
 		return ct.CFUNCTYPE( None, ct.c_void_p, ct.c_void_p )( FrameCallback )
+
+	# Live display
+	def LiveDisplay( self ) :
+		
+		# Frame per second counter
+		fps_counter = 1.0
+		fps_buffer = collections.deque( 10*[1.0], 10 )
+
+		# Start image acquisition
+		self.CaptureStart()
+
+		# Start live display
+		while True :
+			
+			# Initialize the clock for counting the number of frames per second
+			time_start = time.clock()
+
+			# Capture an image
+			self.CaptureFrame()
+			
+			# Resize image for display
+			image_live = cv2.resize( self.image, None, fx=0.3, fy=0.3 )
+
+			# Write FPS counter on the live image
+			cv2.putText( image_live, '{:.2f} FPS'.format( fps_counter ), (10, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255,255,255) )
+
+			# Display the image
+			cv2.imshow( "Camera {}".format(self.id_string), image_live )
+			
+			# Keyboard interruption
+			key = cv2.waitKey(1) & 0xFF
+			
+			# Escape key
+			if key == 27 :
+				
+				# Exit live display
+				break
+				
+			# Frames per second counter
+			fps_buffer.pop()
+			fps_buffer.appendleft( time.clock() - time_start )
+			fps_counter = 10.0 / sum( fps_buffer )
+
+		# Cleanup OpenCV
+		cv2.destroyAllWindows()
+
+		# Stop image acquisition
+		self.CaptureStop()
