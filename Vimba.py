@@ -93,21 +93,15 @@ class VmbCamera( object ) :
 
 	
 	#
-	# Initialisation of the camera and its ID
+	# Connect the camera
 	#
-	def __init__( self, id_string ) :
+	def Connect( self, id_string ) :
 		
 		# Camera handle
 		self.handle = ct.c_void_p()
 
 		# Camera ID (serial number, IP address...)
 		self.id_string = id_string
-		
-	
-	#
-	# Connect the camera
-	#
-	def Connect( self ) :
 		
 		# Connect the camera
 		vimba.VmbCameraOpen( self.id_string, 1, ct.byref(self.handle) )
@@ -300,27 +294,21 @@ class VmbStereoCamera( object ) :
 	
 
 	#
-	# Initiailize the cameras and their ID
-	#
-	def __init__( self, id_string_1, id_string_2 ) :
-		
-		# Initialize the cameras
-		self.camera_1 = VmbCamera( id_string_1 )
-		self.camera_2 = VmbCamera( id_string_2 )
-		
-	#
 	# Connect the cameras
 	#
-	def Connect( self ) :
+	def Connect( self, id_string_1, id_string_2 ) :
+		
+		# Initialize the cameras
+		self.camera_1 = VmbCamera()
+		self.camera_2 = VmbCamera()
 		
 		# Connect the cameras
-		self.camera_1.Connect()
-		self.camera_2.Connect()
+		self.camera_1.Connect( id_string_1 )
+		self.camera_2.Connect( id_string_2 )
 	
 		# Image parameters
 		self.width = self.camera_1.width
 		self.height = self.camera_1.height
-		
 
 
 	#
@@ -404,22 +392,17 @@ class VmbDualCamera( object ) :
 	
 
 	#
-	# Initiailize the cameras and their ID
-	#
-	def __init__( self, id_string_1, id_string_2 ) :
-		
-		# Initialize the cameras
-		self.camera_1 = VmbCamera( id_string_1 )
-		self.camera_2 = VmbCamera( id_string_2 )
-		
-	#
 	# Connect the cameras
 	#
-	def Connect( self ) :
+	def Connect( self, id_string_1, id_string_2 ) :
+		
+		# Initialize the cameras
+		self.camera_1 = VmbCamera()
+		self.camera_2 = VmbCamera()
 		
 		# Connect the cameras
-		self.camera_1.Connect()
-		self.camera_2.Connect()
+		self.camera_1.Connect( id_string_1 )
+		self.camera_2.Connect( id_string_2 )
 		
 
 	#

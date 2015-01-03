@@ -20,8 +20,8 @@ import Vimba
 def Live() :
 
 	# Camera connection
-	camera = Vimba.VmbCamera( '50-0503323406' )
-	camera.Connect()
+	camera = Vimba.VmbCamera()
+	camera.Connect( '50-0503323406' )
 
 	# Start image acquisition
 	camera.LiveDisplay()
@@ -36,8 +36,8 @@ def Live() :
 def LiveDual() :
 
 	# Camera connection
-	dual_camera = Vimba.VmbDualCamera( '50-0503323406', '50-0503326223' )
-	dual_camera.Connect()
+	dual_camera = Vimba.VmbDualCamera()
+	dual_camera.Connect( '50-0503323406', '50-0503326223' )
 
 	# Start image acquisition
 	dual_camera.LiveDisplay()
@@ -52,8 +52,8 @@ def LiveDual() :
 def LiveStereo() :
 
 	# Camera connection
-	stereo_camera = Vimba.VmbStereoCamera( '50-0503323406', '50-0503326223' )
-	stereo_camera.Connect()
+	stereo_camera = Vimba.VmbStereoCamera()
+	stereo_camera.Connect( '50-0503323406', '50-0503326223' )
 
 	# Start image acquisition
 	stereo_camera.LiveDisplay()
