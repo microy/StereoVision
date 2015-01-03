@@ -99,14 +99,6 @@ class VmbCamera( object ) :
 		# Adjust packet size automatically
 		self.vimba.VmbFeatureCommandRun( self.handle, "GVSPAdjustPacketSize" )
 		
-		# Query image parameters
-#		self.width = ct.c_int()
-#		self.vimba.VmbFeatureIntGet( self.handle, "Width", ct.byref(self.width) )
-#		self.height = ct.c_int()
-#		self.vimba.VmbFeatureIntGet( self.handle, "Height", ct.byref(self.height) )
-#		self.payloadsize = ct.c_int()
-#		self.vimba.VmbFeatureIntGet( self.handle, "PayloadSize", ct.byref(self.payloadsize) )
-
 		# Initialize the image
 		self.image = np.zeros( (self.height, self.width), dtype=np.uint8 )	
 	
