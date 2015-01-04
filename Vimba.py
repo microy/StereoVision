@@ -100,6 +100,11 @@ class VmbCamera( object ) :
 		# Adjust packet size automatically
 		vimba.VmbFeatureCommandRun( self.handle, "GVSPAdjustPacketSize" )
 		
+		# Configure the camera
+		vimba.VmbFeatureEnumSet( self.handle, "AcquisitionMode", "Continuous" )
+		vimba.VmbFeatureEnumSet( self.handle, "FrameStartTriggerMode", "Freerun" )
+		vimba.VmbFeatureEnumSet( self.handle, "PixelFormat", "Mono8" )
+
 		# Query image parameters
 		tmp_value = ct.c_int()
 		vimba.VmbFeatureIntGet( self.handle, "Width", ct.byref(tmp_value) )
@@ -109,11 +114,6 @@ class VmbCamera( object ) :
 		vimba.VmbFeatureIntGet( self.handle, "PayloadSize", ct.byref(tmp_value) )
 		self.payloadsize = tmp_value.value
 		
-		# Configure the camera
-		vimba.VmbFeatureEnumSet( self.handle, "AcquisitionMode", "Continuous" )
-		vimba.VmbFeatureEnumSet( self.handle, "FrameStartTriggerMode", "Freerun" )
-		vimba.VmbFeatureEnumSet( self.handle, "PixelFormat", "Mono8" )
-
 		# Default image parameters of our cameras (AVT Manta G504B) for debug purpose
 		self.width = 2452
 		self.height = 2056
