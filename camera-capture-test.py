@@ -11,7 +11,7 @@
 #
 # External dependencies
 #
-import Vimba
+import Vimba, Viewer
 
 
 #
@@ -23,7 +23,7 @@ def Live() :
 	camera = Vimba.VmbCamera( '50-0503323406' )
 
 	# Start image acquisition
-	camera.LiveDisplay()
+	Viewer.LiveDisplay( camera )
 
 	# Camera disconnection
 	camera.Disconnect()
@@ -35,13 +35,15 @@ def Live() :
 def LiveDual() :
 
 	# Camera connection
-	dual_camera = Vimba.VmbDualCamera( '50-0503323406', '50-0503326223' )
+	camera_1 = Vimba.VmbCamera( '50-0503323406' )
+	camera_2 = Vimba.VmbCamera( '50-0503326223' )
 
 	# Start image acquisition
-	dual_camera.LiveDisplay()
+	Viewer.LiveDisplayDual( camera_1, camera_2 )
 
-	# Camera disconnection
-	dual_camera.Disconnect()
+	# Close the cameras
+	camera_1.Disconnect()
+	camera_2.Disconnect()
 
 
 #
@@ -50,13 +52,15 @@ def LiveDual() :
 def LiveStereo() :
 
 	# Camera connection
-	stereo_camera = Vimba.VmbStereoCamera( '50-0503323406', '50-0503326223' )
+	camera_1 = Vimba.VmbCamera( '50-0503323406' )
+	camera_2 = Vimba.VmbCamera( '50-0503326223' )
 
 	# Start image acquisition
-	stereo_camera.LiveDisplay()
+	Viewer.LiveDisplayStereo( camera_1, camera_2 )
 
-	# Camera disconnection
-	stereo_camera.Disconnect()
+	# Close the cameras
+	camera_1.Disconnect()
+	camera_2.Disconnect()
 
 
 #

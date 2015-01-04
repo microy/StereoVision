@@ -9,7 +9,7 @@
 #
 # External dependencies
 #
-import collections, cv2, os, time, threading
+import os
 import ctypes as ct
 import numpy as np
 
@@ -84,14 +84,6 @@ class VmbCamera( object ) :
 
 	
 	#
-	# Default image parameters of our cameras (AVT Manta G504B)
-	#
-	width = 2452
-	height = 2056
-	payloadsize = 5041312
-
-	
-	#
 	# Connect the camera
 	#
 	def __init__( self, id_string ) :
@@ -108,6 +100,25 @@ class VmbCamera( object ) :
 		# Adjust packet size automatically
 		vimba.VmbFeatureCommandRun( self.handle, "GVSPAdjustPacketSize" )
 		
+		# Query image parameters
+		tmp_value = ct.c_int()
+		vimba.VmbFeatureIntGet( self.handle, "Width", ct.byref(tmp_value) )
+		self.width = tmp_value.value
+		vimba.VmbFeatureIntGet( self.handle, "Height", ct.byref(tmp_value) )
+		self.height = tmp_value.value
+		vimba.VmbFeatureIntGet( self.handle, "PayloadSize", ct.byref(tmp_value) )
+		self.payloadsize = tmp_value.value
+		
+		# Configure the camera
+		vimba.VmbFeatureEnumSet( self.handle, "AcquisitionMode", "Continuous" )
+		vimba.VmbFeatureEnumSet( self.handle, "FrameStartTriggerMode", "Freerun" )
+		vimba.VmbFeatureEnumSet( self.handle, "PixelFormat", "Mono8" )
+
+		# Default image parameters of our cameras (AVT Manta G504B) for debug purpose
+		self.width = 2452
+		self.height = 2056
+		self.payloadsize = 5041312
+
 		# Initialize the image
 		self.image = np.zeros( (self.height, self.width), dtype=np.uint8 )	
 	
@@ -152,7 +163,7 @@ class VmbCamera( object ) :
 		
 		# Check frame validity
 		if self.frame.receiveStatus :
-			print( 'Invalid frame status...' )
+			print( 'Invalid frame status...' ) # To delete
 			return
 		
 		# Convert frame to numpy arrays
@@ -230,218 +241,3 @@ class VmbCamera( object ) :
 
 		# Return a C-type handle to the frame callback function
 		return ct.CFUNCTYPE( None, ct.c_void_p, ct.c_void_p )( FrameCallback )
-
-
-	#
-	# Live display
-	#
-	def LiveDisplay( self ) :
-		
-		# Frame per second counter
-		fps_counter = 1.0
-		fps_buffer = collections.deque( 10*[1.0], 10 )
-		
-		# Create an OpenCV window
-		cv2.namedWindow( self.id_string )
-
-		# Start image acquisition
-		self.CaptureStartSync()
-
-		# Start live display
-		while True :
-			
-			# Initialize the clock for counting the number of frames per second
-			time_start = time.clock()
-
-			# Capture an image
-			self.CaptureFrameSync()
-			
-			# Resize image for display
-			image_live = cv2.resize( self.image, None, fx=0.3, fy=0.3 )
-
-			# Write FPS counter on the live image
-			cv2.putText( image_live, '{:.2f} FPS'.format( fps_counter ), (10, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255,255,255) )
-
-			# Display the image
-			cv2.imshow( self.id_string, image_live )
-			
-			# Keyboard interruption
-			key = cv2.waitKey(1) & 0xFF
-			
-			# Escape key
-			if key == 27 :
-				
-				# Exit live display
-				break
-				
-			# Frames per second counter
-			fps_buffer.pop()
-			fps_buffer.appendleft( time.clock() - time_start )
-			fps_counter = 10.0 / sum( fps_buffer )
-
-		# Cleanup OpenCV
-		cv2.destroyWindow( self.id_string )
-
-		# Stop image acquisition
-		self.CaptureStop()
-
-
-#
-# Vimba stereo camera
-#
-class VmbStereoCamera( object ) :
-	
-
-	#
-	# Connect the cameras
-	#
-	def __init__( self, id_string_1, id_string_2 ) :
-		
-		# Initialize the cameras
-		self.camera_1 = VmbCamera( id_string_1 )
-		self.camera_2 = VmbCamera( id_string_2 )
-		
-		# Image parameters
-		self.width = self.camera_1.width
-		self.height = self.camera_1.height
-
-
-	#
-	# Disconnect the cameras
-	#
-	def Disconnect( self ) :
-		
-		# Close the cameras
-		self.camera_1.Disconnect()
-		self.camera_2.Disconnect()
-
-
-	#
-	# Live display
-	#
-	def LiveDisplay( self ) :
-		
-		# Frame per second counter
-		fps_counter = 1.0
-		fps_buffer = collections.deque( 10*[1.0], 10 )
-		
-		# Live image of both cameras
-		image_tmp = np.zeros( (self.height, 2*self.width), dtype=np.uint8 )
-
-		# Create an OpenCV window
-		cv2.namedWindow( "Stereo Camera" )
-
-		# Start image acquisition
-		self.camera_1.CaptureStartSync()
-		self.camera_2.CaptureStartSync()
-
-		# Start live display
-		while True :
-			
-			# Initialize the clock for counting the number of frames per second
-			time_start = time.clock()
-
-			# Capture an image
-			self.camera_1.CaptureFrameSync()
-			self.camera_2.CaptureFrameSync()
-			
-			# Prepare image for display
-			image_tmp[ 0:self.height, 0:self.width ] = self.camera_1.image
-			image_tmp[ 0:self.height, self.width:2*self.width ] = self.camera_2.image
-
-			# Resize image for display
-			image_live = cv2.resize( image_tmp, None, fx=0.3, fy=0.3 )
-
-			# Write FPS counter on the live image
-			cv2.putText( image_live, '{:.2f} FPS'.format( fps_counter ), (10, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255,255,255) )
-
-			# Display the image
-			cv2.imshow( "Stereo Camera", image_live )
-			
-			# Keyboard interruption
-			key = cv2.waitKey(1) & 0xFF
-			
-			# Escape key
-			if key == 27 :
-				
-				# Exit live display
-				break
-				
-			# Frame per second counter
-			fps_buffer.pop()
-			fps_buffer.appendleft( time.clock() - time_start )
-			fps_counter = 10.0 / sum( fps_buffer )
-
-		# Cleanup OpenCV
-		cv2.destroyWindow( "Stereo Camera" )
-
-		# Stop image acquisition
-		self.camera_1.CaptureStop()
-		self.camera_2.CaptureStop()
-
-
-#
-# View two cameras using two different threads
-#
-class VmbDualCamera( object ) :
-	
-
-	#
-	# Connect the cameras
-	#
-	def __init__( self, id_string_1, id_string_2 ) :
-		
-		# Initialize the cameras
-		self.camera_1 = VmbCamera( id_string_1 )
-		self.camera_2 = VmbCamera( id_string_2 )
-		
-
-	#
-	# Disconnect the camera
-	#
-	def Disconnect( self ) :
-		
-		# Close the cameras
-		self.camera_1.Disconnect()
-		self.camera_2.Disconnect()
-
-
-	#
-	# Live display
-	#
-	def LiveDisplay( self ) :
-
-		# Start parallel image acquisition
-		thread_1 = LiveCameraThread( self.camera_1 )
-		thread_2 = LiveCameraThread( self.camera_2 )
-		thread_1.start()
-		thread_2.start()
-		thread_1.join()
-		thread_2.join()
-
-
-#
-# Live camera thread
-#
-class LiveCameraThread( threading.Thread ) :
-	
-
-	#
-	# Initialisation
-	#
-	def __init__( self, camera ) :
-		
-		# Initialise the thread
-		threading.Thread.__init__( self )
-		
-		# Camera handle
-		self.camera = camera
-	
-
-	#
-	# Run the thread
-	#
-	def run( self ) :
-		
-		# Live camera display
-		self.camera.LiveDisplay()
