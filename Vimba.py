@@ -145,7 +145,7 @@ class VmbCamera( object ) :
 	#
 	# Capture a synchronous frame
 	#
-	def CaptureFrame( self ) :
+	def CaptureFrameSync( self ) :
 		
 		# Capture a frame
 		vimba.VmbCaptureFrameWait( self.handle, ct.byref(self.frame), 1000 )
@@ -254,7 +254,7 @@ class VmbCamera( object ) :
 			time_start = time.clock()
 
 			# Capture an image
-			self.CaptureFrame()
+			self.CaptureFrameSync()
 			
 			# Resize image for display
 			image_live = cv2.resize( self.image, None, fx=0.3, fy=0.3 )
@@ -342,8 +342,8 @@ class VmbStereoCamera( object ) :
 			time_start = time.clock()
 
 			# Capture an image
-			self.camera_1.CaptureFrame()
-			self.camera_2.CaptureFrame()
+			self.camera_1.CaptureFrameSync()
+			self.camera_2.CaptureFrameSync()
 			
 			# Prepare image for display
 			image_tmp[ 0:self.height, 0:self.width ] = self.camera_1.image
