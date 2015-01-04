@@ -48,12 +48,12 @@ def LiveDisplay( camera ) :
 	# Start live display
 	while True :
 		
-		# Frame per second
-		fps.Tick()
-
 		# Capture an image
 		camera.CaptureFrameSync()
 		
+		# Count time taken for this frame
+		fps.Tick()
+
 		# Resize image for display
 		image_live = cv2.resize( camera.image, None, fx=0.3, fy=0.3 )
 
@@ -98,13 +98,13 @@ def LiveDisplayStereo( camera_1, camera_2 ) :
 	# Start live display
 	while True :
 		
-		# Frame per second
-		fps.Tick()
-
 		# Capture an image
 		camera_1.CaptureFrameSync()
 		camera_2.CaptureFrameSync()
 		
+		# Count time taken for these frames
+		fps.Tick()
+
 		# Prepare image for display
 		image_tmp[ 0:height, 0:width ] = camera_1.image
 		image_tmp[ 0:height, width:2*width ] = camera_2.image
