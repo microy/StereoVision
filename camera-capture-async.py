@@ -40,7 +40,7 @@ def FrameCallback( pCamera, pFrame ) :
 	ProcessImage( image )
 
 	# Requeue the frame so it can be filled again
-	vimba.VmbCaptureFrameQueue( pCamera, pFrame, frame_callback_function )
+	vimba.VmbCaptureFrameQueue( pCamera, pFrame, ct.byref(frame_callback_function) )
 
 
 #
@@ -84,7 +84,12 @@ def CaptureAsync() :
 	frame_callback_function = ct.CFUNCTYPE( None, ct.c_void_p, ct.c_void_p )( FrameCallback )
 
 	# Create 3 frames to fill in the camera buffer
-	frames = 3 * [ Vimba.VmbFrame( payloadsize ) ]
+	frames = []
+	for i in range( 3 ) :
+		frames.append( Vimba.VmbFrame( payloadsize ) )
+	
+	# Configure freerun trigger
+	vimba.VmbFeatureEnumSet( camera.handle, "FrameStartTriggerMode", "Freerun" )
 
 	# Announce the frames
 	for i in range( 3 ) :
@@ -95,7 +100,7 @@ def CaptureAsync() :
 
 	# Queue frames
 	for i in range( 3 ) :
-		vimba.VmbCaptureFrameQueue( camera.handle, ct.byref(frames[i]), frame_callback_function )
+		vimba.VmbCaptureFrameQueue( camera.handle, ct.byref(frames[i]), ct.byref(frame_callback_function) )
 
 	# Initialize the clock for counting the number of frames per second
 	time_start = time.clock()

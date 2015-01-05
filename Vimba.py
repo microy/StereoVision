@@ -102,7 +102,6 @@ class VmbCamera( object ) :
 		
 		# Configure the camera
 		vimba.VmbFeatureEnumSet( self.handle, "AcquisitionMode", "Continuous" )
-		vimba.VmbFeatureEnumSet( self.handle, "FrameStartTriggerMode", "Freerun" )
 		vimba.VmbFeatureEnumSet( self.handle, "PixelFormat", "Mono8" )
 
 		# Query image parameters
@@ -115,9 +114,9 @@ class VmbCamera( object ) :
 		self.payloadsize = tmp_value.value
 		
 		# Default image parameters of our cameras (AVT Manta G504B) for debug purpose
-		self.width = 2452
-		self.height = 2056
-		self.payloadsize = 5041312
+#		self.width = 2452
+#		self.height = 2056
+#		self.payloadsize = 5041312
 
 		# Initialize the image
 		self.image = np.zeros( (self.height, self.width), dtype=np.uint8 )	
@@ -136,6 +135,9 @@ class VmbCamera( object ) :
 	# Start the synchronous acquisition
 	#
 	def CaptureStartSync( self ) :
+
+		# Configure frame software trigger
+		vimba.VmbFeatureEnumSet( self.handle, "TriggerSource", "Software" )
 
 		# Create an image frame
 		self.frame = VmbFrame( self.payloadsize )
@@ -158,12 +160,14 @@ class VmbCamera( object ) :
 	#
 	def CaptureFrameSync( self ) :
 		
+		# Send software trigger
+		vimba.VmbFeatureCommandRun( self.handle, "TriggerSoftware" )
+
 		# Capture a frame
 		vimba.VmbCaptureFrameWait( self.handle, ct.byref(self.frame), 1000 )
 		
 		# Check frame validity
 		if self.frame.receiveStatus :
-			print( 'Invalid frame status...' ) # To delete
 			return
 		
 		# Convert frame to numpy arrays
@@ -195,6 +199,9 @@ class VmbCamera( object ) :
 	# Start the acquisition asynchronously
 	#
 	def CaptureStartAsync( self ) :
+
+		# Configure freerun trigger
+		vimba.VmbFeatureEnumSet( self.handle, "FrameStartTriggerMode", "Freerun" )
 
 		# Create 3 frames to fill in the camera buffer
 		frames = 3 * [ VmbFrame( self.payloadsize ) ]

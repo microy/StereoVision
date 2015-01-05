@@ -197,7 +197,6 @@ while True :
 	fps_buffer.pop()
 	fps_buffer.appendleft( time.clock() - time_start )
 	fps_counter = 10.0 / sum( fps_buffer )
-	
 
 
 			
