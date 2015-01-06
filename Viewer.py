@@ -9,9 +9,12 @@
 #
 # External dependencies
 #
-import collections, cv2, time, threading
+import collections
+import time
+import threading
+import cv2
 import numpy as np
-
+import Calibration
 
 #
 # Frame per second counter
@@ -65,6 +68,9 @@ def LiveDisplay( camera ) :
 		
 		# Count time taken for this frame
 		fps.Tick()
+		
+		# Draw chessboard on the image
+#		Calibration.FindAndDrawChessboard( camera.image )
 
 		# Resize image for display
 		image_live = cv2.resize( camera.image, None, fx=0.3, fy=0.3 )
