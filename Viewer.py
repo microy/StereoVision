@@ -223,9 +223,13 @@ class CameraStatThread( threading.Thread ) :
 	#
 	def run( self ) :
 		
+		# Run in loop until aborted
 		while not self.abort :
 			
+			# Print camera statistics
 			self.camera.PrintStats()
+			
+			# Sleep one second
 			time.sleep( 1 )
 		
 
