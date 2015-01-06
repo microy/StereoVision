@@ -123,8 +123,9 @@ class VmbCamera( object ) :
 		self.image = np.zeros( (self.height, self.width), dtype=np.uint8 )	
 	
 		# Initialize frame buffer
+		self.frame_number = 3
 		self.frames = []
-		for i in range( 3 ) :
+		for i in range( self.frame_number ) :
 			self.frames.append( VmbFrame( self.payloadsize ) )
 		
 
@@ -143,14 +144,14 @@ class VmbCamera( object ) :
 	def CaptureStart( self, frame_callback_function = None ) :
 
 		# Announce the frames
-		for i in range( 3 ) :
+		for i in range( self.frame_number ) :
 			vimba.VmbFrameAnnounce( self.handle, ct.byref(self.frames[i]), ct.sizeof(self.frames[i]) )
 
 		# Start capture engine
 		vimba.VmbCaptureStart( self.handle )
 
-		# Queue frames
-		for i in range( 3 ) :
+		# Queue the frames
+		for i in range( self.frame_number ) :
 			vimba.VmbCaptureFrameQueue( self.handle, ct.byref(self.frames[i]), frame_callback_function )
 
 		# Initialize frame buffer index
@@ -180,7 +181,7 @@ class VmbCamera( object ) :
 		
 		# Next frame
 		self.frame_index += 1
-		if self.frame_index > 2 :
+		if self.frame_index == self.frame_number :
 			self.frame_index = 0
 
 
