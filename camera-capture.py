@@ -17,14 +17,14 @@ camera_1_id = '50-0503323406'
 camera_2_id = '50-0503326223'
 
 # Create a command line argument parser
-parser = argparse.ArgumentParser( description='Display images from AVT cameras', usage='%(prog)s camera_number' )
-parser.add_argument( 'camera_number', nargs='?', help='Camera number to display (1, 2, or 12 )' )
+parser = argparse.ArgumentParser( description='Display images from AVT cameras', usage='%(prog)s number' )
+parser.add_argument( 'number', nargs='?', help='Camera number to display (1, 2, or 12 )' )
 
 # Process command line parameters
 args = parser.parse_args()
 
 # Print help and exit if a wrong parameter is given
-if not args.camera_number in [ '1', '2', '12' ] :
+if args.number not in [ '1', '2', '12' ] :
 	parser.print_help()
 	sys.exit()
 	
@@ -32,7 +32,7 @@ if not args.camera_number in [ '1', '2', '12' ] :
 Vimba.VmbStartup()
 
 # View camera 1
-if args.camera_number == '1' :
+if args.number == '1' :
 
 	# Camera connection
 	camera = Vimba.VmbCamera( camera_1_id )
@@ -47,7 +47,7 @@ if args.camera_number == '1' :
 	camera.Disconnect()
 	
 # View camera 2
-elif args.camera_number == '2' :
+elif args.number == '2' :
 	
 	# Camera connection
 	camera = Vimba.VmbCamera( camera_2_id )
@@ -62,7 +62,7 @@ elif args.camera_number == '2' :
 	camera.Disconnect()
 	
 # View both cameras
-elif args.camera_number == '12' :
+elif args.number == '12' :
 	
 	# Camera connection
 	camera_1 = Vimba.VmbCamera( camera_1_id )
