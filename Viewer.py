@@ -2,7 +2,7 @@
 
 
 #
-# Module to display live images from cameras
+# Module to display live images from AVT cameras
 #
 
 
@@ -18,11 +18,19 @@ import numpy as np
 #
 class FramePerSecondCounter( object ) :
 	
+
+	#
+	# Initialization
+	#
 	def __init__( self ) :
 		
 		self.buffer = collections.deque( 10*[1.0], 10 )
 		self.time_start = time.clock()
 
+
+	#
+	# Register elapsed time
+	#
 	def Tick( self ) :
 		
 		self.buffer.pop()
@@ -44,6 +52,10 @@ def LiveDisplay( camera ) :
 
 	# Start image acquisition
 	camera.CaptureStart()
+	
+	# Start camera statistics thread
+	camera_stats = CameraStatThread( camera )
+	camera_stats.start()
 
 	# Start live display
 	while True :
@@ -69,6 +81,10 @@ def LiveDisplay( camera ) :
 	# Cleanup OpenCV
 	cv2.destroyWindow( camera.id_string )
 
+	# Stop camera statistics thread
+	camera_stats.abort = True
+	camera_stats.join()
+
 	# Stop image acquisition
 	camera.CaptureStop()
 
@@ -90,6 +106,12 @@ def LiveDisplayStereo( camera_1, camera_2 ) :
 
 	# Create an OpenCV window
 	cv2.namedWindow( "Stereo Camera" )
+
+	# Start camera statistics thread
+	camera_stats_1 = CameraStatThread( camera_1 )
+	camera_stats_2 = CameraStatThread( camera_2 )
+	camera_stats_1.start()
+	camera_stats_2.start()
 
 	# Start image acquisition
 	camera_1.CaptureStart()
@@ -124,6 +146,12 @@ def LiveDisplayStereo( camera_1, camera_2 ) :
 	# Cleanup OpenCV
 	cv2.destroyWindow( "Stereo Camera" )
 
+	# Stop camera statistics thread
+	camera_stats_1.abort = True
+	camera_stats_2.abort = True
+	camera_stats_1.join()
+	camera_stats_2.join()
+
 	# Stop image acquisition
 	camera_1.CaptureStop()
 	camera_2.CaptureStop()
@@ -141,7 +169,6 @@ def LiveDisplayDual( camera_1, camera_2 ) :
 	thread_2.start()
 	thread_1.join()
 	thread_2.join()
-
 
 
 #
@@ -169,3 +196,37 @@ class LiveCameraThread( threading.Thread ) :
 		
 		# Live camera display
 		LiveDisplay( self.camera )
+
+
+#
+# Camera statistics thread
+#
+class CameraStatThread( threading.Thread ) :
+	
+	
+	#
+	# Initialisation
+	#
+	def __init__( self, camera ) :
+		
+		# Initialise the thread
+		threading.Thread.__init__( self )
+		
+		# Camera handle
+		self.camera = camera
+		
+		# Abortion
+		self.abort = False
+
+	#
+	# Run the thread
+	#
+	def run( self ) :
+		
+		while not self.abort :
+			
+			self.camera.PrintStats()
+			time.sleep( 1 )
+		
+
+	

@@ -40,6 +40,9 @@ if args.camera_number == '1' :
 	# Start image acquisition
 	Viewer.LiveDisplay( camera )
 
+	# Print camera statistics
+	camera.PrintStats()
+
 	# Camera disconnection
 	camera.Disconnect()
 	
@@ -52,9 +55,12 @@ elif args.camera_number == '2' :
 	# Start image acquisition
 	Viewer.LiveDisplay( camera )
 
+	# Print camera statistics
+	camera.PrintStats()
+
 	# Camera disconnection
 	camera.Disconnect()
-
+	
 # View both cameras
 elif args.camera_number == '12' :
 	
@@ -65,6 +71,10 @@ elif args.camera_number == '12' :
 	# Start image acquisition
 	Viewer.LiveDisplayStereo( camera_1, camera_2 )
 
+	# Print camera statistics
+	camera_1.PrintStats()
+	camera_2.PrintStats()
+	
 	# Close the cameras
 	camera_1.Disconnect()
 	camera_2.Disconnect()
