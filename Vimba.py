@@ -102,6 +102,7 @@ class VmbCamera( object ) :
 		
 		# Configure the camera
 		vimba.VmbFeatureEnumSet( self.handle, "AcquisitionMode", "Continuous" )
+		vimba.VmbFeatureEnumSet( self.handle, "TriggerSource", "Freerun" )
 		vimba.VmbFeatureEnumSet( self.handle, "PixelFormat", "Mono8" )
 
 		# Query image parameters
@@ -114,13 +115,18 @@ class VmbCamera( object ) :
 		self.payloadsize = tmp_value.value
 		
 		# Default image parameters of our cameras (AVT Manta G504B) for debug purpose
-#		self.width = 2452
-#		self.height = 2056
-#		self.payloadsize = 5041312
+		self.width = 2452
+		self.height = 2056
+		self.payloadsize = 5041312
 
 		# Initialize the image
 		self.image = np.zeros( (self.height, self.width), dtype=np.uint8 )	
 	
+		# Initialize frame buffer
+		self.frames = []
+		for i in range( 3 ) :
+			self.frames.append( VmbFrame( self.payloadsize ) )
+		
 
 	#
 	# Disconnect the camera
@@ -132,25 +138,24 @@ class VmbCamera( object ) :
 
 
 	#
-	# Start the synchronous acquisition
+	# Start the acquisition
 	#
-	def CaptureStartSync( self ) :
+	def CaptureStart( self, frame_callback_function = None ) :
 
-		# Configure frame software trigger
-		vimba.VmbFeatureEnumSet( self.handle, "TriggerSource", "Software" )
-
-		# Create an image frame
-		self.frame = VmbFrame( self.payloadsize )
-		
 		# Announce the frames
-		vimba.VmbFrameAnnounce( self.handle, ct.byref(self.frame), ct.sizeof(self.frame) )
+		for i in range( 3 ) :
+			vimba.VmbFrameAnnounce( self.handle, ct.byref(self.frames[i]), ct.sizeof(self.frames[i]) )
 
 		# Start capture engine
 		vimba.VmbCaptureStart( self.handle )
 
-		# Queue a frame
-		vimba.VmbCaptureFrameQueue( self.handle, ct.byref(self.frame), None )
+		# Queue frames
+		for i in range( 3 ) :
+			vimba.VmbCaptureFrameQueue( self.handle, ct.byref(self.frames[i]), frame_callback_function )
 
+		# Initialize frame buffer index
+		self.frame_index = 0
+		
 		# Start acquisition
 		vimba.VmbFeatureCommandRun( self.handle, "AcquisitionStart" )
 
@@ -158,23 +163,25 @@ class VmbCamera( object ) :
 	#
 	# Capture a synchronous frame
 	#
-	def CaptureFrameSync( self ) :
+	def CaptureFrame( self ) :
 		
-		# Send software trigger
-		vimba.VmbFeatureCommandRun( self.handle, "TriggerSoftware" )
-
 		# Capture a frame
-		vimba.VmbCaptureFrameWait( self.handle, ct.byref(self.frame), 1000 )
+		vimba.VmbCaptureFrameWait( self.handle, ct.byref(self.frames[self.frame_index]), 1000 )
 		
 		# Check frame validity
-		if self.frame.receiveStatus :
-			return
-		
+		if self.frames[self.frame_index].receiveStatus :	
+			print( 'Invalid frame received...' )
+			
 		# Convert frame to numpy arrays
-		self.image = np.fromstring( self.frame.buffer[ 0 : self.payloadsize ], dtype=np.uint8 ).reshape( self.height, self.width )
+		self.image = np.fromstring( self.frames[self.frame_index].buffer[ 0 : self.payloadsize ], dtype=np.uint8 ).reshape( self.height, self.width )
 
-		# Queue another frame
-		vimba.VmbCaptureFrameQueue( self.handle, ct.byref(self.frame), None )
+		# Requeue frame
+		vimba.VmbCaptureFrameQueue( self.handle, ct.byref(self.frames[self.frame_index]), None )
+		
+		# Next frame
+		self.frame_index += 1
+		if self.frame_index > 2 :
+			self.frame_index = 0
 
 
 	#
@@ -193,58 +200,3 @@ class VmbCamera( object ) :
 
 		# Revoke frames
 		vimba.VmbFrameRevokeAll( self.handle )
-
-
-	#
-	# Start the acquisition asynchronously
-	#
-	def CaptureStartAsync( self ) :
-
-		# Configure freerun trigger
-		vimba.VmbFeatureEnumSet( self.handle, "FrameStartTriggerMode", "Freerun" )
-
-		# Create 3 frames to fill in the camera buffer
-		frames = 3 * [ VmbFrame( self.payloadsize ) ]
-
-		# Reference to frame callback function
-		self.frame_callback_function = self.GetFrameCallbackFunction()
-
-		# Announce the frames
-		for i in range( 3 ) :
-			vimba.VmbFrameAnnounce( self.handle, ct.byref(frames[i]), ct.sizeof(frames[i]) )
-			
-		# Start capture engine
-		vimba.VmbCaptureStart( self.handle )
-
-		# Queue frames
-		for i in range( 3 ) :
-			vimba.VmbCaptureFrameQueue( self.handle, ct.byref(frames[i]), self.frame_callback_function )
-	
-		# Start acquisition
-		vimba.VmbFeatureCommandRun( self.handle, "AcquisitionStart" )
-		
-
-	#
-	# Create a frame callback function
-	#
-	def GetFrameCallbackFunction( self ) :
-
-		# Define the frame callback function
-		def FrameCallback( camera, frame ) :
-
-			# Print frame informations
-			print( 'Frame callback - Frame ID : ', frame.contents.frameID )
-				
-			# Check frame validity
-			if frame.contents.receiveStatus :
-				print( 'Invalid frame status...' )
-				return
-
-			# Convert frames to numpy arrays
-			self.image = np.fromstring( frame.contents.buffer[ 0 : self.payloadsize ], dtype=np.uint8 ).reshape( self.height, self.width )
-
-			# Requeue the frame so it can be filled again
-			vimba.VmbCaptureFrameQueue( camera, frame, self.frame_callback_function )
-
-		# Return a C-type handle to the frame callback function
-		return ct.CFUNCTYPE( None, ct.c_void_p, ct.c_void_p )( FrameCallback )

@@ -72,9 +72,9 @@ Vimba.VmbStartup()
 #
 # Start acquisition
 #
-#Live()
+Live()
 #LiveDual()
-LiveStereo()
+#LiveStereo()
 
 
 #

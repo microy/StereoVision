@@ -30,8 +30,7 @@ def FrameCallback( pCamera, pFrame ) :
 
 	# Check frame validity
 	if pFrame.contents.receiveStatus :
-		print('Frame status invalid...' )
-		return
+		print('Invalid frame received...' )
 
 	# Convert frames to numpy arrays
 	image = np.fromstring( pFrame.contents.buffer[ 0 : payloadsize ], dtype=np.uint8 ).reshape( height, width )
@@ -40,7 +39,7 @@ def FrameCallback( pCamera, pFrame ) :
 	ProcessImage( image )
 
 	# Requeue the frame so it can be filled again
-	vimba.VmbCaptureFrameQueue( pCamera, pFrame, ct.byref(frame_callback_function) )
+	vimba.VmbCaptureFrameQueue( pCamera, pFrame, frame_callback_function )
 
 
 #
@@ -83,25 +82,9 @@ def CaptureAsync() :
 	# Reference to frame callback function
 	frame_callback_function = ct.CFUNCTYPE( None, ct.c_void_p, ct.c_void_p )( FrameCallback )
 
-	# Create 3 frames to fill in the camera buffer
-	frames = []
-	for i in range( 3 ) :
-		frames.append( Vimba.VmbFrame( payloadsize ) )
+	# Start capture
+	camera.CaptureStart( frame_callback_function )
 	
-	# Configure freerun trigger
-	vimba.VmbFeatureEnumSet( camera.handle, "FrameStartTriggerMode", "Freerun" )
-
-	# Announce the frames
-	for i in range( 3 ) :
-		vimba.VmbFrameAnnounce( camera.handle, ct.byref(frames[i]), ct.sizeof(frames[i]) )
-		
-	# Start capture engine
-	vimba.VmbCaptureStart( camera.handle )
-
-	# Queue frames
-	for i in range( 3 ) :
-		vimba.VmbCaptureFrameQueue( camera.handle, ct.byref(frames[i]), ct.byref(frame_callback_function) )
-
 	# Initialize the clock for counting the number of frames per second
 	time_start = time.clock()
 
@@ -118,16 +101,13 @@ def CaptureAsync() :
 	while True :
 		
 		# Keyboard interruption
-		key = cv2.waitKey(1) & 0xFF
-		
-		# Escape key
-		if key == 27 :
-			
-			# Exit live display
-			break
+		if ( cv2.waitKey(1) & 0xFF ) == 27 : break
 			
 	# Cleanup OpenCV
 	cv2.destroyWindow( "Camera" )
+
+	# Stop image acquisition
+	camera.CaptureStop()
 
 
 
@@ -145,9 +125,6 @@ camera = Vimba.VmbCamera( '50-0503323406' )
 
 # Live asynchronous capture
 CaptureAsync()
-
-# Stop image acquisition
-camera.CaptureStop()
 
 # Camera disconnection
 camera.Disconnect()

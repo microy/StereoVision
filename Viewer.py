@@ -43,13 +43,13 @@ def LiveDisplay( camera ) :
 	cv2.namedWindow( camera.id_string )
 
 	# Start image acquisition
-	camera.CaptureStartSync()
+	camera.CaptureStart()
 
 	# Start live display
 	while True :
 		
 		# Capture an image
-		camera.CaptureFrameSync()
+		camera.CaptureFrame()
 		
 		# Count time taken for this frame
 		fps.Tick()
@@ -92,15 +92,15 @@ def LiveDisplayStereo( camera_1, camera_2 ) :
 	cv2.namedWindow( "Stereo Camera" )
 
 	# Start image acquisition
-	camera_1.CaptureStartSync()
-	camera_2.CaptureStartSync()
+	camera_1.CaptureStart()
+	camera_2.CaptureStart()
 
 	# Start live display
 	while True :
 		
 		# Capture an image
-		camera_1.CaptureFrameSync()
-		camera_2.CaptureFrameSync()
+		camera_1.CaptureFrame()
+		camera_2.CaptureFrame()
 		
 		# Count time taken for these frames
 		fps.Tick()
