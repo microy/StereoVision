@@ -9,8 +9,10 @@
 
 
 # External dependencies
-import argparse, sys
-import Vimba, Viewer
+import argparse
+import sys
+import Vimba
+import Viewer
 
 # Camera serial numbers
 camera_1_id = '50-0503323406'
