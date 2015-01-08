@@ -161,47 +161,6 @@ def LiveDisplayStereo( camera_1, camera_2 ) :
 
 
 #
-# Live display dual
-#
-def LiveDisplayDual( camera_1, camera_2 ) :
-
-	# Start parallel image acquisition
-	thread_1 = LiveCameraThread( camera_1 )
-	thread_2 = LiveCameraThread( camera_2 )
-	thread_1.start()
-	thread_2.start()
-	thread_1.join()
-	thread_2.join()
-
-
-#
-# Live camera thread
-#
-class LiveCameraThread( threading.Thread ) :
-	
-
-	#
-	# Initialisation
-	#
-	def __init__( self, camera ) :
-		
-		# Initialise the thread
-		threading.Thread.__init__( self )
-		
-		# Camera handle
-		self.camera = camera
-	
-
-	#
-	# Run the thread
-	#
-	def run( self ) :
-		
-		# Live camera display
-		LiveDisplay( self.camera )
-
-
-#
 # Camera statistics thread
 #
 class CameraStatThread( threading.Thread ) :
