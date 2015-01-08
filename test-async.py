@@ -62,10 +62,10 @@ camera2 = Vimba.VmbCamera( '50-0503326223' )
 camera1.CaptureStart( ProcessImage1 )
 camera2.CaptureStart( ProcessImage2 )
 
-raw_input( 'Press enter...' )
+raw_input( 'Press enter to exit...' )
 
 # Cleanup OpenCV
-cv2.destroyWindow( "Camera" )
+cv2.destroyAllWindows()
 
 # Stop image acquisition
 camera1.CaptureStop()
