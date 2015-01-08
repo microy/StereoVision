@@ -54,7 +54,9 @@ def VmbShutdown() :
 #
 class VmbFrame( ct.Structure ) :
 	
+	#
 	# VmbFrame structure fields
+	#
 	_fields_ = [('buffer', ct.POINTER(ct.c_char)),
 			('bufferSize', ct.c_uint32),
 			('context', ct.c_void_p * 4),
@@ -70,7 +72,9 @@ class VmbFrame( ct.Structure ) :
 			('frameID', ct.c_uint64),
 			('timestamp', ct.c_uint64)]
 	
+	#
 	# Initialize the image buffer
+	#
 	def __init__( self, frame_size ) :
 
 		self.buffer = ct.create_string_buffer( frame_size )
@@ -81,10 +85,9 @@ class VmbFrame( ct.Structure ) :
 # Vimba camera
 #
 class VmbCamera( object ) :
-
 	
 	#
-	# Connect the camera
+	# Initialize the camera
 	#
 	def __init__( self, id_string ) :
 		
@@ -128,7 +131,6 @@ class VmbCamera( object ) :
 		for i in range( self.frame_number ) :
 			self.frames.append( VmbFrame( self.payloadsize ) )
 		
-
 	#
 	# Disconnect the camera
 	#
@@ -136,7 +138,6 @@ class VmbCamera( object ) :
 		
 		# Close the camera
 		vimba.VmbCameraClose( self.handle )
-
 
 	#
 	# Start the acquisition
@@ -165,7 +166,6 @@ class VmbCamera( object ) :
 		# Start acquisition
 		vimba.VmbFeatureCommandRun( self.handle, "AcquisitionStart" )
 
-
 	#
 	# Capture a synchronous frame
 	#
@@ -188,7 +188,6 @@ class VmbCamera( object ) :
 		self.frame_index += 1
 		if self.frame_index == self.frame_number :
 			self.frame_index = 0
-
 
 	#
 	# Stop the acquisition
@@ -229,7 +228,6 @@ class VmbCamera( object ) :
 			
 		# Register the callback function
 		return ct.CFUNCTYPE( None, ct.c_void_p, ct.POINTER(VmbFrame) )( FrameCallback )
-
 
 	#
 	# Print camera statistics

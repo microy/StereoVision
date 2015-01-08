@@ -19,8 +19,8 @@ camera_1_id = '50-0503323406'
 camera_2_id = '50-0503326223'
 
 # Create a command line argument parser
-parser = argparse.ArgumentParser( description='Display images from AVT cameras', usage='%(prog)s number' )
-parser.add_argument( 'number', nargs='?', help='Camera number to display (1, 2, or 12 )' )
+parser = argparse.ArgumentParser( description='Display images from AVT cameras', usage='%(prog)s Number' )
+parser.add_argument( 'Number', nargs='?', help='Number of the camera to display (1, 2, or 12 )' )
 
 # Process command line parameters
 args = parser.parse_args()

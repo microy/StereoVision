@@ -16,31 +16,6 @@ import cv2
 import numpy as np
 import Calibration
 
-#
-# Frame per second counter
-#
-class FramePerSecondCounter( object ) :
-	
-
-	#
-	# Initialization
-	#
-	def __init__( self ) :
-		
-		self.buffer = collections.deque( 10*[1.0], 10 )
-		self.time_start = time.clock()
-
-
-	#
-	# Register elapsed time
-	#
-	def Tick( self ) :
-		
-		self.buffer.pop()
-		self.buffer.appendleft( time.clock() - self.time_start )
-		self.counter = 10.0 / sum( self.buffer )
-		self.time_start = time.clock()
-
 
 #
 # Live display
@@ -158,6 +133,32 @@ def LiveDisplayStereo( camera_1, camera_2 ) :
 	# Stop image acquisition
 	camera_1.CaptureStop()
 	camera_2.CaptureStop()
+
+
+#
+# Frame per second counter
+#
+class FramePerSecondCounter( object ) :
+	
+
+	#
+	# Initialization
+	#
+	def __init__( self ) :
+		
+		self.buffer = collections.deque( 10*[1.0], 10 )
+		self.time_start = time.clock()
+
+
+	#
+	# Register elapsed time
+	#
+	def Tick( self ) :
+		
+		self.buffer.pop()
+		self.buffer.appendleft( time.clock() - self.time_start )
+		self.counter = 10.0 / sum( self.buffer )
+		self.time_start = time.clock()
 
 
 #
