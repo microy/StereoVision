@@ -141,7 +141,12 @@ class VmbCamera( object ) :
 	#
 	# Start the acquisition
 	#
-	def CaptureStart( self, frame_callback_function = None ) :
+	def CaptureStart( self, ProcessImage = None ) :
+		
+		# Asynchronous capture (if any)
+		self.frame_callback_function = None
+		if ProcessImage :
+			self.CreateFrameCallbackFunction( ProcessImage )
 
 		# Announce the frames
 		for i in range( self.frame_number ) :
@@ -152,7 +157,7 @@ class VmbCamera( object ) :
 		
 		# Queue the frames
 		for i in range( self.frame_number ) :
-			vimba.VmbCaptureFrameQueue( self.handle, ct.byref(self.frames[i]), frame_callback_function )
+			vimba.VmbCaptureFrameQueue( self.handle, ct.byref(self.frames[i]), self.frame_callback_function )
 
 		# Initialize frame buffer index
 		self.frame_index = 0
@@ -201,6 +206,29 @@ class VmbCamera( object ) :
 
 		# Revoke frames
 		vimba.VmbFrameRevokeAll( self.handle )
+		
+	#
+	# Create a frame callback function
+	#
+	def CreateFrameCallbackFunction( self, ProcessImage ) :
+		
+		# Define the frame callback function
+		def FrameCallback( camera, frame ) :
+
+			# Print frame informations
+			print( 'Frame callback - Frame ID : {} - Status : {}...'.format(frame.contents.frameID, frame.contents.receiveStatus) )
+				
+			# Convert frames to numpy arrays
+			self.image = np.fromstring( frame.contents.buffer[ 0 : self.payloadsize ], dtype=np.uint8 ).reshape( self.height, self.width )
+			
+			# Process the image with the provided function
+			ProcessImage( self.image )
+
+			# Requeue the frame so it can be filled again
+			vimba.VmbCaptureFrameQueue( camera, frame, self.frame_callback_function )
+			
+		# Register the callback function
+		self.frame_callback_function = ct.CFUNCTYPE( None, ct.c_void_p, ct.POINTER(VmbFrame) )( FrameCallback )
 
 
 	#
