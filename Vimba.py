@@ -149,7 +149,7 @@ class VmbCamera( object ) :
 
 		# Start capture engine
 		vimba.VmbCaptureStart( self.handle )
-
+		
 		# Queue the frames
 		for i in range( self.frame_number ) :
 			vimba.VmbCaptureFrameQueue( self.handle, ct.byref(self.frames[i]), frame_callback_function )
@@ -171,7 +171,7 @@ class VmbCamera( object ) :
 		
 		# Check frame validity
 		if self.frames[self.frame_index].receiveStatus :	
-			print( 'Invalid frame received...' )
+			print( 'Invalid frame received... {}'.format(self.frames[self.frame_index].receiveStatus) )
 			
 		# Convert frame to numpy arrays
 		self.image = np.fromstring( self.frames[self.frame_index].buffer[ 0 : self.payloadsize ], dtype=np.uint8 ).reshape( self.height, self.width )
@@ -210,7 +210,7 @@ class VmbCamera( object ) :
 		
 		# Temporary variables
 		tmp_int = ct.c_int()
-		tmp_float = ct.c_float()
+		tmp_float = ct.c_double()
 		stats = []
 		
 		# Get some camera statistics
@@ -222,7 +222,7 @@ class VmbCamera( object ) :
 		stats.append( tmp_int.value )
 		vimba.VmbFeatureIntGet( self.handle, "StatPacketMissed", ct.byref(tmp_int) )
 		stats.append( tmp_int.value )
-		vimba.VmbFeatureFloatGet( self.handle, "StatFrameRate", ct.byref(tmp_float) )
+		vimba.VmbFeatureFloatGet( self.handle, "StatLocalRate", ct.byref(tmp_float) )
 		stats.append( tmp_float.value )
 		
 		# Print camera statistics
