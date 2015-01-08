@@ -146,7 +146,7 @@ class VmbCamera( object ) :
 		# Asynchronous capture (if any)
 		self.frame_callback_function = None
 		if ProcessImage :
-			self.CreateFrameCallbackFunction( ProcessImage )
+			self.frame_callback_function = self.CreateFrameCallbackFunction( ProcessImage )
 
 		# Announce the frames
 		for i in range( self.frame_number ) :
@@ -228,7 +228,7 @@ class VmbCamera( object ) :
 			vimba.VmbCaptureFrameQueue( camera, frame, self.frame_callback_function )
 			
 		# Register the callback function
-		self.frame_callback_function = ct.CFUNCTYPE( None, ct.c_void_p, ct.POINTER(VmbFrame) )( FrameCallback )
+		return ct.CFUNCTYPE( None, ct.c_void_p, ct.POINTER(VmbFrame) )( FrameCallback )
 
 
 	#
