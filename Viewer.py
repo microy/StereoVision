@@ -58,7 +58,7 @@ def LiveDisplay( camera ) :
 	
 	# Start camera statistics thread
 	camera_stats = CameraStatThread( camera )
-	camera_stats.start()
+	camera_stats.Start()
 
 	# Start live display
 	while True :
@@ -88,8 +88,7 @@ def LiveDisplay( camera ) :
 	cv2.destroyWindow( camera.id_string )
 
 	# Stop camera statistics thread
-	camera_stats.abort = True
-	camera_stats.join()
+	camera_stats.Stop()
 
 	# Stop image acquisition
 	camera.CaptureStop()
@@ -116,8 +115,8 @@ def LiveDisplayStereo( camera_1, camera_2 ) :
 	# Start camera statistics thread
 	camera_stats_1 = CameraStatThread( camera_1 )
 	camera_stats_2 = CameraStatThread( camera_2 )
-	camera_stats_1.start()
-	camera_stats_2.start()
+	camera_stats_1.Start()
+	camera_stats_2.Start()
 
 	# Start image acquisition
 	camera_1.CaptureStart()
@@ -153,10 +152,8 @@ def LiveDisplayStereo( camera_1, camera_2 ) :
 	cv2.destroyWindow( "Stereo Camera" )
 
 	# Stop camera statistics thread
-	camera_stats_1.abort = True
-	camera_stats_2.abort = True
-	camera_stats_1.join()
-	camera_stats_2.join()
+	camera_stats_1.Stop()
+	camera_stats_2.Stop()
 
 	# Stop image acquisition
 	camera_1.CaptureStop()
@@ -223,6 +220,23 @@ class CameraStatThread( threading.Thread ) :
 		
 		# Abortion
 		self.abort = False
+		
+	#
+	# Start the thread
+	#
+	def Start( self ) :
+		
+		# Start the thread
+		self.start()
+
+	#
+	# Stop the thread
+	#
+	def Stop( self ) :
+		
+		# Stop the thread
+		self.abort = True
+		self.join()
 
 	#
 	# Run the thread
@@ -237,6 +251,3 @@ class CameraStatThread( threading.Thread ) :
 		
 			# Print camera statistics
 			self.camera.PrintStats()
-			
-
-	
