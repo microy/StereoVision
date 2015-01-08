@@ -26,7 +26,7 @@ parser.add_argument( 'Number', nargs='?', help='Number of the camera to display 
 args = parser.parse_args()
 
 # Print help and exit if a wrong parameter is given
-if args.number not in [ '1', '2', '12' ] :
+if args.Number not in [ '1', '2', '12' ] :
 	parser.print_help()
 	sys.exit()
 	
@@ -34,7 +34,7 @@ if args.number not in [ '1', '2', '12' ] :
 Vimba.VmbStartup()
 
 # View camera 1
-if args.number == '1' :
+if args.Number == '1' :
 
 	# Camera connection
 	camera = Vimba.VmbCamera( camera_1_id )
@@ -49,7 +49,7 @@ if args.number == '1' :
 	camera.Disconnect()
 	
 # View camera 2
-elif args.number == '2' :
+elif args.Number == '2' :
 	
 	# Camera connection
 	camera = Vimba.VmbCamera( camera_2_id )
@@ -64,7 +64,7 @@ elif args.number == '2' :
 	camera.Disconnect()
 	
 # View both cameras
-elif args.number == '12' :
+elif args.Number == '12' :
 	
 	# Camera connection
 	camera_1 = Vimba.VmbCamera( camera_1_id )
