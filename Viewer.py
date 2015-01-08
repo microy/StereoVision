@@ -69,11 +69,11 @@ def LiveDisplay( camera ) :
 		# Count time taken for this frame
 		fps.Tick()
 		
-		# Draw chessboard on the image
-#		Calibration.FindAndDrawChessboard( camera.image )
-
 		# Resize image for display
 		image_live = cv2.resize( camera.image, None, fx=0.3, fy=0.3 )
+
+		# Draw chessboard on the image
+		Calibration.FindAndDrawChessboard( image_live )
 
 		# Write FPS counter on the live image
 		cv2.putText( image_live, '{:.2f} FPS'.format( fps.counter ), (10, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255,255,255) )
