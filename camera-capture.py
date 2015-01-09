@@ -40,10 +40,7 @@ if args.Number == '1' :
 	camera = Vimba.VmbCamera( camera_1_id )
 
 	# Start image acquisition
-	Viewer.LiveDisplay( camera )
-
-	# Print camera statistics
-	camera.PrintStats()
+	Viewer.Viewer( camera ).LiveDisplay()
 
 	# Camera disconnection
 	camera.Disconnect()
@@ -55,10 +52,7 @@ elif args.Number == '2' :
 	camera = Vimba.VmbCamera( camera_2_id )
 
 	# Start image acquisition
-	Viewer.LiveDisplay( camera )
-
-	# Print camera statistics
-	camera.PrintStats()
+	Viewer.Viewer( camera ).LiveDisplay()
 
 	# Camera disconnection
 	camera.Disconnect()
@@ -71,12 +65,8 @@ elif args.Number == '12' :
 	camera_2 = Vimba.VmbCamera( camera_2_id )
 
 	# Start image acquisition
-	Viewer.LiveDisplayStereo( camera_1, camera_2 )
+	Viewer.StereoViewer( camera_1, camera_2 ).LiveDisplay()
 
-	# Print camera statistics
-	camera_1.PrintStats()
-	camera_2.PrintStats()
-	
 	# Close the cameras
 	camera_1.Disconnect()
 	camera_2.Disconnect()

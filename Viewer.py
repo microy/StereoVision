@@ -30,10 +30,7 @@ class Viewer( object ) :
 		
 		# Register the camera to display
 		self.camera = camera
-		
-		# Lock for data synchronisation
-#		self.lock = threading.Lock()
-		
+				
 	#
 	# Start capture and display image stream
 	#
@@ -69,57 +66,93 @@ class Viewer( object ) :
 
 
 #
-# Live display stereo
+# Vimba camera viewer
 #
-def LiveDisplayStereo( camera_1, camera_2 ) :
+class StereoViewer( object ) :
 	
-	# Image parameters
-	width = camera_1.width
-	height = camera_1.height
+	#
+	# Initialization
+	#
+	def __init__( self, camera_1, camera_2 ) :
+		
+		# Register the camera to display
+		self.camera_1 = camera_1
+		self.camera_2 = camera_2
 	
-	# Live image of both cameras
-	image_tmp = np.zeros( (height, 2*width), dtype=np.uint8 )
-
-	# Create an OpenCV window
-	cv2.namedWindow( "Stereo Camera" )
-
-	# Start camera statistics thread
-	camera_stats_1 = CameraStatThread( camera_1 )
-	camera_stats_2 = CameraStatThread( camera_2 )
-	camera_stats_1.Start()
-	camera_stats_2.Start()
-
-	# Start image acquisition
-	camera_1.CaptureStart()
-	camera_2.CaptureStart()
-
-	# Start live display
-	while True :
+		# Image parameters
+		self.width = camera_1.width
+		self.height = camera_1.height
 		
-		# Capture an image
-		camera_1.CaptureFrame()
-		camera_2.CaptureFrame()
+		# Lock for data synchronisation
+		self.lock = threading.Lock()
+
+		# Live image of both cameras
+		self.stereo_image = np.zeros( (self.height, 2*self.width), dtype=np.uint8 )
 		
-		# Prepare image for display
-		image_tmp[ 0:height, 0:width ] = camera_1.image
-		image_tmp[ 0:height, width:2*width ] = camera_2.image
+	#
+	# Start capture and display image stream
+	#
+	def LiveDisplay( self ) :
 
-		# Resize image for display
-		image_live = cv2.resize( image_tmp, None, fx=0.3, fy=0.3 )
-
-		# Display the image
-		cv2.imshow( "Stereo Camera", image_live )
+		# Start image acquisition
+		self.capturing = True
+		self.camera_1.CaptureStart( self.ImageCallback_1 )
+		self.camera_2.CaptureStart( self.ImageCallback_2 )
 		
 		# Keyboard interruption
-		if ( cv2.waitKey(1) & 0xFF ) == 27 : break
+		while self.capturing : pass
 
-	# Cleanup OpenCV
-	cv2.destroyWindow( "Stereo Camera" )
+		# Stop image acquisition
+		self.camera_1.CaptureStop()
+		self.camera_2.CaptureStop()
 
-	# Stop camera statistics thread
-	camera_stats_1.Stop()
-	camera_stats_2.Stop()
+		# Cleanup OpenCV
+		cv2.destroyAllWindows()
 
-	# Stop image acquisition
-	camera_1.CaptureStop()
-	camera_2.CaptureStop()
+	#
+	# Display the current image for camera 1
+	#
+	def ImageCallback_1( self, image ) :
+		
+		# Lock the thread
+		self.lock.acquire()
+		
+		# Put the current image in the combined image
+		self.stereo_image[ 0:self.height, 0:self.width ] = image
+		
+		# Resize image for display
+		image_displayed = cv2.resize( self.stereo_image, None, fx=0.3, fy=0.3 )
+		
+		# Release the thread
+		self.lock.release()
+
+		# Display the image (scaled down)
+		cv2.imshow( "Stereo", image_displayed )
+
+		# Keyboard interruption
+		if ( cv2.waitKey(1) & 0xFF ) == 27 :
+			self.capturing = False
+
+	#
+	# Display the current image for camera 2
+	#
+	def ImageCallback_2( self, image ) :
+		
+		# Lock the thread
+		self.lock.acquire()
+		
+		# Put the current image in the combined image
+		self.stereo_image[ 0:self.height, self.width:2*self.width ] = image
+
+		# Resize image for display
+		image_displayed = cv2.resize( self.stereo_image, None, fx=0.3, fy=0.3 )
+		
+		# Release the thread
+		self.lock.release()
+
+		# Display the image (scaled down)
+		cv2.imshow( "Stereo", image_displayed )
+
+		# Keyboard interruption
+		if ( cv2.waitKey(1) & 0xFF ) == 27 :
+			self.capturing = False
