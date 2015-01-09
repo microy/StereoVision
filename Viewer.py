@@ -73,9 +73,6 @@ class Viewer( object ) :
 #
 def LiveDisplayStereo( camera_1, camera_2 ) :
 	
-	# Frame per second counter
-	fps = FramePerSecondCounter()
-	
 	# Image parameters
 	width = camera_1.width
 	height = camera_1.height
@@ -103,18 +100,12 @@ def LiveDisplayStereo( camera_1, camera_2 ) :
 		camera_1.CaptureFrame()
 		camera_2.CaptureFrame()
 		
-		# Count time taken for these frames
-		fps.Tick()
-
 		# Prepare image for display
 		image_tmp[ 0:height, 0:width ] = camera_1.image
 		image_tmp[ 0:height, width:2*width ] = camera_2.image
 
 		# Resize image for display
 		image_live = cv2.resize( image_tmp, None, fx=0.3, fy=0.3 )
-
-		# Write FPS counter on the live image
-		cv2.putText( image_live, '{:.2f} FPS'.format( fps.counter ), (10, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255,255,255) )
 
 		# Display the image
 		cv2.imshow( "Stereo Camera", image_live )
@@ -132,29 +123,3 @@ def LiveDisplayStereo( camera_1, camera_2 ) :
 	# Stop image acquisition
 	camera_1.CaptureStop()
 	camera_2.CaptureStop()
-
-
-#
-# Frame per second counter
-#
-class FramePerSecondCounter( object ) :
-	
-
-	#
-	# Initialization
-	#
-	def __init__( self ) :
-		
-		self.buffer = collections.deque( 10*[1.0], 10 )
-		self.time_start = time.clock()
-
-
-	#
-	# Register elapsed time
-	#
-	def Tick( self ) :
-		
-		self.buffer.pop()
-		self.buffer.appendleft( time.clock() - self.time_start )
-		self.counter = 10.0 / sum( self.buffer )
-		self.time_start = time.clock()
