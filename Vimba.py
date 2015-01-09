@@ -198,28 +198,3 @@ class VmbCamera( object ) :
 
 		# Requeue the frame so it can be filled again
 		vimba.VmbCaptureFrameQueue( camera, frame, self.frame_callback_function )
-
-	#
-	# Print camera statistics
-	#
-	def PrintStats( self ) :
-		
-		# Temporary variables
-		tmp_int = ct.c_int()
-		tmp_float = ct.c_double()
-		stats = []
-		
-		# Get some camera statistics
-		vimba.VmbFeatureIntGet( self.handle, "StatFrameDelivered", ct.byref(tmp_int) )
-		stats.append( tmp_int.value )
-		vimba.VmbFeatureIntGet( self.handle, "StatFrameDropped", ct.byref(tmp_int) )
-		stats.append( tmp_int.value )
-		vimba.VmbFeatureIntGet( self.handle, "StatPacketReceived", ct.byref(tmp_int) )
-		stats.append( tmp_int.value )
-		vimba.VmbFeatureIntGet( self.handle, "StatPacketMissed", ct.byref(tmp_int) )
-		stats.append( tmp_int.value )
-		vimba.VmbFeatureFloatGet( self.handle, "StatLocalRate", ct.byref(tmp_float) )
-		stats.append( tmp_float.value )
-		
-		# Print camera statistics
-		print( "Camera {} - FrmDvd : {}  FrmDrp : {} PckRvd : {} PckMss : {} FrmRt : {:.2f}".format( self.id_string, stats[0], stats[1], stats[2], stats[3], stats[4] ) )

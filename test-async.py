@@ -67,16 +67,16 @@ camera1 = Vimba.VmbCamera( '50-0503323406' )
 camera2 = Vimba.VmbCamera( '50-0503326223' )
 
 # Live view of the cameras
-#viewer = Viewer.Viewer( camera1 )
-#viewer.LiveDisplay()
+viewer = Viewer.Viewer( camera1 )
+viewer.LiveDisplay()
 
 # Live asynchronous capture
-capturing = True
-camera1.CaptureStart( ProcessImage1 )
-camera2.CaptureStart( ProcessImage2 )
+#capturing = True
+#camera1.CaptureStart( ProcessImage1 )
+#camera2.CaptureStart( ProcessImage2 )
 
 # Keyboard interruption
-while capturing : pass
+#while capturing : pass
 
 # Stop image acquisition
 camera1.CaptureStop()

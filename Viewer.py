@@ -43,15 +43,8 @@ class Viewer( object ) :
 		self.capturing = True
 		self.camera.CaptureStart( self.ImageCallback )
 		
-		# Start camera statistics thread
-		camera_stats = CameraStatThread( self.camera )
-		camera_stats.Start()
-		
 		# Keyboard interruption
 		while self.capturing : pass
-
-		# Stop camera statistics thread
-		camera_stats.Stop()
 
 		# Stop image acquisition
 		self.camera.CaptureStop()
@@ -73,60 +66,6 @@ class Viewer( object ) :
 		# Keyboard interruption
 		if ( cv2.waitKey(1) & 0xFF ) == 27 :
 			self.capturing = False
-
-
-#
-# Live display
-#
-def LiveDisplay( camera ) :
-	
-	# Frame per second counter
-	fps = FramePerSecondCounter()
-	
-	# Create an OpenCV window
-	cv2.namedWindow( camera.id_string )
-
-	# Start image acquisition
-	camera.CaptureStart()
-	
-	# Start camera statistics thread
-	camera_stats = CameraStatThread( camera )
-	camera_stats.Start()
-	
-	#
-
-	# Start live display
-	while True :
-		
-		# Capture an image
-		camera.CaptureFrame()
-		
-		# Count time taken for this frame
-		fps.Tick()
-		
-		# Resize image for display
-		image_live = cv2.resize( camera.image, None, fx=0.3, fy=0.3 )
-
-		# Draw chessboard on the image
-		Calibration.FindAndDrawChessboard( image_live )
-
-		# Write FPS counter on the live image
-		cv2.putText( image_live, '{:.2f} FPS'.format( fps.counter ), (10, 35), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255,255,255) )
-
-		# Display the image
-		cv2.imshow( camera.id_string, image_live )
-		
-		# Keyboard interruption
-		if ( cv2.waitKey(1) & 0xFF ) == 27 : break
-
-	# Cleanup OpenCV
-	cv2.destroyWindow( camera.id_string )
-
-	# Stop camera statistics thread
-	camera_stats.Stop()
-
-	# Stop image acquisition
-	camera.CaptureStop()
 
 
 #
@@ -219,55 +158,3 @@ class FramePerSecondCounter( object ) :
 		self.buffer.appendleft( time.clock() - self.time_start )
 		self.counter = 10.0 / sum( self.buffer )
 		self.time_start = time.clock()
-
-
-#
-# Camera statistics thread
-#
-class CameraStatThread( threading.Thread ) :
-	
-	
-	#
-	# Initialisation
-	#
-	def __init__( self, camera ) :
-		
-		# Initialise the thread
-		threading.Thread.__init__( self )
-		
-		# Camera handle
-		self.camera = camera
-		
-		# Abortion
-		self.abort = False
-		
-	#
-	# Start the thread
-	#
-	def Start( self ) :
-		
-		# Start the thread
-		self.start()
-
-	#
-	# Stop the thread
-	#
-	def Stop( self ) :
-		
-		# Stop the thread
-		self.abort = True
-		self.join()
-
-	#
-	# Run the thread
-	#
-	def run( self ) :
-		
-		# Run in loop until aborted
-		while not self.abort :
-			
-			# Sleep one second
-			time.sleep( 1 )
-		
-			# Print camera statistics
-			self.camera.PrintStats()
