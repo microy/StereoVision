@@ -17,6 +17,64 @@ import numpy as np
 import Calibration
 
 
+
+#
+# Vimba camera viewer
+#
+class Viewer( object ) :
+	
+	#
+	# Initialization
+	#
+	def __init__( self, camera ) :
+		
+		# Register the camera to display
+		self.camera = camera
+		
+		# Lock for data synchronisation
+#		self.lock = threading.Lock()
+		
+	#
+	# Start capture and display image stream
+	#
+	def LiveDisplay( self ) :
+
+		# Start image acquisition
+		self.capturing = True
+		self.camera.CaptureStart( self.ImageCallback )
+		
+		# Start camera statistics thread
+		camera_stats = CameraStatThread( self.camera )
+		camera_stats.Start()
+		
+		# Keyboard interruption
+		while self.capturing : pass
+
+		# Stop camera statistics thread
+		camera_stats.Stop()
+
+		# Stop image acquisition
+		self.camera.CaptureStop()
+
+		# Cleanup OpenCV
+		cv2.destroyWindow( self.camera.id_string )
+
+	#
+	# Display the current image
+	#
+	def ImageCallback( self, image ) :
+		
+		# Resize image for display
+		image_displayed = cv2.resize( image, None, fx=0.3, fy=0.3 )
+
+		# Display the image (scaled down)
+		cv2.imshow( self.camera.id_string, image_displayed )
+
+		# Keyboard interruption
+		if ( cv2.waitKey(1) & 0xFF ) == 27 :
+			self.capturing = False
+
+
 #
 # Live display
 #
@@ -34,6 +92,8 @@ def LiveDisplay( camera ) :
 	# Start camera statistics thread
 	camera_stats = CameraStatThread( camera )
 	camera_stats.Start()
+	
+	#
 
 	# Start live display
 	while True :
