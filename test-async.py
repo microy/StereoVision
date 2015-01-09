@@ -28,7 +28,11 @@ def ProcessImage1( image ) :
 
 	# Display the image (scaled down)
 	cv2.imshow( "Camera1", image_displayed )
-	cv2.waitKey( 1 )
+
+	# Keyboard interruption
+	if ( cv2.waitKey(1) & 0xFF ) == 27 :
+		global capturing
+		capturing = False
 
 
 #
@@ -43,6 +47,10 @@ def ProcessImage2( image ) :
 	cv2.imshow( "Camera2", image_displayed )
 	cv2.waitKey( 1 )
 
+	# Keyboard interruption
+	if ( cv2.waitKey(1) & 0xFF ) == 27 :
+		global capturing
+		capturing = False
 
 
 #
@@ -58,18 +66,24 @@ vimba = Vimba.vimba
 camera1 = Vimba.VmbCamera( '50-0503323406' )
 camera2 = Vimba.VmbCamera( '50-0503326223' )
 
+# Live view of the cameras
+#viewer = Viewer.Viewer( camera1 )
+#viewer.LiveDisplay()
+
 # Live asynchronous capture
+capturing = True
 camera1.CaptureStart( ProcessImage1 )
 camera2.CaptureStart( ProcessImage2 )
 
-raw_input( 'Press enter to exit...' )
-
-# Cleanup OpenCV
-cv2.destroyAllWindows()
+# Keyboard interruption
+while capturing : pass
 
 # Stop image acquisition
 camera1.CaptureStop()
 camera2.CaptureStop()
+
+# Cleanup OpenCV
+cv2.destroyAllWindows()
 
 # Camera disconnection
 camera1.Disconnect()
