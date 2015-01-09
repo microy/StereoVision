@@ -118,9 +118,9 @@ class VmbCamera( object ) :
 		self.payloadsize = tmp_value.value
 		
 		# Default image parameters of our cameras (AVT Manta G504B) for debug purpose
-		self.width = 2452
-		self.height = 2056
-		self.payloadsize = 5041312
+#		self.width = 2452
+#		self.height = 2056
+#		self.payloadsize = 5041312
 
 		# Initialize the image
 		self.image = np.zeros( (self.height, self.width), dtype=np.uint8 )	
@@ -142,12 +142,10 @@ class VmbCamera( object ) :
 	#
 	# Start the acquisition
 	#
-	def CaptureStart( self, ProcessImage = None ) :
+	def CaptureStart( self, ImageCallback ) :
 		
-		# Asynchronous capture (if any)
-		self.frame_callback_function = None
-		if ProcessImage :
-			self.frame_callback_function = self.CreateFrameCallbackFunction( ProcessImage )
+		# Create the image callback function
+		self.CreateFrameCallbackFunction( ImageCallback )
 
 		# Announce the frames
 		for i in range( self.frame_number ) :
@@ -160,34 +158,8 @@ class VmbCamera( object ) :
 		for i in range( self.frame_number ) :
 			vimba.VmbCaptureFrameQueue( self.handle, ct.byref(self.frames[i]), self.frame_callback_function )
 
-		# Initialize frame buffer index
-		self.frame_index = 0
-		
 		# Start acquisition
 		vimba.VmbFeatureCommandRun( self.handle, "AcquisitionStart" )
-
-	#
-	# Capture a synchronous frame
-	#
-	def CaptureFrame( self ) :
-		
-		# Capture a frame
-		vimba.VmbCaptureFrameWait( self.handle, ct.byref(self.frames[self.frame_index]), 1000 )
-		
-		# Check frame validity
-		if self.frames[self.frame_index].receiveStatus :	
-			print( 'Invalid frame received... {}'.format(self.frames[self.frame_index].receiveStatus) )
-			
-		# Convert frame to numpy arrays
-		self.image = np.fromstring( self.frames[self.frame_index].buffer[ 0 : self.payloadsize ], dtype=np.uint8 ).reshape( self.height, self.width )
-
-		# Requeue frame
-		vimba.VmbCaptureFrameQueue( self.handle, ct.byref(self.frames[self.frame_index]), None )
-		
-		# Next frame
-		self.frame_index += 1
-		if self.frame_index == self.frame_number :
-			self.frame_index = 0
 
 	#
 	# Stop the acquisition
@@ -209,25 +181,29 @@ class VmbCamera( object ) :
 	#
 	# Create a frame callback function
 	#
-	def CreateFrameCallbackFunction( self, ProcessImage ) :
+	def CreateFrameCallbackFunction( self, ImageCallback ) :
 		
 		# Define the frame callback function
 		def FrameCallback( camera, frame ) :
 
 			# Print frame informations
 			print( 'Frame callback - Frame ID : {} - Status : {}...'.format(frame.contents.frameID, frame.contents.receiveStatus) )
-				
-			# Convert frames to numpy arrays
-			self.image = np.fromstring( frame.contents.buffer[ 0 : self.payloadsize ], dtype=np.uint8 ).reshape( self.height, self.width )
 			
-			# Process the image with the provided function
-			ProcessImage( self.image )
+			# Check frame validity
+			if not frame.contents.receiveStatus :
+				
+				# Convert frames to numpy arrays
+				self.image = np.fromstring( frame.contents.buffer[ 0 : self.payloadsize ], dtype=np.uint8 )
+				self.image = self.image.reshape( self.height, self.width )
+				
+				# Process the image with the provided function
+				ImageCallback( self.image )
 
 			# Requeue the frame so it can be filled again
 			vimba.VmbCaptureFrameQueue( camera, frame, self.frame_callback_function )
 			
 		# Register the callback function
-		return ct.CFUNCTYPE( None, ct.c_void_p, ct.POINTER(VmbFrame) )( FrameCallback )
+		self.frame_callback_function = ct.CFUNCTYPE( None, ct.c_void_p, ct.POINTER(VmbFrame) )( FrameCallback )
 
 	#
 	# Print camera statistics
