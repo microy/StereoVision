@@ -58,6 +58,9 @@ def TestCalibration() :
 		# Load the image
 		image = cv2.imread( filename, cv2.CV_LOAD_IMAGE_GRAYSCALE )
 			
+		# Resize image for display
+		image = cv2.resize( image, None, fx=0.3, fy=0.3 )
+
 		h, w = image.shape[:2]
 		
 		# Find the chessboard corners on the image
@@ -67,11 +70,11 @@ def TestCalibration() :
 		if found_all :
 			
 			# Refine the corner position
-			cv2.cornerSubPix( image, corners, (11, 11), (-1, -1), term )
+#			cv2.cornerSubPix( image, corners, (11, 11), (-1, -1), term )
 
 			# Store image and corner informations
-			img_points.append( corners.reshape(-1, 2) )
-			obj_points.append( pattern_points )
+#			img_points.append( corners.reshape(-1, 2) )
+#			obj_points.append( pattern_points )
 			
 			# Draw the chessboard corners on the image
 			image_color = cv2.cvtColor( image, cv2.COLOR_GRAY2BGR )
@@ -88,10 +91,10 @@ def TestCalibration() :
 
 
 	# Camera calibration
-	rms, camera_matrix, dist_coefs, rvecs, tvecs = cv2.calibrateCamera( obj_points, img_points, (w, h), None, None )
-	print "RMS:", rms
-	print "Camera matrix:\n", camera_matrix
-	print "Distortion coefficients:\n", dist_coefs.ravel()
+#	rms, camera_matrix, dist_coefs, rvecs, tvecs = cv2.calibrateCamera( obj_points, img_points, (w, h), None, None )
+#	print "RMS:", rms
+#	print "Camera matrix:\n", camera_matrix
+#	print "Distortion coefficients:\n", dist_coefs.ravel()
 
 
 	# Cleanup OpenCV windows
