@@ -60,19 +60,24 @@ def TestCalibration() :
 			
 #		h, w = image.shape[:2]
 		
+		# Resize image for display
+		image_small = cv2.resize( image, None, fx=0.5, fy=0.5 )
+
 		# Find the chessboard corners on the image
-		found_all, corners = cv2.findChessboardCorners( image, pattern_size, None, cv2.cv.CV_CALIB_CB_ADAPTIVE_THRESH | cv2.CALIB_CB_FAST_CHECK | cv2.CALIB_CB_FILTER_QUADS )
+		found_all, corners = cv2.findChessboardCorners( image_small, pattern_size, None , cv2.cv.CV_CALIB_CB_ADAPTIVE_THRESH + cv2.CALIB_CB_FAST_CHECK + cv2.CALIB_CB_FILTER_QUADS )
 		
 		# Chessboard found
 		if found_all :
 			
-			# Refine the corner position
-#			cv2.cornerSubPix( image, corners, (11, 11), (-1, -1), term )
-
 			# Store image and corner informations
 #			img_points.append( corners.reshape(-1, 2) )
 #			obj_points.append( pattern_points )
+
+			corners *= 2.0
 			
+			# Refine the corner position
+#			cv2.cornerSubPix( image, corners, (11, 11), (-1, -1), term )
+
 			# Draw the chessboard corners on the image
 			image_color = cv2.cvtColor( image, cv2.COLOR_GRAY2BGR )
 			cv2.drawChessboardCorners( image_color, pattern_size, corners, found_all )
