@@ -58,13 +58,10 @@ def TestCalibration() :
 		# Load the image
 		image = cv2.imread( filename, cv2.CV_LOAD_IMAGE_GRAYSCALE )
 			
-		# Resize image for display
-		image = cv2.resize( image, None, fx=0.3, fy=0.3 )
-
-		h, w = image.shape[:2]
+#		h, w = image.shape[:2]
 		
 		# Find the chessboard corners on the image
-		found_all, corners = cv2.findChessboardCorners( image, pattern_size )
+		found_all, corners = cv2.findChessboardCorners( image, pattern_size, None, cv2.cv.CV_CALIB_CB_ADAPTIVE_THRESH | cv2.CALIB_CB_FAST_CHECK | cv2.CALIB_CB_FILTER_QUADS )
 		
 		# Chessboard found
 		if found_all :
@@ -80,14 +77,15 @@ def TestCalibration() :
 			image_color = cv2.cvtColor( image, cv2.COLOR_GRAY2BGR )
 			cv2.drawChessboardCorners( image_color, pattern_size, corners, found_all )
 			
+			# Resize image for display
+			image_color = cv2.resize( image_color, None, fx=0.3, fy=0.3 )
+
 			# Display the image with the found corners
 			cv2.imshow( "Chessboard", image_color )
 			cv2.waitKey()
 		
 		# No chessboard found
-		else :
-			
-			print( "Chessboard no found..." )
+		else : print( "Chessboard no found..." )
 
 
 	# Camera calibration
