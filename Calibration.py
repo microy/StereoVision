@@ -18,8 +18,8 @@ import cv2
 def FindAndDrawChessboard( image, pattern_size = ( 9, 6 ) ) :
 	
 	# Find the chessboard corners on the image
-	found_all, corners = cv2.findChessboardCorners( image, pattern_size )
-	
+	found_all, corners = cv2.findChessboardCorners( image, pattern_sizeNone , cv2.CALIB_CB_FAST_CHECK )
+		
 	# Chessboard found
 	if found_all :
 		
@@ -57,6 +57,10 @@ def TestCalibration() :
 		
 		# Load the image
 		image = cv2.imread( filename, cv2.CV_LOAD_IMAGE_GRAYSCALE )
+
+		# image sharpening
+#		image_blur = cv2.GaussianBlur( image, (0,0), 105)
+#		image = cv2.addWeighted( image, 1.8, image_blur, -0.8, 0 )
 			
 #		h, w = image.shape[:2]
 		
