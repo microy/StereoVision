@@ -10,6 +10,7 @@
 # External dependencies
 #
 import os
+import Queue
 import ctypes as ct
 import numpy as np
 
@@ -123,7 +124,7 @@ class VmbCamera( object ) :
 #		self.payloadsize = 5041312
 
 		# Initialize the image
-		self.image = np.zeros( (self.height, self.width), dtype=np.uint8 )	
+		self.image_queue = Queue.Queue()
 	
 		# Initialize frame buffer
 		self.frame_number = 3
@@ -190,11 +191,22 @@ class VmbCamera( object ) :
 		if not frame.contents.receiveStatus :
 			
 			# Convert frames to numpy arrays
-			self.image = np.fromstring( frame.contents.buffer[ 0 : self.payloadsize ], dtype=np.uint8 )
-			self.image = self.image.reshape( self.height, self.width )
+			image = np.fromstring( frame.contents.buffer[ 0 : self.payloadsize ], dtype=np.uint8 )
+			image = image.reshape( self.height, self.width )
+			self.image_queue.put( image )
 			
 			# Process the image with the provided function
-			self.image_callback_function( self.image )
+			self.image_callback_function()
 
 		# Requeue the frame so it can be filled again
 		vimba.VmbCaptureFrameQueue( camera, frame, self.frame_callback_function )
+
+
+	#
+	# Lock the thread and return the image
+	#
+	def GetImage( self ) :
+		
+		image = self.image_queue.get()
+		self.image_queue.task_done()
+		return image

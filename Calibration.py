@@ -28,7 +28,9 @@ def PreviewChessboard( image, pattern_size = ( 9, 6 ) ) :
 
 		# Draw the chessboard corners on the image
 		cv2.drawChessboardCorners( image, pattern_size, corners, found_all )
-
+		
+		cv2.imshow( "Calibration", image )
+		cv2.waitKey(1)
 
 
 #

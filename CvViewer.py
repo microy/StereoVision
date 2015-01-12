@@ -55,7 +55,10 @@ class Viewer( object ) :
 	#
 	# Display the current image
 	#
-	def ImageCallback( self, image ) :
+	def ImageCallback( self ) :
+		
+		# Fetch the camera image
+		image = self.camera.GetImage()
 		
 		# Resize image for display
 		image_displayed = cv2.resize( image, None, fx=0.3, fy=0.3 )
@@ -122,8 +125,11 @@ class StereoViewer( object ) :
 	#
 	# Display the current image for camera 1
 	#
-	def ImageCallback_1( self, image ) :
+	def ImageCallback_1( self ) :
 		
+		# Fetch the camera image
+		image = self.camera.GetImage()
+
 		# Lock the thread
 		self.lock.acquire()
 		
@@ -146,8 +152,11 @@ class StereoViewer( object ) :
 	#
 	# Display the current image for camera 2
 	#
-	def ImageCallback_2( self, image ) :
+	def ImageCallback_2( self ) :
 		
+		# Fetch the camera image
+		image = self.camera.GetImage()
+
 		# Lock the thread
 		self.lock.acquire()
 		
