@@ -12,7 +12,7 @@
 import argparse
 import sys
 import Vimba
-import Viewer
+import CvViewer
 
 # Camera serial numbers
 camera_1_id = '50-0503323406'
@@ -40,7 +40,7 @@ if args.Number == '1' :
 	camera = Vimba.VmbCamera( camera_1_id )
 
 	# Start image acquisition
-	Viewer.Viewer( camera ).LiveDisplay()
+	CvViewer.Viewer( camera ).LiveDisplay()
 
 	# Camera disconnection
 	camera.Disconnect()
@@ -52,7 +52,7 @@ elif args.Number == '2' :
 	camera = Vimba.VmbCamera( camera_2_id )
 
 	# Start image acquisition
-	Viewer.Viewer( camera ).LiveDisplay()
+	CvViewer.Viewer( camera ).LiveDisplay()
 
 	# Camera disconnection
 	camera.Disconnect()
@@ -65,7 +65,7 @@ elif args.Number == '12' :
 	camera_2 = Vimba.VmbCamera( camera_2_id )
 
 	# Start image acquisition
-	Viewer.StereoViewerSync( camera_1, camera_2 ).LiveDisplay()
+	CvViewer.StereoViewerSync( camera_1, camera_2 ).LiveDisplay()
 
 	# Close the cameras
 	camera_1.Disconnect()

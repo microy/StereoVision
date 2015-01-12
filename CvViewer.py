@@ -32,7 +32,7 @@ class Viewer( object ) :
 		self.camera = camera
 		
 		# Active live chessboard finding and drawing on the image
-		self.calibration_enabled = False
+		self.calibration_enabled = True
 				
 	#
 	# Start capture and display image stream
