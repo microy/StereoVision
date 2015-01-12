@@ -9,11 +9,9 @@
 #
 # External dependencies
 #
-import collections
-import time
+import ctypes as ct
 import threading
 import cv2
-import ctypes as ct
 import numpy as np
 import Vimba
 import Calibration
@@ -32,6 +30,9 @@ class Viewer( object ) :
 		
 		# Register the camera to display
 		self.camera = camera
+		
+		# Active live chessboard finding and drawing on the image
+		self.calibration_enabled = False
 				
 	#
 	# Start capture and display image stream
@@ -57,8 +58,11 @@ class Viewer( object ) :
 	def ImageCallback( self, image ) :
 		
 		# Resize image for display
-#		image_displayed = cv2.resize( image, None, fx=0.3, fy=0.3 )
-		image_displayed = Calibration.PreviewChessboard( image, scale=0.3 )
+		image_displayed = cv2.resize( image, None, fx=0.3, fy=0.3 )
+
+		# Preview the calibration chessboard on the image
+		if self.calibration_enabled :
+			Calibration.PreviewChessboard( image_displayed )
 		
 		# Display the image (scaled down)
 		cv2.imshow( self.camera.id_string, image_displayed )

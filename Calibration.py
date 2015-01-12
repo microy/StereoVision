@@ -13,30 +13,27 @@ import cv2
 
 
 #
-# Find the chessboard and draw it
+# Find the chessboard quickly and draw it
 #
-def PreviewChessboard( image, pattern_size = ( 9, 6 ), scale = 0.5 ) :
+def PreviewChessboard( image, pattern_size = ( 9, 6 ) ) :
 	
-	# Resize image
-	preview = cv2.resize( image, None, fx=scale, fy=scale, interpolation=cv2.INTER_NEAREST )
-
 	# Find the chessboard corners on the image
-	found_all, corners = cv2.findChessboardCorners( preview, pattern_size, flags = cv2.CALIB_CB_FAST_CHECK )
+	found_all, corners = cv2.findChessboardCorners( image, pattern_size, flags = cv2.CALIB_CB_FAST_CHECK )
 		
 	# Chessboard found
 	if found_all :
 		
 		# Convert grayscale image in color
-		preview = cv2.cvtColor( preview, cv2.COLOR_GRAY2BGR )
+		image = cv2.cvtColor( image, cv2.COLOR_GRAY2BGR )
 
 		# Draw the chessboard corners on the image
-		cv2.drawChessboardCorners( preview, pattern_size, corners, found_all )
-	
-	# Chessboard found or not
-	return preview
+		cv2.drawChessboardCorners( image, pattern_size, corners, found_all )
 
 
 
+#
+# Camera calibration
+#
 def TestCalibration() :
 
 	# External dependencies
