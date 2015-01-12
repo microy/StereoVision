@@ -16,6 +16,7 @@ import cv2
 import ctypes as ct
 import numpy as np
 import Vimba
+import Calibration
 
 
 
@@ -56,8 +57,9 @@ class Viewer( object ) :
 	def ImageCallback( self, image ) :
 		
 		# Resize image for display
-		image_displayed = cv2.resize( image, None, fx=0.3, fy=0.3 )
-
+#		image_displayed = cv2.resize( image, None, fx=0.3, fy=0.3 )
+		image_displayed = Calibration.PreviewChessboard( image, scale=0.3 )
+		
 		# Display the image (scaled down)
 		cv2.imshow( self.camera.id_string, image_displayed )
 
