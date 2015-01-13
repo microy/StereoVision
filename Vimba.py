@@ -10,7 +10,6 @@
 # External dependencies
 #
 import os
-import Queue
 import ctypes as ct
 import numpy as np
 
@@ -122,12 +121,6 @@ class VmbCamera( object ) :
 #		self.width = 2452
 #		self.height = 2056
 #		self.payloadsize = 5041312
-
-		#
-		# rename to frames
-		#
-		# Initialize the image
-		self.image_queue = Queue.Queue()
 	
 	#
 	# Disconnect the camera
@@ -140,16 +133,12 @@ class VmbCamera( object ) :
 	#
 	# Start the acquisition
 	#
-	def CaptureStart( self, image_callback_function ) :
+	def StartCapture( self, image_callback_function, buffer_count = 3 ) :
 
-		#
-		# No self. needed
-		#
 		# Initialize frame buffer
-		self.frame_number = 3
-		self.frames = []
-		for i in range( self.frame_number ) :
-			self.frames.append( VmbFrame( self.payloadsize ) )
+		self.frame_buffer = []
+		for i in range( self.buffer_count ) :
+			self.frame_buffer.append( VmbFrame( self.payloadsize ) )
 		
 		# Register the external image callback function
 		self.image_callback_function = image_callback_function
@@ -158,15 +147,15 @@ class VmbCamera( object ) :
 		self.frame_callback_function = ct.CFUNCTYPE( None, ct.c_void_p, ct.POINTER(VmbFrame) )( self.FrameCallback )
 
 		# Announce the frames
-		for i in range( self.frame_number ) :
-			vimba.VmbFrameAnnounce( self.handle, ct.byref(self.frames[i]), ct.sizeof(self.frames[i]) )
+		for i in range( self.buffer_count ) :
+			vimba.VmbFrameAnnounce( self.handle, ct.byref(self.frame_buffer[i]), ct.sizeof(self.frame_buffer[i]) )
 
 		# Start capture engine
 		vimba.VmbCaptureStart( self.handle )
 		
 		# Queue the frames
-		for i in range( self.frame_number ) :
-			vimba.VmbCaptureFrameQueue( self.handle, ct.byref(self.frames[i]), self.frame_callback_function )
+		for i in range( self.buffer_count ) :
+			vimba.VmbCaptureFrameQueue( self.handle, ct.byref(self.frame_buffer[i]), self.frame_callback_function )
 
 		# Start acquisition
 		vimba.VmbFeatureCommandRun( self.handle, "AcquisitionStart" )
@@ -174,7 +163,7 @@ class VmbCamera( object ) :
 	#
 	# Stop the acquisition
 	#
-	def CaptureStop( self ) :
+	def StopCapture( self ) :
 
 		# Stop acquisition
 		vimba.VmbFeatureCommandRun( self.handle, "AcquisitionStop" )
@@ -195,47 +184,13 @@ class VmbCamera( object ) :
 
 		# Check frame validity
 		if not frame.contents.receiveStatus :
-			
+
 			# Convert frames to numpy arrays
 			image = np.fromstring( frame.contents.buffer[ 0 : self.payloadsize ], dtype=np.uint8 )
 			image = image.reshape( self.height, self.width )
-			self.image_queue.put( image )
 			
-			# Process the image with the provided function
-			self.image_callback_function()
+			# Call foreign image processing function
+			self.image_callback_function( image )
 
 		# Requeue the frame so it can be filled again
 		vimba.VmbCaptureFrameQueue( camera, frame, self.frame_callback_function )
-		
-		
-	#
-	# Queue a given frame
-	#
-	def QueueFrame( self, frame ) :
-		
-		# Queue the frame so it can be filled again
-		vimba.VmbCaptureFrameQueue( self.handle, frame, self.frame_callback_function )
-		
-		
-	#
-	# Lock the thread and return the image
-	#
-	def GetImage( self ) :
-		
-		#
-		# Change to get Frame
-		#
-		image = self.image_queue.get()
-		self.image_queue.task_done()
-		return image
-
-
-#
-# Convert a Vimba camera frame to a numpy array
-#
-def Frame2Array( frame ) :
-	
-	width = frame.contents.width
-	height = frame.contents.height
-	payloadsize = frame.contents.payloadsize
-	return np.fromstring( frame.contents.buffer[ 0 : payloadsize ], dtype=np.uint8 ).reshape( height, width )
