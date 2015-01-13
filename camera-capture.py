@@ -65,7 +65,7 @@ elif args.Number == '12' :
 	camera_2 = Vimba.VmbCamera( camera_2_id )
 
 	# Start image acquisition
-	CvViewer.StereoViewerSync( camera_1, camera_2 ).LiveDisplay()
+	CvViewer.StereoViewer( camera_1, camera_2 ).LiveDisplay()
 
 	# Close the cameras
 	camera_1.Disconnect()
