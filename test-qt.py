@@ -2,10 +2,9 @@
 # -*- coding:utf-8 -*- 
 
 
-
+#
 # External dependencies
-import sys
-from PySide import QtGui
+#
 import Vimba
 import QtViewer
 
@@ -21,11 +20,9 @@ Vimba.VmbStartup()
 camera_1 = Vimba.VmbCamera( camera_1_id )
 camera_2 = Vimba.VmbCamera( camera_2_id )
 
-# Launch QtViewer
-app = QtGui.QApplication( sys.argv )
-#window = QtViewer.QtStereoViewer( camera_1, camera_2 )
-window = QtViewer.QtViewer( camera_1 )
-app.exec_()
+# Launch Qt camera viewer
+viewer = QtViewer.CameraViewer( camera_1 )
+#viewer = QtViewer.CameraViewer( camera_1, camera_2 )
 
 # Camera disconnection
 camera_1.Disconnect()

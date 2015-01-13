@@ -15,42 +15,40 @@ from PySide import QtGui
 
 
 #
-# Window to display a camera
+# Main application to display one or two cameras
 #
 class CameraViewer( QtGui.QApplication ) :
 
 	#
 	# Initialisation
 	#
-	def __init__( self, parent = None, camera_1, camera_2 = None ) :
+	def __init__( self, camera_1, camera_2 = None ) :
 
 		# Initialize parent class
-		QtGui.QApplication.__init__( parent, sys.argv )
+		QtGui.QApplication.__init__( self, sys.argv )
 		
-		# Setup the viewer according to the number of camera
-		if not camera_2 :
-			self.viewer = QtViewer( self, camera_1 )
-		else :
-			self.viewer = QtStereoViewer( self, camera_1, camera_2 )
-			
-		# Add the viewer as the central widget of the application
-        self.setCentralWidget( self.viewer ) 
+		# Single camera viewer
+		if not camera_2 : self.viewer = CameraWidget( camera_1 )
+		
+		# Stereo camera viewer
+		else : self.viewer = StereoCameraWidget( camera_1, camera_2 )
 
-
+		# Enter Qt main loop
+		self.exec_()
+		
 
 #
-# Window to display a camera
+# Widget to display a camera
 #
-class QtViewer( QtGui.QWidget ) :
+class CameraWidget( QtGui.QWidget ) :
 
 	#
 	# Initialisation
 	#
-	def __init__( self, parent = None, camera ) :
+	def __init__( self, camera ) :
 
 		# Initialize parent class
-#		QtGui.QWidget.__init__( self )
-		super( QtViewer, self ).__init__( parent )
+		QtGui.QWidget.__init__( self )
 		
 		# Register the camera
 		self.camera = camera
@@ -87,7 +85,7 @@ class QtViewer( QtGui.QWidget ) :
 #
 # Window to display a camera
 #
-class QtStereoViewer( QtGui.QWidget ) :
+class StereoCameraWidget( QtGui.QWidget ) :
 
 	#
 	# Initialisation
@@ -95,8 +93,7 @@ class QtStereoViewer( QtGui.QWidget ) :
 	def __init__( self, camera_1, camera_2 ) :
 
 		# Initialize parent class
-#		QtGui.QWidget.__init__( self )
-		super( QtStereoViewer, self ).__init__( self )
+		QtGui.QWidget.__init__( self )
 		
 		#  the cameras
 		self.camera_1 = camera_1
