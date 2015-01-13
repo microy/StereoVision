@@ -10,7 +10,7 @@
 #
 # External dependencies
 #
-from PyQt4 import QtGui, QtCore
+from PySide import QtGui
 
 
 #
@@ -26,7 +26,7 @@ class QtViewer( QtGui.QWidget ) :
 		# Initialize parent class
 		QtGui.QWidget.__init__( self )
 		
-		# Backup the camera
+		# Register the camera
 		self.camera = camera
 		
 		# Set the window title
@@ -37,13 +37,74 @@ class QtViewer( QtGui.QWidget ) :
 		self.image_label.setScaledContents( True )
 		
 		# Create a dummy image to fill the label
-		QImage dummy( 100, 100, QImage::Format_RGB32 )
-		image = dummy
+		image = QtGui.QImage( 100, 100, QtGui.QImage.Format_RGB32 )
 		
-		# Create a layout
-		layout = QtGui.QVBoxLayout( self )
+		# Create a horizontal layout
+		layout = QtGui.QHBoxLayout( self )
+		
+		# Add the label to display the camera
 		layout.addWidget( self.image_label )
-		imagelabel->setPixmap( QPixmap::fromImage(image) )
+		
+		# Add dummy image
+		self.image_label.setPixmap( QtGui.QPixmap.fromImage(image) )
+		
+		# Apply the layout
 		self.setLayout( layout )
+		
+		# Change the widget size
 		self.setGeometry( 100, 100, 200, 200 )
+		
+		# Show the widget
+		self.show()
+
+
+#
+# Window to display a camera
+#
+class QtStereoViewer( QtGui.QWidget ) :
+
+	#
+	# Initialisation
+	#
+	def __init__( self, camera_1, camera_2 ) :
+
+		# Initialize parent class
+		QtGui.QWidget.__init__( self )
+		
+		#  the cameras
+		self.camera_1 = camera_1
+		self.camera_2 = camera_2
+		
+		# Set the window title
+		self.setWindowTitle( 'Stereo Cameras' )
+
+		# Create a label to display camera 1
+		self.image_label_1 = QtGui.QLabel( self )
+		self.image_label_1.setScaledContents( True )
+
+		# Create a label to display camera 2
+		self.image_label_2 = QtGui.QLabel( self )
+		self.image_label_2.setScaledContents( True )
+		
+		# Create a dummy image to fill the label
+		image = QtGui.QImage( 100, 100, QtGui.QImage.Format_RGB32 )
+		
+		# Create a horizontal layout
+		layout = QtGui.QHBoxLayout( self )
+		
+		# Add the two labels to display both cameras
+		layout.addWidget( self.image_label_1 )
+		layout.addWidget( self.image_label_2 )
+		
+		# Add dummy image
+		self.image_label_1.setPixmap( QtGui.QPixmap.fromImage(image) )
+		self.image_label_2.setPixmap( QtGui.QPixmap.fromImage(image) )
+		
+		# Apply the layout
+		self.setLayout( layout )
+		
+		# Change the widget size
+		self.setGeometry( 100, 100, 400, 200 )
+		
+		# Show the widget
 		self.show()
