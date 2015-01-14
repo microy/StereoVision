@@ -32,7 +32,10 @@ class Viewer( object ) :
 		self.camera = camera
 		
 		# Active live chessboard finding and drawing on the image
-		self.calibration_enabled = True
+		self.calibration_enabled = False
+		
+		# Saved image counter
+		self.image_count = 0
 				
 	#
 	# Start capture and display image stream
@@ -66,10 +69,29 @@ class Viewer( object ) :
 		
 		# Display the image (scaled down)
 		cv2.imshow( self.camera.id_string, image_displayed )
-
+		
 		# Keyboard interruption
-		if ( cv2.waitKey(1) & 0xFF ) == 27 :
+		key = cv2.waitKey( 10 ) & 0xFF
+			
+		# Escape key
+		if key == 27 :
+			
+			# Exit live display
 			self.capturing = False
+			
+		# Space key
+		elif key == 32 :
+			
+			# Save image to disk 
+			self.image_count += 1
+			print( 'Save image {} to disk...'.format(self.image_count) )
+			cv2.imwrite( 'camera-{}-{:0>2}.png'.format(self.camera.id_string, self.image_count), image )
+			
+		# C key
+		elif key == 'c' :
+			
+			# Enable / Disable chessboard preview
+			self.calibration_enabled = not self.calibration_enabled
 
 
 #
