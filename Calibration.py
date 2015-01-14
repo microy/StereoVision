@@ -61,10 +61,10 @@ def TestCalibration() :
 	circlegrid_pattern_points[:,:2] = np.indices(circlegrid_pattern_size).T.reshape(-1, 2)
 
 	# Termination criteria
-	term = ( cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_COUNT, 30, 0.01 )
+	term = ( cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_COUNT, 30, 0.1 )
 	
 	# Scale factor for corner detection
-	scale = 0.5
+	scale = 0.3
 	
 	# Pattern type
 	pattern_type = "Chessboard"
@@ -94,12 +94,12 @@ def TestCalibration() :
 		# Get image size
 		height, width = image.shape[:2]
 
-		# Preview chessboard on image
-#		preview = PreviewChessboard( image, pattern_size, True )
-		
 		# Resize image
 		image_small = cv2.resize( image, None, fx=scale, fy=scale )
 
+		# Preview chessboard on image
+		preview = PreviewChessboard( image_small, pattern_size )
+		
 		if pattern_type == "Chessboard" :
 			
 			# Find the chessboard corners on the image
@@ -108,22 +108,22 @@ def TestCalibration() :
 			# Chessboard found
 			if found_all :
 				
+				# Rescale the corner position
+				corners /= scale
+				
+				# Refine the corner position
+				cv2.cornerSubPix( image, corners, (11, 11), (-1, -1), term )
+
 				# Store image and corner informations
 				img_points.append( corners.reshape(-1, 2) )
 				obj_points.append( pattern_points )
 
-				# Rescale the corner position
-#				corners /= scale
-				
-				# Refine the corner position
-				cv2.cornerSubPix( image_small, corners, (11, 11), (-1, -1), term )
-
 				# Draw the chessboard corners on the image
-				image_color = cv2.cvtColor( image_small, cv2.COLOR_GRAY2BGR )
+				image_color = cv2.cvtColor( image, cv2.COLOR_GRAY2BGR )
 				cv2.drawChessboardCorners( image_color, pattern_size, corners, found_all )
 				
 				# Resize image for display
-#				image_color = cv2.resize( image_color, None, fx=0.3, fy=0.3 )
+				image_color = cv2.resize( image_color, None, fx=0.3, fy=0.3 )
 
 				# Display the image with the found corners
 				cv2.imshow( "Chessboard", image_color )
