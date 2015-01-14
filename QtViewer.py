@@ -84,7 +84,6 @@ class CameraWidget( QtGui.QWidget ) :
 		
 		# Connect the OnFrameReceived signal
 		self.image_received.connect( self.OnImageReceived )
-		self.do_calibration.connect( self.DoCalibration )
 		
 		# Change the widget position and size
 		self.setGeometry( 100, 100, 200, 200 )
@@ -97,6 +96,12 @@ class CameraWidget( QtGui.QWidget ) :
 		
 		# Mutex to lock the image while processing
 		self.mutex = QtCore.QMutex()
+
+		# Active live chessboard finding and drawing on the image
+		self.chessboard_enabled = True
+		
+		# Preview chessboard thread
+		self.preview_chessboard_thread = Calibration.PreviewChessboardThread()
 
 		# Start image acquisition
 		self.capturing = True
@@ -141,7 +146,7 @@ class CameraWidget( QtGui.QWidget ) :
 		# Stop image acquisition
 		self.camera.StopCapture()
 		
-		import cv2
+		# Destroy OpenCV windows
 		cv2.destroyAllWindows()
 
 	#
@@ -153,14 +158,13 @@ class CameraWidget( QtGui.QWidget ) :
 		self.mutex.lock()
 		
 		# Register the incoming image
-		self.image = image
+		self.image = copy( image )
 
 		# Unlock the image data
 		self.mutex.unlock()
 		
 		# Send a call to update the display
 		self.image_received.emit()
-		
 		
 	#
 	# Display the current image
@@ -174,6 +178,9 @@ class CameraWidget( QtGui.QWidget ) :
 		# Create a grayscle QImage
 		qimage = QtGui.QImage( self.image.data, self.camera.width, self.camera.height, QtGui.QImage.Format_Indexed8 )
 		
+		# Image for the chessboard preview thread
+		local_image = cv2.resize( self.image, None, fx=0.3, fy=0.3 )
+
 		# Unlock the image data
 		self.mutex.unlock()
 		
@@ -186,28 +193,10 @@ class CameraWidget( QtGui.QWidget ) :
 		# Display the image
 		self.image_label.setPixmap( QtGui.QPixmap.fromImage(qimage) )
 
-		# Send a call to update the display
-#		self.do_calibration.emit()
-
-	#
-	# Display the current image
-	#
-	@QtCore.Slot()
-	def DoCalibration( self ) :
-
-		import cv2
-		# Lock the image data for modification
-		self.mutex.lock()
-
-		# Create a grayscle QImage
-		local_image = cv2.resize( self.image, None, fx=0.3, fy=0.3 )
-		
-		# Unlock the image data
-		self.mutex.unlock()
-		
-		# Draw calibration chessboard
-		Calibration.PreviewChessboard( local_image )
-
+		# Preview the calibration chessboard on the image
+		if self.chessboard_enabled :
+			self.preview_chessboard_thread.SetImage( image_displayed )
+			self.preview_chessboard_thread.start()
 
 
 #
