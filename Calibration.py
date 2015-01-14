@@ -9,32 +9,58 @@
 #
 # External dependencies
 #
+import threading
 import cv2
 
 
 #
 # Find the chessboard quickly and draw it
 #
-def PreviewChessboard( image, pattern_size = ( 9, 6 ), resize = False ) :
-	
-	# Resize the image
-	if resize : small_image = cv2.resize( image, None, fx=0.3, fy=0.3 )
-	else : small_image = image
+def PreviewChessboard( image, pattern_size = ( 9, 6 ) ) :
 	
 	# Find the chessboard corners on the image
-	found_all, corners = cv2.findChessboardCorners( small_image, pattern_size, flags = cv2.CALIB_CB_FAST_CHECK )	
+	found_all, corners = cv2.findChessboardCorners( image, pattern_size, flags = cv2.CALIB_CB_FAST_CHECK )	
 
 	# Chessboard found
 	if found_all :
 		
 		# Convert grayscale image in color
-		small_image = cv2.cvtColor( small_image, cv2.COLOR_GRAY2BGR )
+		image = cv2.cvtColor( image, cv2.COLOR_GRAY2BGR )
 
 		# Draw the chessboard corners on the image
-		cv2.drawChessboardCorners( small_image, pattern_size, corners, found_all )
+		cv2.drawChessboardCorners( image, pattern_size, corners, found_all )
 		
-		cv2.imshow( 'Calibration', small_image )
+		# Display the chessboard
+		cv2.imshow( 'Calibration', image )
 
+
+
+#
+# Preview chessboard thread
+#
+class PreviewChessboardThread( threading.Thread ) :
+	
+	#
+	# Initialisation
+	#
+	def __init__( self ) :
+		
+		# Initialise the thread
+		threading.Thread.__init__( self )
+		
+	#
+	# Register the image
+	#
+	def SetImage( self, image ) :
+		
+		self.image = copy( image )
+
+	#
+	# Preview the chessboard in a separate thread
+	#
+	def run( self ) :
+		
+		PreviewChessboard( self.image )
 
 
 #
@@ -135,3 +161,4 @@ def TestCalibration() :
 
 	# Cleanup OpenCV windows
 	cv2.destroyAllWindows()
+
