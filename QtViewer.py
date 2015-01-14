@@ -11,7 +11,7 @@
 # External dependencies
 #
 import sys
-from PySide import QtGui
+from PySide import QtCore, QtGui
 
 
 #
@@ -58,10 +58,18 @@ class CameraWidget( QtGui.QWidget ) :
 
 		# Create a label to display camera images
 		self.image_label = QtGui.QLabel( self )
-		self.image_label.setScaledContents( True )
+#		self.image_label.setScaledContents( True )
+		
+		import cv2
+		img = cv2.imread('examples/cam1-01.png')
+		print( img.shape )
 		
 		# Create a dummy image to fill the label
-		image = QtGui.QImage( 100, 100, QtGui.QImage.Format_RGB32 )
+		image = QtGui.QImage( img.data, camera.width, camera.height, QtGui.QImage.Format_Indexed8 )
+		COLORTABLE=[]
+		for i in range( 256 ) : COLORTABLE.append( QtGui.qRgb( i, i , i ) )
+		image.setColorTable(COLORTABLE)
+		image = image.scaled( camera.width*0.3, camera.height*0.3, QtCore.Qt.KeepAspectRatio )
 		
 		# Create a horizontal layout
 		layout = QtGui.QHBoxLayout( self )
@@ -69,17 +77,43 @@ class CameraWidget( QtGui.QWidget ) :
 		# Add the label to display the camera
 		layout.addWidget( self.image_label )
 		
-		# Add dummy image
+		# Display the image in the label
 		self.image_label.setPixmap( QtGui.QPixmap.fromImage(image) )
 		
 		# Apply the layout
 		self.setLayout( layout )
 		
-		# Change the widget size
+		# Change the widget position and size
 		self.setGeometry( 100, 100, 200, 200 )
 		
 		# Show the widget
 		self.show()
+
+		# Start image acquisition
+		self.capturing = True
+		self.camera.StartCapture( self.ImageCallback )
+		
+	#
+	# Close event
+	#
+	def closeEvent( self, event ) :
+
+		# Stop image acquisition
+		self.camera.StopCapture()
+
+	#
+	# Display the current image
+	#
+	def ImageCallback( self, image ) :
+		
+		# Create a qimage
+		qimage = QtGui.QImage( image.data, self.camera.width, self.camera.height, QtGui.QImage.Format_Indexed8 )
+
+		# Resize image for display
+		qimage = image.scaled( self.camera.width*0.3, self.camera.height*0.3, QtCore.Qt.KeepAspectRatio )
+
+		# Display the image
+		self.image_label.setPixmap( QtGui.QPixmap.fromImage(qimage) )
 
 
 #
