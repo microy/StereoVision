@@ -26,7 +26,7 @@ parser.add_argument( 'Number', nargs='?', help='Number of the camera to display 
 args = parser.parse_args()
 
 # Print help and exit if a wrong parameter is given
-if args.Number not in [ '1', '2', '12' ] :
+if args.Number not in [ '1', '2', '12', 's' ] :
 	parser.print_help()
 	sys.exit()
 	
@@ -66,6 +66,20 @@ elif args.Number == '12' :
 
 	# Start image acquisition
 	CvViewer.StereoViewer( camera_1, camera_2 ).LiveDisplay()
+
+	# Close the cameras
+	camera_1.Disconnect()
+	camera_2.Disconnect()
+
+# View both cameras
+elif args.Number == 's' :
+	
+	# Camera connection
+	camera_1 = Vimba.VmbCamera( camera_1_id )
+	camera_2 = Vimba.VmbCamera( camera_2_id )
+
+	# Start image acquisition
+	CvViewer.StereoViewerSync( camera_1, camera_2 ).LiveDisplay()
 
 	# Close the cameras
 	camera_1.Disconnect()
