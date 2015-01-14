@@ -58,18 +58,31 @@ class CameraWidget( QtGui.QWidget ) :
 
 		# Create a label to display camera images
 		self.image_label = QtGui.QLabel( self )
-#		self.image_label.setScaledContents( True )
 		
-		import cv2
-		img = cv2.imread('examples/cam1-01.png')
-		print( img.shape )
+#		self.image_label.setScaledContents( True )
+
+		# Align the image to the center of the widget in both dimensions
+		self.image_label.setAlignment( QtCore.Qt.AlignCenter )
+		
+#		import cv2
+#		img = cv2.imread('examples/cam1-01.png')
+#		print( img.shape )
 		
 		# Create a dummy image to fill the label
-		image = QtGui.QImage( img.data, camera.width, camera.height, QtGui.QImage.Format_Indexed8 )
-		COLORTABLE=[]
-		for i in range( 256 ) : COLORTABLE.append( QtGui.qRgb( i, i , i ) )
-		image.setColorTable(COLORTABLE)
-		image = image.scaled( camera.width*0.3, camera.height*0.3, QtCore.Qt.KeepAspectRatio )
+#		image = QtGui.QImage( img.data, camera.width, camera.height, QtGui.QImage.Format_Indexed8 )
+#		COLORTABLE=[]
+#		for i in range( 256 ) : COLORTABLE.append( QtGui.qRgb( i, i , i ) )
+#		image.setColorTable(COLORTABLE)
+
+		image = QtGui.QImage( 'examples/camera1-02.png' )
+		
+		# Create a color table
+		image.setColorCount( 256 )
+		for i in range( 256 ) : image.setColor( i, QtGui.qRgb( i, i , i ) )
+		
+		print( image.format(), image.width(), image.height() )
+		image = image.scaled( image.width()*0.3, image.height()*0.3, QtCore.Qt.KeepAspectRatio )
+		print( image.format(), image.width(), image.height(), image.colorTable() )
 		
 		# Create a horizontal layout
 		layout = QtGui.QHBoxLayout( self )
