@@ -9,13 +9,8 @@
 #
 # External dependencies
 #
-import ctypes as ct
-import threading
 import cv2
-import numpy as np
-import Vimba
 import Calibration
-
 
 
 #
@@ -32,7 +27,10 @@ class Viewer( object ) :
 		self.camera = camera
 		
 		# Active live chessboard finding and drawing on the image
-		self.calibration_enabled = False
+		self.chessboard_enabled = True
+		
+		# Preview chessboard thread
+		self.preview_chessboard_thread = Calibration.PreviewChessboardThread()
 		
 		# Saved image counter
 		self.image_count = 0
@@ -64,8 +62,9 @@ class Viewer( object ) :
 		image_displayed = cv2.resize( image, None, fx=0.3, fy=0.3 )
 
 		# Preview the calibration chessboard on the image
-		if self.calibration_enabled :
-			Calibration.PreviewChessboard( image_displayed )
+		if self.chessboard_enabled :
+			self.preview_chessboard_thread.SetImage( image_displayed )
+			self.preview_chessboard_thread.start()
 		
 		# Display the image (scaled down)
 		cv2.imshow( self.camera.id_string, image_displayed )
@@ -91,7 +90,7 @@ class Viewer( object ) :
 		elif key == 'c' :
 			
 			# Enable / Disable chessboard preview
-			self.calibration_enabled = not self.calibration_enabled
+			self.chessboard_enabled = not self.chessboard_enabled
 
 
 #
@@ -167,6 +166,11 @@ class StereoViewer( object ) :
 # Vimba stereo camera viewer (synchronous)
 #
 class StereoViewerSync( object ) :
+	
+	import ctypes as ct
+	import numpy as np
+	import Vimba
+
 	
 	#
 	# Initialization
