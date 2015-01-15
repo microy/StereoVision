@@ -10,6 +10,7 @@
 #
 # External dependencies
 #
+import copy
 import sys
 from PySide import QtCore, QtGui
 import cv2
@@ -17,7 +18,7 @@ import Calibration
 
 
 # Create an indexed color table (grayscale)
-colortable=[]
+colortable = []
 for i in range( 256 ) : colortable.append( QtGui.qRgb( i, i , i ) )
 
 
@@ -47,11 +48,110 @@ class CameraViewer( QtGui.QApplication ) :
 #
 # Widget to display a camera
 #
+class ImageWidget( QtGui.QWidget ) :
+
+	#
+	# Initialisation
+	#
+	def __init__( self, camera ) :
+
+		# Initialize parent class
+		QtGui.QWidget.__init__( self )
+		
+		# Create a label to display camera images
+		self.image_label = QtGui.QLabel( self )
+		
+		# Align the image to the center of the widget in both dimensions
+		self.image_label.setAlignment( QtCore.Qt.AlignCenter )
+				
+		# Create a horizontal layout
+		layout = QtGui.QHBoxLayout( self )
+		
+		# Add the label to display the camera
+		layout.addWidget( self.image_label )
+		
+		# Apply the layout
+		self.setLayout( layout )
+		
+		# Connect the OnFrameReceived signal
+		self.image_received.connect( self.OnImageReceived )
+		
+		# Change the widget position and size
+		self.setGeometry( 100, 100, 200, 200 )
+		
+		# Number of images saved
+		self.image_count = 0
+		
+		# Show the widget
+		self.show()
+		
+	#
+	# Keyboard event
+	#
+	def keyPressEvent( self, event ) :
+
+		# Escape
+		if event.key() == QtCore.Qt.Key_Escape :
+			
+			# Close the application
+			self.close()
+			
+		# Space
+		elif event.key() == QtCore.Qt.Key_Space :
+			
+			# Lock the image data for modification
+			self.mutex.lock()
+			
+			# Create a grayscle QImage
+			qimage = QtGui.QImage( self.image.data, self.camera.width, self.camera.height, QtGui.QImage.Format_Indexed8 )
+
+			# Unlock the image data
+			self.mutex.unlock()
+
+			# Add an indexed color table (grayscale)
+			qimage.setColorTable( colortable )
+			
+			# Save the current image
+			self.image_count += 1
+			print( 'Save images {} to disk...'.format(self.image_count) )
+			qimage.save( 'camera-{}-{:0>2}.png'.format(self.camera.id_string, self.image_count) )
+
+
+	#
+	# Display the current image
+	#
+	@QtCore.Slot()
+	def OnImageReceived( self ) :
+		
+		# Lock the image data for modification
+		self.mutex.lock()
+
+		# Create a grayscle QImage
+		qimage = QtGui.QImage( self.image.data, self.camera.width, self.camera.height, QtGui.QImage.Format_Indexed8 )
+		
+		# Image for the chessboard preview thread
+		local_image = cv2.resize( self.image, None, fx=0.3, fy=0.3 )
+
+		# Unlock the image data
+		self.mutex.unlock()
+		
+		# Add an indexed color table (grayscale)
+		qimage.setColorTable( colortable )
+
+		# Resize image for display
+		qimage = qimage.scaled( self.camera.width*0.3, self.camera.height*0.3, QtCore.Qt.KeepAspectRatio )
+
+		# Display the image
+		self.image_label.setPixmap( QtGui.QPixmap.fromImage(qimage) )
+
+
+#
+# Widget to display a camera
+#
 class CameraWidget( QtGui.QWidget ) :
 
-	# Signal send by the image callback function
+	# Signals send by the image callback function
 	image_received = QtCore.Signal()
-	do_calibration = QtCore.Signal()
 
 	#
 	# Initialisation
@@ -98,10 +198,7 @@ class CameraWidget( QtGui.QWidget ) :
 		self.mutex = QtCore.QMutex()
 
 		# Active live chessboard finding and drawing on the image
-		self.chessboard_enabled = True
-		
-		# Preview chessboard thread
-		self.preview_chessboard_thread = Calibration.PreviewChessboardThread()
+		self.chessboard_enabled = False
 
 		# Start image acquisition
 		self.capturing = True
@@ -137,6 +234,17 @@ class CameraWidget( QtGui.QWidget ) :
 			self.image_count += 1
 			print( 'Save images {} to disk...'.format(self.image_count) )
 			qimage.save( 'camera-{}-{:0>2}.png'.format(self.camera.id_string, self.image_count) )
+			
+		# C
+		elif event.key() == QtCore.Qt.Key_C :
+			
+			# Enable / Disable chessboard preview
+			self.chessboard_enabled = not self.chessboard_enabled
+			
+			# Destroy calibration window
+			if not self.chessboard_enabled : cv2.destroyWindow( 'Calibration' )
+
+
 		
 	#
 	# Close event
@@ -158,7 +266,7 @@ class CameraWidget( QtGui.QWidget ) :
 		self.mutex.lock()
 		
 		# Register the incoming image
-		self.image = copy( image )
+		self.image = copy.copy( image )
 
 		# Unlock the image data
 		self.mutex.unlock()
@@ -195,8 +303,7 @@ class CameraWidget( QtGui.QWidget ) :
 
 		# Preview the calibration chessboard on the image
 		if self.chessboard_enabled :
-			self.preview_chessboard_thread.SetImage( image_displayed )
-			self.preview_chessboard_thread.start()
+			Calibration.PreviewChessboard( local_image )
 
 
 #
