@@ -27,10 +27,7 @@ class Viewer( object ) :
 		self.camera = camera
 		
 		# Active live chessboard finding and drawing on the image
-		self.chessboard_enabled = True
-		
-		# Preview chessboard thread
-		self.preview_chessboard_thread = Calibration.PreviewChessboardThread()
+		self.chessboard_enabled = False
 		
 		# Saved image counter
 		self.image_count = 0
@@ -63,8 +60,7 @@ class Viewer( object ) :
 
 		# Preview the calibration chessboard on the image
 		if self.chessboard_enabled :
-			self.preview_chessboard_thread.SetImage( image_displayed )
-			self.preview_chessboard_thread.start()
+			image_displayed = Calibration.PreviewChessboard( image_displayed )
 		
 		# Display the image (scaled down)
 		cv2.imshow( self.camera.id_string, image_displayed )
@@ -87,7 +83,7 @@ class Viewer( object ) :
 			cv2.imwrite( 'camera-{}-{:0>2}.png'.format(self.camera.id_string, self.image_count), image )
 			
 		# C key
-		elif key == 'c' :
+		elif key == ord('c') :
 			
 			# Enable / Disable chessboard preview
 			self.chessboard_enabled = not self.chessboard_enabled
@@ -111,6 +107,12 @@ class StereoViewer( object ) :
 		self.width = camera_1.width
 		self.height = camera_1.height
 		
+		# Active live chessboard finding and drawing on the image
+		self.chessboard_enabled = False
+		
+		# Saved image counter
+		self.image_count = 0
+
 	#
 	# Start capture and display image stream
 	#
@@ -130,6 +132,19 @@ class StereoViewer( object ) :
 
 		# Cleanup OpenCV
 		cv2.destroyAllWindows()
+		
+	#
+	# Save images from both cameras to disk
+	#
+	def SaveImages( self ) :
+		
+		# Count images
+		self.image_count += 1
+		
+		# Save image to disk 
+		print( 'Save image {} to disk...'.format(self.image_count) )
+		cv2.imwrite( 'camera-1-{:0>2}.png'.format(self.image_count), self.image_1 )
+		cv2.imwrite( 'camera-2-{:0>2}.png'.format(self.image_count), self.image_2 )
 
 	#
 	# Display the current image for camera 1
@@ -139,12 +154,36 @@ class StereoViewer( object ) :
 		# Resize image for display
 		image_displayed = cv2.resize( image, None, fx=0.3, fy=0.3 )
 		
+		# Preview the calibration chessboard on the image
+		if self.chessboard_enabled :
+			image_displayed = Calibration.PreviewChessboard( image_displayed )
+
 		# Display the image (scaled down)
 		cv2.imshow( "Camera 1", image_displayed )
 
+		# Backup current image
+		self.image_1 = image
+
 		# Keyboard interruption
-		if ( cv2.waitKey(1) & 0xFF ) == 27 :
+		key = cv2.waitKey( 10 ) & 0xFF
+			
+		# Escape key
+		if key == 27 :
+			
+			# Exit live display
 			self.capturing = False
+			
+		# Space key
+		elif key == 32 :
+			
+			# Save images to disk
+			self.SaveImages()
+			
+		# C key
+		elif key == ord('c') :
+			
+			# Enable / Disable chessboard preview
+			self.chessboard_enabled = not self.chessboard_enabled
 
 	#
 	# Display the current image for camera 2
@@ -154,12 +193,36 @@ class StereoViewer( object ) :
 		# Resize image for display
 		image_displayed = cv2.resize( image, None, fx=0.3, fy=0.3 )
 
+		# Preview the calibration chessboard on the image
+		if self.chessboard_enabled :
+			image_displayed = Calibration.PreviewChessboard( image_displayed )
+
 		# Display the image (scaled down)
 		cv2.imshow( "Camera 2", image_displayed )
 
+		# Backup current image
+		self.image_2 = image
+
 		# Keyboard interruption
-		if ( cv2.waitKey(1) & 0xFF ) == 27 :
+		key = cv2.waitKey( 10 ) & 0xFF
+			
+		# Escape key
+		if key == 27 :
+			
+			# Exit live display
 			self.capturing = False
+			
+		# Space key
+		elif key == 32 :
+
+			# Save images to disk
+			self.SaveImages()
+			
+		# C ke
+		elif key == ord('c') :
+			
+			# Enable / Disable chessboard preview
+			self.chessboard_enabled = not self.chessboard_enabled
 
 
 #
