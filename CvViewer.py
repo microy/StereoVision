@@ -12,6 +12,8 @@
 import cv2
 import Calibration
 
+# Display scale factor
+scale_factor = 0.35
 
 #
 # Vimba camera viewer
@@ -56,7 +58,7 @@ class Viewer( object ) :
 	def ImageCallback( self, image ) :
 		
 		# Resize image for display
-		image_displayed = cv2.resize( image, None, fx=0.3, fy=0.3 )
+		image_displayed = cv2.resize( image, None, fx=scale_factor, fy=scale_factor )
 
 		# Preview the calibration chessboard on the image
 		if self.chessboard_enabled :
@@ -152,7 +154,7 @@ class StereoViewer( object ) :
 	def ImageCallback_1( self, image ) :
 
 		# Resize image for display
-		image_displayed = cv2.resize( image, None, fx=0.3, fy=0.3 )
+		image_displayed = cv2.resize( image, None, fx=scale_factor, fy=scale_factor )
 		
 		# Preview the calibration chessboard on the image
 		if self.chessboard_enabled :
@@ -191,7 +193,7 @@ class StereoViewer( object ) :
 	def ImageCallback_2( self, image ) :
 
 		# Resize image for display
-		image_displayed = cv2.resize( image, None, fx=0.3, fy=0.3 )
+		image_displayed = cv2.resize( image, None, fx=scale_factor, fy=scale_factor )
 
 		# Preview the calibration chessboard on the image
 		if self.chessboard_enabled :
@@ -225,14 +227,16 @@ class StereoViewer( object ) :
 			self.chessboard_enabled = not self.chessboard_enabled
 
 
+
+import ctypes as ct
+import numpy as np
+import Vimba
+
 #
 # Vimba stereo camera viewer (synchronous)
 #
 class StereoViewerSync( object ) :
 	
-	import ctypes as ct
-	import numpy as np
-	import Vimba
 
 	
 	#

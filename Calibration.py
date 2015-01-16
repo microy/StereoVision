@@ -14,10 +14,14 @@ import threading
 import cv2
 
 
+pattern_size = ( 13, 10 )
+
+
+
 #
 # Find the chessboard quickly and draw it
 #
-def PreviewChessboard( image, pattern_size = ( 9, 6 ) ) :
+def PreviewChessboard( image ) :
 	
 	# Find the chessboard corners on the image
 	found_all, corners = cv2.findChessboardCorners( image, pattern_size, flags = cv2.CALIB_CB_FAST_CHECK )	
@@ -74,7 +78,6 @@ def TestCalibration() :
 	image_files = glob.glob( sys.argv[1] )
 
 	# Chessboard pattern
-	pattern_size = ( 9, 6 )
 	pattern_points = np.zeros( (np.prod(pattern_size), 3), np.float32 )
 	pattern_points[:,:2] = np.indices(pattern_size).T.reshape(-1, 2)
 
@@ -82,7 +85,7 @@ def TestCalibration() :
 	term = ( cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_COUNT, 30, 0.1 )
 	
 	# Scale factor for corner detection
-	scale = 0.3
+	scale = 0.35
 	
 	# Pattern type
 	pattern_type = "Chessboard"
@@ -109,7 +112,7 @@ def TestCalibration() :
 		image_small = cv2.resize( image, None, fx=scale, fy=scale )
 
 		# Preview chessboard on image
-		preview = PreviewChessboard( image_small, pattern_size )
+		preview = PreviewChessboard( image_small )
 		
 		# Find the chessboard corners on the image
 		found_all, corners = cv2.findChessboardCorners( image_small, pattern_size, None , cv2.cv.CV_CALIB_CB_ADAPTIVE_THRESH + cv2.CALIB_CB_FAST_CHECK + cv2.CALIB_CB_FILTER_QUADS )
