@@ -67,7 +67,7 @@ class PreviewChessboardThread( object ) :
 #
 # Camera calibration
 #
-def TestCalibration() :
+def TestCalibration( imagefile_name ) :
 
 	# External dependencies
 	import numpy as np
@@ -75,7 +75,7 @@ def TestCalibration() :
 	import sys
 
 	# Get image file names
-	image_files = glob.glob( sys.argv[1] )
+	image_files = glob.glob( imagefile_name )
 
 	# Chessboard pattern
 	pattern_points = np.zeros( (np.prod(pattern_size), 3), np.float32 )
