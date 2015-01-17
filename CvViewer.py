@@ -41,7 +41,7 @@ class Viewer( object ) :
 
 		# Start image acquisition
 		self.capturing = True
-		self.camera.StartCapture( self.ImageCallback )
+		self.camera.StartCaptureAsync( self.ImageCallback )
 		
 		# Streaming loop
 		while self.capturing : pass
@@ -122,8 +122,8 @@ class StereoViewer( object ) :
 
 		# Start image acquisition
 		self.capturing = True
-		self.camera_1.StartCapture( self.ImageCallback_1 )
-		self.camera_2.StartCapture( self.ImageCallback_2 )
+		self.camera_1.StartCaptureAsync( self.ImageCallback_1 )
+		self.camera_2.StartCaptureAsync( self.ImageCallback_2 )
 		
 		# Streaming loop
 		while self.capturing : pass
@@ -153,6 +153,9 @@ class StereoViewer( object ) :
 	#
 	def ImageCallback_1( self, image ) :
 
+		# Backup current image
+		self.image_1 = image
+
 		# Resize image for display
 		image_displayed = cv2.resize( image, None, fx=scale_factor, fy=scale_factor )
 		
@@ -163,35 +166,17 @@ class StereoViewer( object ) :
 		# Display the image (scaled down)
 		cv2.imshow( "Camera 1", image_displayed )
 
-		# Backup current image
-		self.image_1 = image
-
 		# Keyboard interruption
-		key = cv2.waitKey( 10 ) & 0xFF
-			
-		# Escape key
-		if key == 27 :
-			
-			# Exit live display
-			self.capturing = False
-			
-		# Space key
-		elif key == 32 :
-			
-			# Save images to disk
-			self.SaveImages()
-			
-		# C key
-		elif key == ord('c') :
-			
-			# Enable / Disable chessboard preview
-			self.chessboard_enabled = not self.chessboard_enabled
+		self.KeyboardEvent()
 
 	#
 	# Display the current image for camera 2
 	#
 	def ImageCallback_2( self, image ) :
 
+		# Backup current image
+		self.image_2 = image
+		
 		# Resize image for display
 		image_displayed = cv2.resize( image, None, fx=scale_factor, fy=scale_factor )
 
@@ -202,8 +187,13 @@ class StereoViewer( object ) :
 		# Display the image (scaled down)
 		cv2.imshow( "Camera 2", image_displayed )
 
-		# Backup current image
-		self.image_2 = image
+		# Keyboard interruption
+		self.KeyboardEvent()
+
+	#
+	# Keyboard event
+	#
+	def KeyboardEvent( self ) :
 
 		# Keyboard interruption
 		key = cv2.waitKey( 10 ) & 0xFF
@@ -341,5 +331,172 @@ class StereoViewerSync( object ) :
 					
 		# Cleanup OpenCV
 		cv2.destroyAllWindows()
+		
+		
+		
+
+#
+# Vimba stereo camera viewer (synchronous)
+# with separate camera threads
+#
+class StereoViewerSync2( object ) :
+	
+	#
+	# Initialization
+	#
+	def __init__( self, camera_1, camera_2 ) :
+		
+		# Register the camera to display
+		self.camera_1 = camera_1
+		self.camera_2 = camera_2
+	
+		# Image parameters
+		self.width = camera_1.width
+		self.height = camera_1.height
+		
+		# Live image of both cameras
+		self.stereo_image = np.zeros( (self.height, 2*self.width), dtype=np.uint8 )
+		
+		# Configure camera software trigger thread
+		self.camera_1_thread = TriggerAcquisitionThread( self.camera_1 )
+		self.camera_2_thread = TriggerAcquisitionThread( self.camera_2 )
+
+	#
+	# Start capture and display image stream
+	#
+	def LiveDisplay( self ) :
+
+		# Number of images saved
+		image_count = 0
+		
+		# Start acquisition
+		self.camera_1_thread.Start()
+		self.camera_2_thread.Start()
+
+		# Live display
+		while True :
+			
+			# Send software trigger to both cameras
+			self.camera_1_thread.TriggerUp()
+			self.camera_2_thread.TriggerUp()
+			
+			# Wait for images
+			while not self.camera_1_thread.ImageReceived() and not self.camera_2_thread.ImageReceived() : pass
+			
+			# Prepare image for display
+			self.stereo_image[ 0:self.height, 0:self.width ] = self.camera_1.image
+			self.stereo_image[ 0:self.height, self.width:2*self.width ] = self.camera_2.image
+			
+			# Resize image for display
+			image_displayed = cv2.resize( self.stereo_image, None, fx=0.3, fy=0.3 )
+
+			# Display the image (scaled down)
+			cv2.imshow( "Stereo Cameras", image_displayed )
+			
+			# Keyboard interruption
+			key = cv2.waitKey(1) & 0xFF
+			
+			# Escape key
+			if key == 27 :
+				
+				# Exit live display
+				break
+				
+			# Space key
+			elif key == 32 :
+				
+				# Save images to disk 
+				image_count += 1
+				print( 'Save images {} to disk...'.format(image_count) )
+				cv2.imwrite( 'camera1-{:0>2}.png'.format(image_count), self.camera_1.image )
+				cv2.imwrite( 'camera2-{:0>2}.png'.format(image_count), self.camera_2.image )
+
+
+		# Stop image acquisition
+		self.camera_1_thread.Stop()
+		self.camera_2_thread.Stop()
+					
+		# Cleanup OpenCV
+		cv2.destroyAllWindows()
+
+
+import threading
+
+
+#
+# Software trigger acquisition thread
+#
+class TriggerAcquisitionThread( threading.Thread ) :
+	
+	#
+	# Initialisation
+	#
+	def __init__( self, camera ) :
+		
+		# Initialise the thread
+		threading.Thread.__init__( self )
+		
+		# The camera
+		self.camera = camera
+
+	#
+	# Preview the chessboard in a separate thread
+	#
+	def Start( self ) :
+
+		# Start synchronous image capture
+		self.camera.StartCaptureSync()
+		
+		# Image acquisition running
+		self.capturing = True
+		
+		# The camera trigger
+		self.trigger = False
+		
+		# Start the thread
+		self.start()
+
+	#
+	# Preview the chessboard in a separate thread
+	#
+	def Stop( self ) :
+
+		# Stop the thread
+		self.capturing = False
+		self.join()
+		
+		# Stop image acquisition
+		self.camera.StopCapture()
+		
+	#
+	# Activate the triger
+	#
+	def TriggerUp( self ) :
+		
+		self.trigger = True
+
+	#
+	# Tell if the single image acquisition is done
+	#
+	def ImageReceived( self ) :
+		
+		return not self.trigger
+
+	#
+	# Acquire an image on trigger
+	#
+	def run( self ) :
+		
+		# Image acquisition
+		while self.capturing :
+
+			# Trigger up
+			if self.trigger :
+				
+				# Capture the image
+				if self.camera.CaptureImageSync() :
+				
+					# Trigger down
+					self.trigger = False
 
 

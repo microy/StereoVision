@@ -121,7 +121,10 @@ class VmbCamera( object ) :
 #		self.width = 2452
 #		self.height = 2056
 #		self.payloadsize = 5041312
-	
+
+		# Initialize the image from the camera
+		self.image = np.zeros( (self.height, self.width), dtype=np.uint8 )
+
 	#
 	# Disconnect the camera
 	#
@@ -131,9 +134,56 @@ class VmbCamera( object ) :
 		vimba.VmbCameraClose( self.handle )
 
 	#
-	# Start the acquisition
+	# Start synchronous acquisition
 	#
-	def StartCapture( self, image_callback_function, buffer_count = 3 ) :
+	def StartCaptureSync( self ) :
+
+		# Configure frame software trigger
+		vimba.VmbFeatureEnumSet( self.handle, "TriggerSource", "Software" )
+
+		# The image frame to fill
+		self.frame = VmbFrame( self.payloadsize )
+
+		# Announce the frame
+		vimba.VmbFrameAnnounce( self.handle, ct.byref(self.frame), ct.sizeof(self.frame) )
+
+		# Start capture engine
+		vimba.VmbCaptureStart( self.handle )
+
+		# Queue the frame
+		vimba.VmbCaptureFrameQueue( self.handle, ct.byref(self.frame), None )
+		
+		# Start acquisition
+		vimba.VmbFeatureCommandRun( self.handle, "AcquisitionStart" )
+
+	#
+	# Capture an image synchronously
+	#
+	def CaptureImageSync( self ) :
+		
+		# Send software trigger
+		vimba.VmbFeatureCommandRun( self.handle, "TriggerSoftware" )
+
+		# Capture a frame
+		vimba.VmbCaptureFrameWait( self.handle, ct.byref(self.frame), 1000 )
+		
+		# Check frame validity
+		if not self.frame.receiveStatus :
+		
+			# Convert frame to numpy arrays
+			self.image = np.fromstring( self.frame.buffer[ 0 : self.payloadsize ], dtype=np.uint8 )
+			self.image = self.image.reshape( self.height, self.width )
+			
+		# Queue another frame
+		vimba.VmbCaptureFrameQueue( self.handle, ct.byref(self.frame), None )
+		
+		# Tell if the image is OK
+		return not self.frame.receiveStatus
+		
+	#
+	# Start asynchronous acquisition
+	#
+	def StartCaptureAsync( self, image_callback_function, buffer_count = 3 ) :
 
 		# Initialize frame buffer
 		self.frame_buffer = []
@@ -186,11 +236,11 @@ class VmbCamera( object ) :
 		if not frame.contents.receiveStatus :
 
 			# Convert frames to numpy arrays
-			image = np.fromstring( frame.contents.buffer[ 0 : self.payloadsize ], dtype=np.uint8 )
-			image = image.reshape( self.height, self.width )
+			self.image = np.fromstring( frame.contents.buffer[ 0 : self.payloadsize ], dtype=np.uint8 )
+			self.image = self.image.reshape( self.height, self.width )
 			
 			# Call foreign image processing function
-			self.image_callback_function( image )
+			self.image_callback_function( self.image )
 
 		# Requeue the frame so it can be filled again
 		vimba.VmbCaptureFrameQueue( camera, frame, self.frame_callback_function )
