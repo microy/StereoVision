@@ -89,7 +89,7 @@ class VmbCamera( object ) :
 	#
 	# Initialize the camera
 	#
-	def __init__( self, id_string ) :
+	def __init__( self, id_string, pixel_format = "Mono8" ) :
 		
 		# Camera handle
 		self.handle = ct.c_void_p()
@@ -110,7 +110,8 @@ class VmbCamera( object ) :
 #		vimba.VmbFeatureIntSet( self.handle, "GVSPPacketSize", 8228 )
 		
 		# Configure the image format
-		vimba.VmbFeatureEnumSet( self.handle, "PixelFormat", "Mono8" )
+		self.pixel_format = pixel_format
+		vimba.VmbFeatureEnumSet( self.handle, "PixelFormat", self.pixel_format )
 
 		# Query image parameters
 		tmp_value = ct.c_int()
@@ -126,8 +127,11 @@ class VmbCamera( object ) :
 #		self.height = 2056
 #		self.payloadsize = 5041312
 
-		# Initialize the image from the camera
-		self.image = np.zeros( (self.height, self.width), dtype=np.uint8 )
+		# Initialize the image
+		if self.pixel_format == "Mono8" :
+			self.image = np.zeros( (self.height, self.width), dtype=np.uint8 )
+		elif self.pixel_format == "Mono12" :
+			self.image = np.zeros( (self.height, self.width), dtype=np.uint16 )
 
 	#
 	# Disconnect the camera
@@ -138,6 +142,29 @@ class VmbCamera( object ) :
 		vimba.VmbCameraClose( self.handle )
 
 	#
+	# Convert a camera frame to a numpy image
+	#
+	def ConvertFrameToImage( self, frame ) :
+		
+		# Initialize the image from the camera
+		if self.pixel_format == "Mono8" :
+			
+			# Convert frames to numpy arrays
+			self.image = np.fromstring( frame.buffer[ 0 : self.payloadsize ], dtype=np.uint8 )
+			self.image = self.image.reshape( self.height, self.width )
+
+		# Initialize the image from the camera
+		elif self.pixel_format == "Mono12" :
+
+			# Convert frames to numpy arrays
+			self.image = np.fromstring( frame.buffer[ 0 : self.payloadsize ], dtype=np.uint16 )
+			self.image = self.image.reshape( self.height, self.width )
+			
+			# Convert 12 bits image to 16 bits image
+			self.image *= 0xFFFF
+			self.image /= 0x0FFF
+
+	#
 	# Start synchronous acquisition
 	#
 	def StartCaptureSync( self ) :
@@ -145,7 +172,7 @@ class VmbCamera( object ) :
 		# Configure frame software trigger
 		vimba.VmbFeatureEnumSet( self.handle, "TriggerSource", "Software" )
 
-		# The image frame to fill
+		# Create the frame to fill
 		self.frame = VmbFrame( self.payloadsize )
 
 		# Announce the frame
@@ -173,12 +200,11 @@ class VmbCamera( object ) :
 		
 		# Check frame validity
 		if not self.frame.receiveStatus :
-		
-			# Convert frame to numpy arrays
-			self.image = np.fromstring( self.frame.buffer[ 0 : self.payloadsize ], dtype=np.uint8 )
-			self.image = self.image.reshape( self.height, self.width )
 			
-		# Queue another frame
+			# Convert the received frame to a numpy image
+			self.ConvertFrameToImage( self.frame )
+		
+		# Requeue the frame
 		vimba.VmbCaptureFrameQueue( self.handle, ct.byref(self.frame), None )
 		
 		# Tell if the image is OK
@@ -242,9 +268,8 @@ class VmbCamera( object ) :
 		# Check frame validity
 		if not frame.contents.receiveStatus :
 
-			# Convert frames to numpy arrays
-			self.image = np.fromstring( frame.contents.buffer[ 0 : self.payloadsize ], dtype=np.uint8 )
-			self.image = self.image.reshape( self.height, self.width )
+			# Convert the received frame to a numpy image
+			self.ConvertFrameToImage( frame.contents )
 			
 			# Call foreign image processing function
 			self.image_callback_function( self.image )
