@@ -103,9 +103,13 @@ class VmbCamera( object ) :
 		# Adjust packet size automatically
 		vimba.VmbFeatureCommandRun( self.handle, "GVSPAdjustPacketSize" )
 		
-		# Configure the camera
-		vimba.VmbFeatureEnumSet( self.handle, "AcquisitionMode", "Continuous" )
-		vimba.VmbFeatureEnumSet( self.handle, "TriggerSource", "Freerun" )
+		# Jumbo frames
+		# Force the MTU to 8228 bytes, the camera default on power up
+#		tmp_value = ct.c_int64( 8228 )
+#		vimba.VmbFeatureIntSet( self.handle, "GevSCPSPacketSize", 8228 )
+#		vimba.VmbFeatureIntSet( self.handle, "GVSPPacketSize", 8228 )
+		
+		# Configure the image format
 		vimba.VmbFeatureEnumSet( self.handle, "PixelFormat", "Mono8" )
 
 		# Query image parameters
@@ -184,6 +188,9 @@ class VmbCamera( object ) :
 	# Start asynchronous acquisition
 	#
 	def StartCaptureAsync( self, image_callback_function, buffer_count = 3 ) :
+
+		# Configure freerun trigger (full camera speed)
+		vimba.VmbFeatureEnumSet( self.handle, "TriggerSource", "Freerun" )
 
 		# Initialize frame buffer
 		self.frame_buffer = []
