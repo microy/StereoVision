@@ -425,22 +425,11 @@ class StereoViewerSync2( object ) :
 			self.camera_2_thread.SendTrigger()
 			
 			# Wait for images
-			while not self.camera_1_thread.ImageReceived() and not self.camera_2_thread.ImageReceived() : pass
+			while not self.camera_1_thread.ImageReceived() and not self.camera_2_thread.ImageReceived() :
+				pass
 			
-			# Preview the calibration chessboard on the image
-			if chessboard_enabled :
-				
-				image_1_displayed = self.camera_1_thread.chessboard
-				image_2_displayed = self.camera_2_thread.chessboard
-				
-			# Or resize image for display
-			else :
-				
-				image_1_displayed = cv2.resize( self.camera_1.image, None, fx=scale_factor, fy=scale_factor )
-				image_2_displayed = cv2.resize( self.camera_2.image, None, fx=scale_factor, fy=scale_factor )
-
 			# Prepare image for display
-			stereo_image = np.concatenate( (image_1_displayed, image_2_displayed), axis=1 )
+			stereo_image = np.concatenate( (self.camera_1_thread.image, self.camera_2_thread.image), axis=1 )
 			
 			# Display the image (scaled down)
 			cv2.imshow( "Stereo Cameras", stereo_image )
@@ -508,9 +497,11 @@ class TriggerAcquisitionThread( threading.Thread ) :
 		
 		# The camera trigger
 		self.trigger = False
-		
+
+		# Camera image
+		self.image = None
+
 		# Chessboard for calibration
-		self.chessboard = None
 		self.chessboard_enabled = False
 		
 		# Start the thread
@@ -555,12 +546,14 @@ class TriggerAcquisitionThread( threading.Thread ) :
 				
 				# Capture the image
 				if self.camera.CaptureImageSync() :
-					
+
+					# Resize image for display
+					self.image = cv2.resize( self.camera.image, None, fx=scale_factor, fy=scale_factor )
+
 					# Preview the calibration chessboard on the image
 					if self.chessboard_enabled :
 
-						self.chessboard = cv2.resize( self.camera.image, None, fx=scale_factor, fy=scale_factor )
-						self.chessboard = Calibration.PreviewChessboard( self.chessboard )
+						self.image = Calibration.PreviewChessboard( self.image )
 		
 					# Job done
 					self.trigger = False
