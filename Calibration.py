@@ -9,13 +9,13 @@
 #
 # External dependencies
 #
-import copy
-import threading
 import cv2
 
 
+#
+# Chessboard pattern dimensions
+#
 pattern_size = ( 13, 10 )
-
 
 
 #
@@ -36,33 +36,7 @@ def PreviewChessboard( image ) :
 		cv2.drawChessboardCorners( image, pattern_size, corners, found_all )
 		
 	return image
-
-
-
-#
-# Preview chessboard thread
-#
-class PreviewChessboardThread( object ) :
 	
-	#
-	# Initialisation
-	#
-	def __init__( self ) :
-		
-		# Initialise the thread
-#		threading.Thread.__init__( self )
-		pass
-		
-	#
-	# Preview the chessboard in a separate thread
-	#
-	def Start( self, image ) :
-		
-		self.image = copy.copy( image )
-		thread = threading.Thread( target=PreviewChessboard )
-		thread.start()
-
-
 
 #
 # Camera calibration
