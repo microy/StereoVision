@@ -18,7 +18,7 @@ import Calibration
 #
 # Image scale factor for display
 #
-scale_factor = 0.35
+scale_factor = 0.3
 
 
 #
@@ -128,6 +128,8 @@ class StereoViewer( object ) :
 
 		# Start image acquisition
 		self.capturing = True
+		self.image_1_ready = False
+		self.image_2_ready = False
 		self.camera_1.StartCaptureAsync( self.ImageCallback_1 )
 		self.camera_2.StartCaptureAsync( self.ImageCallback_2 )
 		
@@ -425,9 +427,9 @@ class StereoViewerSync2( object ) :
 			self.camera_2_thread.SendTrigger()
 			
 			# Wait for images
-			while not self.camera_1_thread.ImageReceived() and not self.camera_2_thread.ImageReceived() :
+			while not (self.camera_1_thread.ImageReceived() and self.camera_2_thread.ImageReceived()) :
 				pass
-			
+
 			# Prepare image for display
 			stereo_image = np.concatenate( (self.camera_1_thread.image, self.camera_2_thread.image), axis=1 )
 			

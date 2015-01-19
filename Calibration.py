@@ -23,15 +23,15 @@ pattern_size = ( 13, 10 )
 #
 def PreviewChessboard( image ) :
 	
+	# Convert grayscale image in color
+	image = cv2.cvtColor( image, cv2.COLOR_GRAY2BGR )
+
 	# Find the chessboard corners on the image
 	found_all, corners = cv2.findChessboardCorners( image, pattern_size, flags = cv2.CALIB_CB_FAST_CHECK )	
 
 	# Chessboard found
 	if found_all :
 		
-		# Convert grayscale image in color
-		image = cv2.cvtColor( image, cv2.COLOR_GRAY2BGR )
-
 		# Draw the chessboard corners on the image
 		cv2.drawChessboardCorners( image, pattern_size, corners, found_all )
 		
