@@ -161,8 +161,7 @@ class VmbCamera( object ) :
 			self.image = self.image.reshape( self.height, self.width )
 			
 			# Convert 12 bits image to 16 bits image
-			self.image *= 0xFFFF
-			self.image /= 0x0FFF
+			self.image = (self.image.astype(np.float) * 0xFFFF/ 0xFFF).astype(np.uint16)
 
 	#
 	# Start synchronous acquisition
