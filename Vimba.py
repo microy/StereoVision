@@ -101,12 +101,10 @@ class VmbCamera( object ) :
 		vimba.VmbCameraOpen( self.id_string, 1, ct.byref(self.handle) )
 
 		# Jumbo frames - Force the MTU to 9000 bytes
-		if jumbo_frame :
-			vimba.VmbFeatureIntSet( self.handle, "GVSPPacketSize", 9000 )
+		if jumbo_frame : vimba.VmbFeatureIntSet( self.handle, "GVSPPacketSize", 9000 )
 			
 		# Or adjust packet size automatically
-		else :
-			vimba.VmbFeatureCommandRun( self.handle, "GVSPAdjustPacketSize" )
+		else : vimba.VmbFeatureCommandRun( self.handle, "GVSPAdjustPacketSize" )
 
 		# Configure the image format
 		self.pixel_format = pixel_format
@@ -163,7 +161,7 @@ class VmbCamera( object ) :
 			self.image = self.image.reshape( self.height, self.width )
 			
 			# Convert 12 bits image to 16 bits image
-			self.image = (self.image.astype(np.float) * 0xFFFF/ 0xFFF).astype(np.uint16)
+			self.image = (self.image.astype(np.float) * 0xFFFF / 0xFFF).astype(np.uint16)
 
 	#
 	# Start synchronous acquisition
