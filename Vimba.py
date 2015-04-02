@@ -139,80 +139,9 @@ class VmbCamera( object ) :
 		vimba.VmbCameraClose( self.handle )
 
 	#
-	# Convert a camera frame to a numpy image
-	#
-	def ConvertFrameToImage( self, frame ) :
-		
-		# Save the image timestamp
-		self.timestamp = frame.timestamp
-		
-		# Initialize the image from the camera
-		if self.pixel_format == "Mono8" :
-			
-			# Convert frames to numpy arrays
-			self.image = np.fromstring( frame.buffer[ 0 : self.payloadsize ], dtype=np.uint8 )
-			self.image = self.image.reshape( self.height, self.width )
-
-		# Initialize the image from the camera
-		elif self.pixel_format == "Mono12" :
-
-			# Convert frames to numpy arrays
-			self.image = np.fromstring( frame.buffer[ 0 : self.payloadsize ], dtype=np.uint16 )
-			self.image = self.image.reshape( self.height, self.width )
-			
-			# Convert 12 bits image to 16 bits image
-			self.image = (self.image.astype(np.float) * 0xFFFF / 0xFFF).astype(np.uint16)
-
-	#
-	# Start synchronous acquisition
-	#
-	def StartCaptureSync( self ) :
-
-		# Configure frame software trigger
-		vimba.VmbFeatureEnumSet( self.handle, "TriggerSource", "Software" )
-
-		# Create the frame to fill
-		self.frame = VmbFrame( self.payloadsize )
-
-		# Announce the frame
-		vimba.VmbFrameAnnounce( self.handle, ct.byref(self.frame), ct.sizeof(self.frame) )
-
-		# Start capture engine
-		vimba.VmbCaptureStart( self.handle )
-
-		# Queue the frame
-		vimba.VmbCaptureFrameQueue( self.handle, ct.byref(self.frame), None )
-		
-		# Start acquisition
-		vimba.VmbFeatureCommandRun( self.handle, "AcquisitionStart" )
-
-	#
-	# Capture an image synchronously
-	#
-	def CaptureImageSync( self ) :
-		
-		# Send software trigger
-		vimba.VmbFeatureCommandRun( self.handle, "TriggerSoftware" )
-
-		# Capture a frame
-		vimba.VmbCaptureFrameWait( self.handle, ct.byref(self.frame), 1000 )
-		
-		# Check frame validity
-		if not self.frame.receiveStatus :
-			
-			# Convert the received frame to a numpy image
-			self.ConvertFrameToImage( self.frame )
-		
-		# Requeue the frame
-		vimba.VmbCaptureFrameQueue( self.handle, ct.byref(self.frame), None )
-		
-		# Tell if the image is OK
-		return not self.frame.receiveStatus
-		
-	#
 	# Start asynchronous acquisition
 	#
-	def StartCaptureAsync( self, image_callback_function, buffer_count = 3 ) :
+	def StartCapture( self, image_callback_function, buffer_count = 3 ) :
 
 		# Configure freerun trigger (full camera speed)
 		vimba.VmbFeatureEnumSet( self.handle, "TriggerSource", "Freerun" )
@@ -270,11 +199,28 @@ class VmbCamera( object ) :
 		# Check frame validity
 		if not frame.contents.receiveStatus :
 
-			# Convert the received frame to a numpy image
-			self.ConvertFrameToImage( frame.contents )
+			# Save the image timestamp
+			self.timestamp = frame.contents.timestamp
+			
+			# Convert de 8 bit frame to image
+			if self.pixel_format == "Mono8" :
+				
+				# Convert frames to numpy arrays
+				self.image = np.fromstring( frame.contents.buffer[ 0 : self.payloadsize ], dtype=np.uint8 )
+				self.image = self.image.reshape( self.height, self.width )
+
+			# Convert the 12 bit frame to image
+			elif self.pixel_format == "Mono12" :
+
+				# Convert frames to numpy arrays
+				self.image = np.fromstring( frame.contents.buffer[ 0 : self.payloadsize ], dtype=np.uint16 )
+				self.image = self.image.reshape( self.height, self.width )
+				
+				# Convert 12 bits image to 16 bits image
+				self.image = (self.image.astype(np.float) * 0xFFFF / 0xFFF).astype(np.uint16)
 			
 			# Call foreign image processing function
-			self.image_callback_function( self.image )
+			self.image_callback_function()
 
 		# Requeue the frame so it can be filled again
 		vimba.VmbCaptureFrameQueue( camera, frame, self.frame_callback_function )
