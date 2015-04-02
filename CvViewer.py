@@ -150,6 +150,7 @@ class StereoViewer( object ) :
 
 		# Backup current image
 		self.image_1 = image
+		self.timestamp_1 = self.camera_1.timestamp
 
 		# Image ready
 		self.image_1_ready = True
@@ -177,6 +178,7 @@ class StereoViewer( object ) :
 
 		# Backup current image
 		self.image_2 = image
+		self.timestamp_2 = self.camera_2.timestamp
 		
 		# Image ready
 		self.image_2_ready = True
@@ -207,6 +209,7 @@ class StereoViewer( object ) :
 			
 			# Check timestamps difference
 			#if math.abs(left_time - right_time) <= max_nsec_sync_error :
+			#print( abs( self.timestamp_1 - self.timestamp_2 ) )
 
 			image_1_displayed = cv2.resize( self.image_1, None, fx=scale_factor, fy=scale_factor )
 			image_2_displayed = cv2.resize( self.image_2, None, fx=scale_factor, fy=scale_factor )

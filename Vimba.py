@@ -132,7 +132,6 @@ class VmbCamera( object ) :
 		elif self.pixel_format == "Mono12" :
 			self.image = np.zeros( (self.height, self.width), dtype=np.uint16 )
 
-
 	#
 	# Disconnect the camera
 	#
@@ -145,6 +144,9 @@ class VmbCamera( object ) :
 	# Convert a camera frame to a numpy image
 	#
 	def ConvertFrameToImage( self, frame ) :
+		
+		# Save the image timestamp
+		self.timestamp = frame.timestamp
 		
 		# Initialize the image from the camera
 		if self.pixel_format == "Mono8" :
@@ -216,7 +218,7 @@ class VmbCamera( object ) :
 
 		# Configure freerun trigger (full camera speed)
 		vimba.VmbFeatureEnumSet( self.handle, "TriggerSource", "Freerun" )
-
+		
 		# Initialize frame buffer
 		self.frame_buffer = []
 		for i in range( buffer_count ) :
@@ -238,6 +240,9 @@ class VmbCamera( object ) :
 		# Queue the frames
 		for i in range( buffer_count ) :
 			vimba.VmbCaptureFrameQueue( self.handle, ct.byref(self.frame_buffer[i]), self.frame_callback_function )
+
+		# Reset the camera timestamp
+		vimba.VmbFeatureCommandRun( self.handle, "GevTimestampControlReset" )
 
 		# Start acquisition
 		vimba.VmbFeatureCommandRun( self.handle, "AcquisitionStart" )
