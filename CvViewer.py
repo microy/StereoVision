@@ -9,10 +9,11 @@
 #
 # External dependencies
 #
-import threading
+import ctypes as ct
 import cv2
 import numpy as np
 import Calibration
+import Vimba
 
 
 #
@@ -273,10 +274,6 @@ class StereoViewer( object ) :
 		cv2.imwrite( 'camera-2-{:0>2}.png'.format(self.image_count), self.image_2 )
 
 
-
-import ctypes as ct
-import Vimba
-
 #
 # Vimba stereo camera viewer (synchronous)
 #
@@ -379,188 +376,9 @@ class StereoViewerSync( object ) :
 
 
 		# Stop image acquisition
-		self.camera_1.CaptureStop()
-		self.camera_2.CaptureStop()
+		self.camera_1.StopCapture()
+		self.camera_2.StopCapture()
 					
 		# Cleanup OpenCV
 		cv2.destroyAllWindows()
-		
-		
-		
-
-#
-# Vimba stereo camera viewer (synchronous)
-# with separate camera threads
-#
-class StereoViewerSync2( object ) :
 	
-	#
-	# Initialization
-	#
-	def __init__( self, camera_1, camera_2 ) :
-		
-		# Register the camera to display
-		self.camera_1 = camera_1
-		self.camera_2 = camera_2
-	
-		# Configure camera software trigger thread
-		self.camera_1_thread = TriggerAcquisitionThread( self.camera_1 )
-		self.camera_2_thread = TriggerAcquisitionThread( self.camera_2 )
-
-	#
-	# Start capture and display image stream
-	#
-	def LiveDisplay( self ) :
-
-		# Number of images saved
-		image_count = 0
-		
-		# Display chessbord on the live images
-		chessboard_enabled = False
-		
-		# Start acquisition
-		self.camera_1_thread.Start()
-		self.camera_2_thread.Start()
-
-		# Live display
-		while True :
-			
-			# Send software trigger to both cameras
-			self.camera_1_thread.SendTrigger()
-			self.camera_2_thread.SendTrigger()
-			
-			# Wait for images
-			while not (self.camera_1_thread.ImageReceived() and self.camera_2_thread.ImageReceived()) :
-				pass
-
-			# Prepare image for display
-			stereo_image = np.concatenate( (self.camera_1_thread.image, self.camera_2_thread.image), axis=1 )
-			
-			# Display the image (scaled down)
-			cv2.imshow( "Stereo Cameras", stereo_image )
-			
-			# Keyboard interruption
-			key = cv2.waitKey( 10 ) & 0xFF
-				
-			# Escape key
-			if key == 27 :
-				
-				# Exit live display
-				break
-				
-			# Space key
-			elif key == 32 :
-
-				# Save images to disk 
-				image_count += 1
-				print( 'Save images {} to disk...'.format(image_count) )
-				cv2.imwrite( 'camera1-{:0>2}.png'.format(image_count), self.camera_1.image )
-				cv2.imwrite( 'camera2-{:0>2}.png'.format(image_count), self.camera_2.image )
-				
-			# C ke
-			elif key == ord('c') :
-				
-				# Enable / Disable chessboard preview
-				chessboard_enabled = not chessboard_enabled
-				self.camera_1_thread.chessboard_enabled = chessboard_enabled
-				self.camera_2_thread.chessboard_enabled = chessboard_enabled
-
-		# Stop image acquisition
-		self.camera_1_thread.Stop()
-		self.camera_2_thread.Stop()
-					
-		# Cleanup OpenCV
-		cv2.destroyAllWindows()
-		
-
-#
-# Software trigger acquisition thread
-#
-class TriggerAcquisitionThread( threading.Thread ) :
-	
-	#
-	# Initialisation
-	#
-	def __init__( self, camera ) :
-		
-		# Initialise the thread
-		threading.Thread.__init__( self )
-		
-		# The camera
-		self.camera = camera
-		
-	#
-	# Preview the chessboard in a separate thread
-	#
-	def Start( self ) :
-
-		# Start synchronous image capture
-		self.camera.StartCaptureSync()
-		
-		# Image acquisition running
-		self.capturing = True
-		
-		# The camera trigger
-		self.trigger = False
-
-		# Camera image
-		self.image = None
-
-		# Chessboard for calibration
-		self.chessboard_enabled = False
-		
-		# Start the thread
-		self.start()
-
-	#
-	# Preview the chessboard in a separate thread
-	#
-	def Stop( self ) :
-
-		# Stop the thread
-		self.capturing = False
-		self.join()
-		
-		# Stop image acquisition
-		self.camera.StopCapture()
-		
-	#
-	# Activate the triger
-	#
-	def SendTrigger( self ) :
-		
-		self.trigger = True
-
-	#
-	# Tell if the single image acquisition is done
-	#
-	def ImageReceived( self ) :
-		
-		return not self.trigger
-
-	#
-	# Acquire an image on trigger
-	#
-	def run( self ) :
-		
-		# Image acquisition
-		while self.capturing :
-
-			# Trigger up
-			if self.trigger :
-				
-				# Capture the image
-				if self.camera.CaptureImageSync() :
-
-					# Resize image for display
-					self.image = cv2.resize( self.camera.image, None, fx=scale_factor, fy=scale_factor )
-
-					# Preview the calibration chessboard on the image
-					if self.chessboard_enabled :
-
-						self.image = Calibration.PreviewChessboard( self.image )
-		
-					# Job done
-					self.trigger = False
-
-
