@@ -20,13 +20,13 @@ camera_2_id = '50-0503326223'
 
 # Create a command line argument parser
 parser = argparse.ArgumentParser( description='Display images from AVT cameras' )
-parser.add_argument( 'Number', help='Number of the camera to display (1, 2, or 12 )' )
+parser.add_argument( 'Number', help='Number of the camera to display (1, 2, a, s )' )
 
 # Process command line parameters
 args = parser.parse_args()
 
 # Print help and exit if a wrong parameter is given
-if args.Number not in [ '1', '2', '12', 's' ] :
+if args.Number not in [ '1', '2', 'a', 's' ] :
 	parser.print_help()
 	sys.exit()
 	
@@ -58,14 +58,14 @@ elif args.Number == '2' :
 	camera.Disconnect()
 	
 # View both cameras asynchronously
-elif args.Number == '12' :
+elif args.Number == 'a' :
 	
 	# Camera connection
 	camera_1 = Vimba.VmbCamera( camera_1_id )
 	camera_2 = Vimba.VmbCamera( camera_2_id )
 
 	# Start image acquisition
-	CvViewer.StereoViewer( camera_1, camera_2 ).LiveDisplay()
+	CvViewer.StereoViewerAsync( camera_1, camera_2 ).LiveDisplay()
 
 	# Close the cameras
 	camera_1.Disconnect()

@@ -48,7 +48,7 @@ class Viewer( object ) :
 
 		# Start image acquisition
 		self.capturing = True
-		self.camera.StartCaptureAsync( self.ImageCallback )
+		self.camera.StartCapture( self.ImageCallback )
 		
 		# Streaming loop
 		while self.capturing : pass
@@ -62,10 +62,10 @@ class Viewer( object ) :
 	#
 	# Display the current image
 	#
-	def ImageCallback( self, image ) :
+	def ImageCallback( self ) :
 		
 		# Resize image for display
-		image_displayed = cv2.resize( image, None, fx=scale_factor, fy=scale_factor )
+		image_displayed = cv2.resize( self.camera.image, None, fx=scale_factor, fy=scale_factor )
 
 		# Preview the calibration chessboard on the image
 		if self.chessboard_enabled :
@@ -89,7 +89,7 @@ class Viewer( object ) :
 			# Save image to disk 
 			self.image_count += 1
 			print( 'Save image {} to disk...'.format(self.image_count) )
-			cv2.imwrite( 'camera-{}-{:0>2}.png'.format(self.camera.id_string, self.image_count), image )
+			cv2.imwrite( 'camera-{}-{:0>2}.png'.format(self.camera.id_string, self.image_count), self.camera.image )
 			
 		# C key
 		elif key == ord('c') :
@@ -101,7 +101,7 @@ class Viewer( object ) :
 #
 # Vimba stereo camera viewer (asynchronous)
 #
-class StereoViewer( object ) :
+class StereoViewerAsync( object ) :
 	
 	#
 	# Initialization
@@ -131,8 +131,8 @@ class StereoViewer( object ) :
 		self.capturing = True
 		self.image_1_ready = False
 		self.image_2_ready = False
-		self.camera_1.StartCaptureAsync( self.ImageCallback_1 )
-		self.camera_2.StartCaptureAsync( self.ImageCallback_2 )
+		self.camera_1.StartCapture( self.ImageCallback_1 )
+		self.camera_2.StartCapture( self.ImageCallback_2 )
 		
 		# Streaming loop
 		while self.capturing : pass
@@ -145,12 +145,12 @@ class StereoViewer( object ) :
 		cv2.destroyAllWindows()
 		
 	#
-	# Display the current image for camera 1
+	# Retreive the current image from camera 1
 	#
-	def ImageCallback_1( self, image ) :
+	def ImageCallback_1( self ) :
 
 		# Backup current image
-		self.image_1 = image
+		self.image_1 = self.camera_1.image
 		self.timestamp_1 = self.camera_1.timestamp
 
 		# Image ready
@@ -159,26 +159,13 @@ class StereoViewer( object ) :
 		# Synchronize both images
 		self.SynchronizeImages()
 
-		# Resize image for display
-#		image_displayed = cv2.resize( image, None, fx=scale_factor, fy=scale_factor )
-		
-		# Preview the calibration chessboard on the image
-#		if self.chessboard_enabled :
-#			image_displayed = Calibration.PreviewChessboard( image_displayed )
-
-		# Display the image (scaled down)
-#		cv2.imshow( "Camera 1", image_displayed )
-
-		# Keyboard interruption
-#		self.KeyboardEvent()
-
 	#
-	# Display the current image for camera 2
+	# Retreive the current image from camera 2
 	#
-	def ImageCallback_2( self, image ) :
+	def ImageCallback_2( self ) :
 
 		# Backup current image
-		self.image_2 = image
+		self.image_2 = self.camera_2.image
 		self.timestamp_2 = self.camera_2.timestamp
 		
 		# Image ready
@@ -187,21 +174,8 @@ class StereoViewer( object ) :
 		# Synchronize both images
 		self.SynchronizeImages()
 
-		# Resize image for display
-#		image_displayed = cv2.resize( image, None, fx=scale_factor, fy=scale_factor )
-
-		# Preview the calibration chessboard on the image
-#		if self.chessboard_enabled :
-#			image_displayed = Calibration.PreviewChessboard( image_displayed )
-
-		# Display the image (scaled down)
-#		cv2.imshow( "Camera 2", image_displayed )
-
-		# Keyboard interruption
-#		self.KeyboardEvent()
-
 	#
-	# Keyboard event
+	# Synchronize images from both cameras
 	#
 	def SynchronizeImages( self ) :
 		
@@ -212,6 +186,7 @@ class StereoViewer( object ) :
 			#if math.abs(left_time - right_time) <= max_nsec_sync_error :
 			#print( abs( self.timestamp_1 - self.timestamp_2 ) )
 
+			# Resize image for display
 			image_1_displayed = cv2.resize( self.image_1, None, fx=scale_factor, fy=scale_factor )
 			image_2_displayed = cv2.resize( self.image_2, None, fx=scale_factor, fy=scale_factor )
 
@@ -232,46 +207,30 @@ class StereoViewer( object ) :
 			self.image_2_ready = False
 
 			# Keyboard interruption
-			self.KeyboardEvent()
+			key = cv2.waitKey( 10 ) & 0xFF
+				
+			# Escape key
+			if key == 27 :
+				
+				# Exit live display
+				self.capturing = False
+				
+			# Space key
+			elif key == 32 :
 
-	#
-	# Keyboard event
-	#
-	def KeyboardEvent( self ) :
-
-		# Keyboard interruption
-		key = cv2.waitKey( 10 ) & 0xFF
-			
-		# Escape key
-		if key == 27 :
-			
-			# Exit live display
-			self.capturing = False
-			
-		# Space key
-		elif key == 32 :
-
-			# Save images to disk
-			self.SaveImages()
-			
-		# C ke
-		elif key == ord('c') :
-			
-			# Enable / Disable chessboard preview
-			self.chessboard_enabled = not self.chessboard_enabled
-
-	#
-	# Save images from both cameras to disk
-	#
-	def SaveImages( self ) :
-		
-		# Count images
-		self.image_count += 1
-		
-		# Save image to disk 
-		print( 'Save image {} to disk...'.format(self.image_count) )
-		cv2.imwrite( 'camera-1-{:0>2}.png'.format(self.image_count), self.image_1 )
-		cv2.imwrite( 'camera-2-{:0>2}.png'.format(self.image_count), self.image_2 )
+				# Count images
+				self.image_count += 1
+				
+				# Save image to disk 
+				print( 'Save image {} to disk...'.format(self.image_count) )
+				cv2.imwrite( 'camera-1-{:0>2}.png'.format(self.image_count), self.image_1 )
+				cv2.imwrite( 'camera-2-{:0>2}.png'.format(self.image_count), self.image_2 )
+				
+			# C key
+			elif key == ord('c') :
+				
+				# Enable / Disable chessboard preview
+				self.chessboard_enabled = not self.chessboard_enabled		
 
 
 #
@@ -292,17 +251,9 @@ class StereoViewerSync( object ) :
 		self.width = camera_1.width
 		self.height = camera_1.height
 		
-		# Image frames
-		self.frame_1 = Vimba.VmbFrame( camera_1.payloadsize )
-		self.frame_2 = Vimba.VmbFrame( camera_1.payloadsize )
-
-		# Live image of both cameras
-		self.stereo_image = np.zeros( (self.height, 2*self.width), dtype=np.uint8 )
+		# Active live chessboard finding and drawing on the image
+		self.chessboard_enabled = False
 		
-		# Configure frame software trigger
-		Vimba.vimba.VmbFeatureEnumSet( self.camera_1.handle, "TriggerSource", "Software" )
-		Vimba.vimba.VmbFeatureEnumSet( self.camera_2.handle, "TriggerSource", "Software" )
-
 	#
 	# Start capture and display image stream
 	#
@@ -311,9 +262,17 @@ class StereoViewerSync( object ) :
 		# Number of images saved
 		image_count = 0
 		
+		# Image frames
+		frame_1 = Vimba.VmbFrame( self.camera_1.payloadsize )
+		frame_2 = Vimba.VmbFrame( self.camera_2.payloadsize )
+
+		# Configure frame software trigger
+		Vimba.vimba.VmbFeatureEnumSet( self.camera_1.handle, "TriggerSource", "Software" )
+		Vimba.vimba.VmbFeatureEnumSet( self.camera_2.handle, "TriggerSource", "Software" )
+
 		# Announce the frames
-		Vimba.vimba.VmbFrameAnnounce( self.camera_1.handle, ct.byref(self.frame_1), ct.sizeof(self.frame_1) )
-		Vimba.vimba.VmbFrameAnnounce( self.camera_2.handle, ct.byref(self.frame_2), ct.sizeof(self.frame_2) )
+		Vimba.vimba.VmbFrameAnnounce( self.camera_1.handle, ct.byref(frame_1), ct.sizeof(frame_1) )
+		Vimba.vimba.VmbFrameAnnounce( self.camera_2.handle, ct.byref(frame_2), ct.sizeof(frame_2) )
 
 		# Start capture engine
 		Vimba.vimba.VmbCaptureStart( self.camera_1.handle )
@@ -327,35 +286,41 @@ class StereoViewerSync( object ) :
 		while True :
 			
 			# Queue frames
-			Vimba.vimba.VmbCaptureFrameQueue( self.camera_1.handle, ct.byref(self.frame_1), None )
-			Vimba.vimba.VmbCaptureFrameQueue( self.camera_2.handle, ct.byref(self.frame_2), None )
+			Vimba.vimba.VmbCaptureFrameQueue( self.camera_1.handle, ct.byref(frame_1), None )
+			Vimba.vimba.VmbCaptureFrameQueue( self.camera_2.handle, ct.byref(frame_2), None )
 			
 			# Send software trigger
 			Vimba.vimba.VmbFeatureCommandRun( self.camera_1.handle, "TriggerSoftware" )
 			Vimba.vimba.VmbFeatureCommandRun( self.camera_2.handle, "TriggerSoftware" )
 
 			# Get frames back
-			Vimba.vimba.VmbCaptureFrameWait( self.camera_1.handle, ct.byref(self.frame_1), 1000 )
-			Vimba.vimba.VmbCaptureFrameWait( self.camera_2.handle, ct.byref(self.frame_2), 1000 )
+			Vimba.vimba.VmbCaptureFrameWait( self.camera_1.handle, ct.byref(frame_1), 1000 )
+			Vimba.vimba.VmbCaptureFrameWait( self.camera_2.handle, ct.byref(frame_2), 1000 )
 			
 			# Check frame validity
-			if self.frame_1.receiveStatus or self.frame_2.receiveStatus :
+			if frame_1.receiveStatus or frame_2.receiveStatus :
 				continue
 			
 			# Convert frames to numpy arrays
-			image_1 = np.fromstring( self.frame_1.buffer[ 0 : self.camera_1.payloadsize ], dtype=np.uint8 ).reshape( self.height, self.width )
-			image_2 = np.fromstring( self.frame_2.buffer[ 0 : self.camera_1.payloadsize ], dtype=np.uint8 ).reshape( self.height, self.width )
+			image_1 = np.fromstring( frame_1.buffer[ 0 : self.camera_1.payloadsize ], dtype=np.uint8 ).reshape( self.height, self.width )
+			image_2 = np.fromstring( frame_2.buffer[ 0 : self.camera_2.payloadsize ], dtype=np.uint8 ).reshape( self.height, self.width )
 
 			# Prepare image for display
-			self.stereo_image[ 0:self.height, 0:self.width ] = image_1
-			self.stereo_image[ 0:self.height, self.width:2*self.width ] = image_2
-			
-			# Resize image for display
-			image_final = cv2.resize( self.stereo_image, None, fx=0.3, fy=0.3 )
+			image_1_displayed = cv2.resize( image_1, None, fx=scale_factor, fy=scale_factor )
+			image_2_displayed = cv2.resize( image_2, None, fx=scale_factor, fy=scale_factor )
 
-			# Display the image (scaled down)
-			cv2.imshow( "Stereo Cameras", image_final )
+			# Preview the calibration chessboard on the image
+			if self.chessboard_enabled :
+
+				image_1_displayed = Calibration.PreviewChessboard( image_1_displayed )
+				image_2_displayed = Calibration.PreviewChessboard( image_2_displayed )
+
+			# Prepare image for display
+			stereo_image = np.concatenate( (image_1_displayed, image_2_displayed), axis=1 )
 			
+			# Display the image (scaled down)
+			cv2.imshow( "Stereo Cameras", stereo_image )
+
 			# Keyboard interruption
 			key = cv2.waitKey(1) & 0xFF
 			
@@ -373,6 +338,12 @@ class StereoViewerSync( object ) :
 				print( 'Save images {} to disk...'.format(image_count) )
 				cv2.imwrite( 'camera1-{:0>2}.png'.format(image_count), image_1 )
 				cv2.imwrite( 'camera2-{:0>2}.png'.format(image_count), image_2 )
+				
+			# C key
+			elif key == ord('c') :
+				
+				# Enable / Disable chessboard preview
+				self.chessboard_enabled = not self.chessboard_enabled		
 
 
 		# Stop image acquisition
