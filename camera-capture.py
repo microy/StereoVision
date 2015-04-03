@@ -75,15 +75,14 @@ elif args.Number == 'a' :
 elif args.Number == 's' :
 	
 	# Camera connection
-	camera_1 = Vimba.VmbCamera( camera_1_id )
-	camera_2 = Vimba.VmbCamera( camera_2_id )
+	stereo_camera = Vimba.VmbStereoCamera( camera_1_id, camera_2_id )
 
 	# Start image acquisition
-	CvViewer.StereoViewerSync( camera_1, camera_2 ).LiveDisplay()
+	CvViewer.StereoViewerSync( stereo_camera ).LiveDisplay()
 
 	# Close the cameras
-	camera_1.Disconnect()
-	camera_2.Disconnect()
+	stereo_camera.Disconnect()
+	
 
 # Vimba shutdown
 Vimba.VmbShutdown()

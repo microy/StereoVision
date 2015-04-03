@@ -9,11 +9,9 @@
 #
 # External dependencies
 #
-import ctypes as ct
 import cv2
 import numpy as np
 import Calibration
-import Vimba
 
 
 #
@@ -241,16 +239,11 @@ class StereoViewerSync( object ) :
 	#
 	# Initialization
 	#
-	def __init__( self, camera_1, camera_2 ) :
-		
-		# Register the camera to display
-		self.camera_1 = camera_1
-		self.camera_2 = camera_2
-	
-		# Image parameters
-		self.width = camera_1.width
-		self.height = camera_1.height
-		
+	def __init__( self, stereo_camera ) :
+
+		# Get the stereo camera
+		self.stereo_camera = stereo_camera
+
 		# Active live chessboard finding and drawing on the image
 		self.chessboard_enabled = False
 		
@@ -261,50 +254,16 @@ class StereoViewerSync( object ) :
 
 		# Number of images saved
 		image_count = 0
-		
-		# Image frames
-		frame_1 = Vimba.VmbFrame( self.camera_1.payloadsize )
-		frame_2 = Vimba.VmbFrame( self.camera_2.payloadsize )
 
-		# Configure frame software trigger
-		Vimba.vimba.VmbFeatureEnumSet( self.camera_1.handle, "TriggerSource", "Software" )
-		Vimba.vimba.VmbFeatureEnumSet( self.camera_2.handle, "TriggerSource", "Software" )
-
-		# Announce the frames
-		Vimba.vimba.VmbFrameAnnounce( self.camera_1.handle, ct.byref(frame_1), ct.sizeof(frame_1) )
-		Vimba.vimba.VmbFrameAnnounce( self.camera_2.handle, ct.byref(frame_2), ct.sizeof(frame_2) )
-
-		# Start capture engine
-		Vimba.vimba.VmbCaptureStart( self.camera_1.handle )
-		Vimba.vimba.VmbCaptureStart( self.camera_2.handle )
-
-		# Start acquisition
-		Vimba.vimba.VmbFeatureCommandRun( self.camera_1.handle, "AcquisitionStart" )
-		Vimba.vimba.VmbFeatureCommandRun( self.camera_2.handle, "AcquisitionStart" )
+		# Start image acquisition
+		self.stereo_camera.StartCapture()
 
 		# Live display
 		while True :
-			
-			# Queue frames
-			Vimba.vimba.VmbCaptureFrameQueue( self.camera_1.handle, ct.byref(frame_1), None )
-			Vimba.vimba.VmbCaptureFrameQueue( self.camera_2.handle, ct.byref(frame_2), None )
-			
-			# Send software trigger
-			Vimba.vimba.VmbFeatureCommandRun( self.camera_1.handle, "TriggerSoftware" )
-			Vimba.vimba.VmbFeatureCommandRun( self.camera_2.handle, "TriggerSoftware" )
 
-			# Get frames back
-			Vimba.vimba.VmbCaptureFrameWait( self.camera_1.handle, ct.byref(frame_1), 1000 )
-			Vimba.vimba.VmbCaptureFrameWait( self.camera_2.handle, ct.byref(frame_2), 1000 )
+			# Capture images
+			image_1, image_2 = self.stereo_camera.CaptureFrames()
 			
-			# Check frame validity
-			if frame_1.receiveStatus or frame_2.receiveStatus :
-				continue
-			
-			# Convert frames to numpy arrays
-			image_1 = np.fromstring( frame_1.buffer[ 0 : self.camera_1.payloadsize ], dtype=np.uint8 ).reshape( self.height, self.width )
-			image_2 = np.fromstring( frame_2.buffer[ 0 : self.camera_2.payloadsize ], dtype=np.uint8 ).reshape( self.height, self.width )
-
 			# Prepare image for display
 			image_1_displayed = cv2.resize( image_1, None, fx=scale_factor, fy=scale_factor )
 			image_2_displayed = cv2.resize( image_2, None, fx=scale_factor, fy=scale_factor )
@@ -336,8 +295,8 @@ class StereoViewerSync( object ) :
 				# Save images to disk 
 				image_count += 1
 				print( 'Save images {} to disk...'.format(image_count) )
-				cv2.imwrite( 'camera1-{:0>2}.png'.format(image_count), image_1 )
-				cv2.imwrite( 'camera2-{:0>2}.png'.format(image_count), image_2 )
+				cv2.imwrite( 'camera-1-{:0>2}.png'.format(image_count), image_1 )
+				cv2.imwrite( 'camera-2-{:0>2}.png'.format(image_count), image_2 )
 				
 			# C key
 			elif key == ord('c') :
@@ -345,10 +304,8 @@ class StereoViewerSync( object ) :
 				# Enable / Disable chessboard preview
 				self.chessboard_enabled = not self.chessboard_enabled		
 
-
 		# Stop image acquisition
-		self.camera_1.StopCapture()
-		self.camera_2.StopCapture()
+		self.stereo_camera.StopCapture()
 					
 		# Cleanup OpenCV
 		cv2.destroyAllWindows()
