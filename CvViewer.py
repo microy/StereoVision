@@ -62,8 +62,11 @@ class Viewer( object ) :
 	#
 	def ImageCallback( self ) :
 		
+		# Retreive the camera image
+		image = self.camera.frame.ConvertToImage()
+		
 		# Resize image for display
-		image_displayed = cv2.resize( self.camera.image, None, fx=scale_factor, fy=scale_factor )
+		image_displayed = cv2.resize( image, None, fx=scale_factor, fy=scale_factor )
 
 		# Preview the calibration chessboard on the image
 		if self.chessboard_enabled :
@@ -87,7 +90,7 @@ class Viewer( object ) :
 			# Save image to disk 
 			self.image_count += 1
 			print( 'Save image {} to disk...'.format(self.image_count) )
-			cv2.imwrite( 'camera-{}-{:0>2}.png'.format(self.camera.id_string, self.image_count), self.camera.image )
+			cv2.imwrite( 'camera-{}-{:0>2}.png'.format(self.camera.id_string, self.image_count), image )
 			
 		# C key
 		elif key == ord('c') :
@@ -148,8 +151,7 @@ class StereoViewerAsync( object ) :
 	def ImageCallback_1( self ) :
 
 		# Backup current image
-		self.image_1 = self.camera_1.image
-		self.timestamp_1 = self.camera_1.timestamp
+		self.frame_1 = self.camera_1.frame
 
 		# Image ready
 		self.image_1_ready = True
@@ -163,8 +165,7 @@ class StereoViewerAsync( object ) :
 	def ImageCallback_2( self ) :
 
 		# Backup current image
-		self.image_2 = self.camera_2.image
-		self.timestamp_2 = self.camera_2.timestamp
+		self.frame_2 = self.camera_2.frame
 		
 		# Image ready
 		self.image_2_ready = True
@@ -183,10 +184,13 @@ class StereoViewerAsync( object ) :
 			# Check timestamps difference
 			#if math.abs(left_time - right_time) <= max_nsec_sync_error :
 			#print( abs( self.timestamp_1 - self.timestamp_2 ) )
+			
+			image_1 = self.frame_1.ConvertToImage()
+			image_2 = self.frame_2.ConvertToImage()
 
 			# Resize image for display
-			image_1_displayed = cv2.resize( self.image_1, None, fx=scale_factor, fy=scale_factor )
-			image_2_displayed = cv2.resize( self.image_2, None, fx=scale_factor, fy=scale_factor )
+			image_1_displayed = cv2.resize( image_1, None, fx=scale_factor, fy=scale_factor )
+			image_2_displayed = cv2.resize( image_2, None, fx=scale_factor, fy=scale_factor )
 
 			# Preview the calibration chessboard on the image
 			if self.chessboard_enabled :
@@ -221,8 +225,8 @@ class StereoViewerAsync( object ) :
 				
 				# Save image to disk 
 				print( 'Save image {} to disk...'.format(self.image_count) )
-				cv2.imwrite( 'camera-1-{:0>2}.png'.format(self.image_count), self.image_1 )
-				cv2.imwrite( 'camera-2-{:0>2}.png'.format(self.image_count), self.image_2 )
+				cv2.imwrite( 'camera-1-{:0>2}.png'.format(self.image_count), image_1 )
+				cv2.imwrite( 'camera-2-{:0>2}.png'.format(self.image_count), image_2 )
 				
 			# C key
 			elif key == ord('c') :
