@@ -73,6 +73,12 @@ class VmbFrame( ct.Structure ) :
 			('timestamp', ct.c_uint64)]
 	
 	#
+	# VmbPixelFormat
+	#
+	VmbPixelFormatMono8 = 0x01000000 | 0x00080000 | 0x0001
+	VmbPixelFormatMono12 = 0x01000000 | 0x00100000 | 0x0005
+	
+	#
 	# Initialize the image buffer
 	#
 	def __init__( self, frame_size ) :
@@ -80,6 +86,32 @@ class VmbFrame( ct.Structure ) :
 		self.buffer = ct.create_string_buffer( frame_size )
 		self.bufferSize = ct.c_uint32( frame_size )
 
+	#
+	# Convert the frame to a numpy array
+	#
+	def ConvertToImage( self ) :
+		
+		# Initialize the image
+		image = None
+		
+		# Convert de 8 bit frame to image
+		if self.pixelFormat == self.VmbPixelFormatMono8 :
+
+			# Convert frames to numpy arrays
+			image = np.ndarray( buffer=self.buffer[0 : self.bufferSize], dtype=np.uint8, shape=(self.height, self.width) )
+
+		# Convert the 12 bit frame to image
+		elif self.pixelFormat == self.VmbPixelFormatMono12 :
+			
+			# Convert frames to numpy arrays
+			image = np.ndarray( buffer=self.buffer[0 : self.bufferSize], dtype=np.uint16, shape=(self.height, self.width) )
+			
+			# Convert 12 bits image to 16 bits image
+			image = ( image.astype(np.float) * 0xFFFF / 0xFFF ).astype( np.uint16 )
+
+		# Return the image created from the frame buffer
+		return image
+	
 
 #
 # Vimba camera
@@ -178,26 +210,9 @@ class VmbCamera( object ) :
 
 		# Check frame validity
 		if not frame.contents.receiveStatus :
-
-			# Save the image timestamp
-			self.timestamp = frame.contents.timestamp
 			
-			# Convert de 8 bit frame to image
-			if self.pixel_format == "Mono8" :
-				
-				# Convert frames to numpy arrays
-				self.image = np.fromstring( frame.contents.buffer[ 0 : self.payloadsize ], dtype=np.uint8 )
-				self.image = self.image.reshape( self.height, self.width )
-
-			# Convert the 12 bit frame to image
-			elif self.pixel_format == "Mono12" :
-
-				# Convert frames to numpy arrays
-				self.image = np.fromstring( frame.contents.buffer[ 0 : self.payloadsize ], dtype=np.uint16 )
-				self.image = self.image.reshape( self.height, self.width )
-				
-				# Convert 12 bits image to 16 bits image
-				self.image = (self.image.astype(np.float) * 0xFFFF / 0xFFF).astype(np.uint16)
+			# Save the current frame
+			self.frame = frame.contents
 			
 			# Call foreign image processing function
 			self.image_callback_function()
@@ -295,10 +310,8 @@ class VmbStereoCamera( object ) :
 			if not (self.frame_1.receiveStatus or self.frame_2.receiveStatus) : break
 		
 		# Convert frames to numpy arrays
-		image_1 = np.fromstring( self.frame_1.buffer[ 0 : self.camera_1.payloadsize ], dtype=np.uint8 )
-		image_1 = image_1.reshape( self.camera_1.height, self.camera_1.width )
-		image_2 = np.fromstring( self.frame_2.buffer[ 0 : self.camera_2.payloadsize ], dtype=np.uint8 )
-		image_2 = image_2.reshape( self.camera_2.height, self.camera_2.width )
+		image_1 = self.frame_1.ConvertToImage()
+		image_2 = self.frame_2.ConvertToImage()
 		
 		# Return images from both camera
 		return image_1, image_2
