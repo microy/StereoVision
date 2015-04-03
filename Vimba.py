@@ -89,7 +89,7 @@ class VmbCamera( object ) :
 	#
 	# Initialize the camera
 	#
-	def __init__( self, id_string, pixel_format = "Mono8", jumbo_frame = True ) :
+	def __init__( self, id_string, pixel_format = "Mono8" ) :
 		
 		# Camera handle
 		self.handle = ct.c_void_p()
@@ -100,11 +100,8 @@ class VmbCamera( object ) :
 		# Connect the camera
 		vimba.VmbCameraOpen( self.id_string, 1, ct.byref(self.handle) )
 
-		# Jumbo frames - Force the MTU to 9000 bytes
-		if jumbo_frame : vimba.VmbFeatureIntSet( self.handle, "GVSPPacketSize", 9000 )
-			
-		# Or adjust packet size automatically
-		else : vimba.VmbFeatureCommandRun( self.handle, "GVSPAdjustPacketSize" )
+		# Adjust packet size automatically
+		vimba.VmbFeatureCommandRun( self.handle, "GVSPAdjustPacketSize" )
 
 		# Configure the image format
 		self.pixel_format = pixel_format
