@@ -264,30 +264,24 @@ class VmbStereoCamera( object ) :
 	#
 	def CaptureFrames( self ) :
 		
-		# Capture frames until both are valid
-		while True :
-			
-			# Queue frames
-			vimba.VmbCaptureFrameQueue( self.camera_1.handle, ct.byref(self.frame_1), None )
-			vimba.VmbCaptureFrameQueue( self.camera_2.handle, ct.byref(self.frame_2), None )
-			
-			# Send software trigger
-			vimba.VmbFeatureCommandRun( self.camera_1.handle, "TriggerSoftware" )
-			vimba.VmbFeatureCommandRun( self.camera_2.handle, "TriggerSoftware" )
-
-			# Get frames back
-			vimba.VmbCaptureFrameWait( self.camera_1.handle, ct.byref(self.frame_1), 1000 )
-			vimba.VmbCaptureFrameWait( self.camera_2.handle, ct.byref(self.frame_2), 1000 )
-
-			# If both frames are valid, stop here
-			if not (self.frame_1.receiveStatus or self.frame_2.receiveStatus) : break
+		# Queue frames
+		vimba.VmbCaptureFrameQueue( self.camera_1.handle, ct.byref(self.frame_1), None )
+		vimba.VmbCaptureFrameQueue( self.camera_2.handle, ct.byref(self.frame_2), None )
 		
-		# Convert frames to numpy arrays
-		image_1 = self.frame_1.ConvertToImage()
-		image_2 = self.frame_2.ConvertToImage()
+		# Send software trigger
+		vimba.VmbFeatureCommandRun( self.camera_1.handle, "TriggerSoftware" )
+		vimba.VmbFeatureCommandRun( self.camera_2.handle, "TriggerSoftware" )
+
+		# Get frames back
+		vimba.VmbCaptureFrameWait( self.camera_1.handle, ct.byref(self.frame_1), 1000 )
+		vimba.VmbCaptureFrameWait( self.camera_2.handle, ct.byref(self.frame_2), 1000 )
+
+		# If both frames are valid, stop here
+		if self.frame_1.receiveStatus or self.frame_2.receiveStatus :
+			print( "Invalid frame status..." )
 		
 		# Return images from both camera
-		return image_1, image_2
+		return self.frame_1.ConvertToImage(), self.frame_2.ConvertToImage()
 
 	#
 	# Stop the acquisition
