@@ -269,12 +269,107 @@ class VmbStereoCamera( object ) :
 		vimba.VmbCaptureFrameWait( self.camera_1.handle, ct.byref(self.frame_1), 1000 )
 		vimba.VmbCaptureFrameWait( self.camera_2.handle, ct.byref(self.frame_2), 1000 )
 
-		# If both frames are valid, stop here
+		# Check frame validity
 		if self.frame_1.receiveStatus or self.frame_2.receiveStatus :
 			print( "Invalid frame status..." )
 		
 		# Return images from both camera
 		return self.frame_1.ConvertToImage(), self.frame_2.ConvertToImage()
+
+	#
+	# Stop the acquisition
+	#
+	def StopCapture( self ) :
+
+		# Stop image acquisition
+		self.camera_1.StopCapture()
+		self.camera_2.StopCapture()
+
+
+#
+# Vimba stereo camera
+#
+class VmbStereoCamera2( object ) :
+	
+	#
+	# Initialize the cameras
+	#
+	def __init__( self, camera_1_id, camera_2_id ) :
+
+		# Camera connection
+		self.camera_1 = VmbCamera( camera_1_id )
+		self.camera_2 = VmbCamera( camera_2_id )
+
+	#
+	# Disconnect the cameras
+	#
+	def Disconnect( self ) :
+		
+		# Close the cameras
+		self.camera_1.Disconnect()
+		self.camera_2.Disconnect()
+
+	#
+	# Start synchronous acquisition
+	#
+	def StartCapture( self ) :
+		
+		# Configure software trigger
+		vimba.VmbFeatureEnumSet( self.camera_1.handle, "TriggerSource", "Software" )
+		vimba.VmbFeatureEnumSet( self.camera_2.handle, "TriggerSource", "Software" )
+		
+		# Initialize frame status
+		self.frame_1_ready = False
+		self.frame_2_ready = False
+
+		# Start acquisition
+		self.camera_1.StartCapture( self.FrameCallback_1 )
+		self.camera_2.StartCapture( self.FrameCallback_2 )
+
+	#
+	# Capture a frame on both cameras
+	#
+	def CaptureFrames( self ) :
+		
+		# Send software trigger
+		vimba.VmbFeatureCommandRun( self.camera_1.handle, "TriggerSoftware" )
+		vimba.VmbFeatureCommandRun( self.camera_2.handle, "TriggerSoftware" )
+
+		# Wait for the frames
+		while not ( self.frame_1_ready and self.frame_2_ready ) : continue
+		
+		# Check frame validity
+		if self.frame_1.receiveStatus or self.frame_2.receiveStatus :
+			print( "Invalid frame status..." )
+			
+		# Initialize frame status
+		self.frame_1_ready = False
+		self.frame_2_ready = False
+		
+		# Return images from both camera
+		return self.frame_1.ConvertToImage(), self.frame_2.ConvertToImage()
+
+	#
+	# Retreive the current image from camera 1
+	#
+	def FrameCallback_1( self, frame ) :
+
+		# Save the current frame
+		self.frame_1 = frame
+
+		# Frame ready
+		self.frame_1_ready = True
+
+	#
+	# Retreive the current image from camera 2
+	#
+	def FrameCallback_2( self, frame ) :
+
+		# Save current image
+		self.frame_2 = frame
+		
+		# Frame ready
+		self.frame_2_ready = True
 
 	#
 	# Stop the acquisition
