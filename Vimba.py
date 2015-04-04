@@ -88,7 +88,6 @@ class VmbFrame( ct.Structure ) :
 		# Convert the frame to a numpy array
 		return np.ndarray( buffer=self.buffer[0 : self.bufferSize], dtype=np.uint8, shape=(self.height, self.width) )
 
-	
 
 #
 # Vimba camera
@@ -112,6 +111,9 @@ class VmbCamera( object ) :
 		# Adjust packet size automatically
 		vimba.VmbFeatureCommandRun( self.handle, "GVSPAdjustPacketSize" )
 
+		# Configure freerun trigger (full camera speed)
+		vimba.VmbFeatureEnumSet( self.handle, "TriggerSource", "Freerun" )
+		
 		# Configure the image format
 		vimba.VmbFeatureEnumSet( self.handle, "PixelFormat", "Mono8" )
 
@@ -142,9 +144,6 @@ class VmbCamera( object ) :
 	#
 	def StartCapture( self, frame_done_callback_function, buffer_count = 3 ) :
 
-		# Configure freerun trigger (full camera speed)
-		vimba.VmbFeatureEnumSet( self.handle, "TriggerSource", "Freerun" )
-		
 		# Initialize frame buffer
 		self.frame_buffer = []
 		for i in range( buffer_count ) :
@@ -181,11 +180,8 @@ class VmbCamera( object ) :
 		# Check frame validity
 		if not frame.contents.receiveStatus :
 			
-			# Save the current frame
-			self.frame = frame.contents
-			
 			# Call foreign image processing function
-			self.frame_done_callback_function( self.frame )
+			self.frame_done_callback_function( frame.contents )
 
 		# Requeue the frame so it can be filled again
 		vimba.VmbCaptureFrameQueue( camera, frame, self.frame_callback_function )
