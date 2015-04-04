@@ -129,9 +129,6 @@ class VmbCamera( object ) :
 #		self.height = 2056
 #		self.payloadsize = 5041312
 
-		# Initialize the image
-		self.image = np.zeros( (self.height, self.width), dtype=np.uint8 )
-
 	#
 	# Disconnect the camera
 	#
@@ -143,7 +140,7 @@ class VmbCamera( object ) :
 	#
 	# Start asynchronous acquisition
 	#
-	def StartCapture( self, image_callback_function, buffer_count = 3 ) :
+	def StartCapture( self, frame_done_callback_function, buffer_count = 3 ) :
 
 		# Configure freerun trigger (full camera speed)
 		vimba.VmbFeatureEnumSet( self.handle, "TriggerSource", "Freerun" )
@@ -154,7 +151,7 @@ class VmbCamera( object ) :
 			self.frame_buffer.append( VmbFrame( self.payloadsize ) )
 		
 		# Register the external image callback function
-		self.image_callback_function = image_callback_function
+		self.frame_done_callback_function = frame_done_callback_function
 		
 		# Register the internal frame callback function
 		self.frame_callback_function = ct.CFUNCTYPE( None, ct.c_void_p, ct.POINTER(VmbFrame) )( self.FrameCallback )
@@ -188,7 +185,7 @@ class VmbCamera( object ) :
 			self.frame = frame.contents
 			
 			# Call foreign image processing function
-			self.image_callback_function()
+			self.frame_done_callback_function( self.frame )
 
 		# Requeue the frame so it can be filled again
 		vimba.VmbCaptureFrameQueue( camera, frame, self.frame_callback_function )

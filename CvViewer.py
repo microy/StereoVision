@@ -46,7 +46,7 @@ class Viewer( object ) :
 
 		# Start image acquisition
 		self.capturing = True
-		self.camera.StartCapture( self.ImageCallback )
+		self.camera.StartCapture( self.FrameCallback )
 		
 		# Streaming loop
 		while self.capturing : pass
@@ -60,10 +60,10 @@ class Viewer( object ) :
 	#
 	# Display the current image
 	#
-	def ImageCallback( self ) :
+	def FrameCallback( self, frame ) :
 		
 		# Retreive the camera image
-		image = self.camera.frame.ConvertToImage()
+		image = frame.ConvertToImage()
 		
 		# Resize image for display
 		image_displayed = cv2.resize( image, None, fx=scale_factor, fy=scale_factor )
@@ -132,8 +132,8 @@ class StereoViewerAsync( object ) :
 		self.capturing = True
 		self.image_1_ready = False
 		self.image_2_ready = False
-		self.camera_1.StartCapture( self.ImageCallback_1 )
-		self.camera_2.StartCapture( self.ImageCallback_2 )
+		self.camera_1.StartCapture( self.FrameCallback_1 )
+		self.camera_2.StartCapture( self.FrameCallback_2 )
 		
 		# Streaming loop
 		while self.capturing : pass
@@ -148,10 +148,10 @@ class StereoViewerAsync( object ) :
 	#
 	# Retreive the current image from camera 1
 	#
-	def ImageCallback_1( self ) :
+	def FrameCallback_1( self, frame ) :
 
-		# Backup current image
-		self.frame_1 = self.camera_1.frame
+		# Backup current frame
+		self.frame_1 = frame
 
 		# Image ready
 		self.image_1_ready = True
@@ -162,10 +162,10 @@ class StereoViewerAsync( object ) :
 	#
 	# Retreive the current image from camera 2
 	#
-	def ImageCallback_2( self ) :
+	def FrameCallback_2( self, frame ) :
 
 		# Backup current image
-		self.frame_2 = self.camera_2.frame
+		self.frame_2 = frame
 		
 		# Image ready
 		self.image_2_ready = True
