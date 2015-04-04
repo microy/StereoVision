@@ -73,12 +73,6 @@ class VmbFrame( ct.Structure ) :
 			('timestamp', ct.c_uint64)]
 	
 	#
-	# VmbPixelFormat
-	#
-	VmbPixelFormatMono8 = 0x01000000 | 0x00080000 | 0x0001
-	VmbPixelFormatMono12 = 0x01000000 | 0x00100000 | 0x0005
-	
-	#
 	# Initialize the image buffer
 	#
 	def __init__( self, frame_size ) :
@@ -91,26 +85,9 @@ class VmbFrame( ct.Structure ) :
 	#
 	def ConvertToImage( self ) :
 		
-		# Initialize the image
-		image = None
-		
-		# Convert de 8 bit frame to image
-		if self.pixelFormat == self.VmbPixelFormatMono8 :
+		# Convert the frame to a numpy array
+		return np.ndarray( buffer=self.buffer[0 : self.bufferSize], dtype=np.uint8, shape=(self.height, self.width) )
 
-			# Convert frames to numpy arrays
-			image = np.ndarray( buffer=self.buffer[0 : self.bufferSize], dtype=np.uint8, shape=(self.height, self.width) )
-
-		# Convert the 12 bit frame to image
-		elif self.pixelFormat == self.VmbPixelFormatMono12 :
-			
-			# Convert frames to numpy arrays
-			image = np.ndarray( buffer=self.buffer[0 : self.bufferSize], dtype=np.uint16, shape=(self.height, self.width) )
-			
-			# Convert 12 bits image to 16 bits image
-			image = ( image.astype(np.float) * 0xFFFF / 0xFFF ).astype( np.uint16 )
-
-		# Return the image created from the frame buffer
-		return image
 	
 
 #
@@ -121,7 +98,7 @@ class VmbCamera( object ) :
 	#
 	# Initialize the camera
 	#
-	def __init__( self, id_string, pixel_format = "Mono8" ) :
+	def __init__( self, id_string ) :
 		
 		# Camera handle
 		self.handle = ct.c_void_p()
@@ -136,8 +113,7 @@ class VmbCamera( object ) :
 		vimba.VmbFeatureCommandRun( self.handle, "GVSPAdjustPacketSize" )
 
 		# Configure the image format
-		self.pixel_format = pixel_format
-		vimba.VmbFeatureEnumSet( self.handle, "PixelFormat", self.pixel_format )
+		vimba.VmbFeatureEnumSet( self.handle, "PixelFormat", "Mono8" )
 
 		# Query image parameters
 		tmp_value = ct.c_int()
@@ -154,10 +130,7 @@ class VmbCamera( object ) :
 #		self.payloadsize = 5041312
 
 		# Initialize the image
-		if self.pixel_format == "Mono8" :
-			self.image = np.zeros( (self.height, self.width), dtype=np.uint8 )
-		elif self.pixel_format == "Mono12" :
-			self.image = np.zeros( (self.height, self.width), dtype=np.uint16 )
+		self.image = np.zeros( (self.height, self.width), dtype=np.uint8 )
 
 	#
 	# Disconnect the camera
