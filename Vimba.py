@@ -85,7 +85,6 @@ class VmbFrame( ct.Structure ) :
 	#
 	def ConvertToImage( self ) :
 		
-		# Convert the frame to a numpy array
 		return np.ndarray( buffer=self.buffer[0 : self.bufferSize], dtype=np.uint8, shape=(self.height, self.width) )
 
 
@@ -104,6 +103,11 @@ class VmbCamera( object ) :
 
 		# Camera ID (serial number, IP address...)
 		self.id_string = id_string
+		
+	#
+	# Open the camera
+	#
+	def Open( self ) :
 		
 		# Connect the camera
 		vimba.VmbCameraOpen( self.id_string, 1, ct.byref(self.handle) )
@@ -132,9 +136,9 @@ class VmbCamera( object ) :
 #		self.payloadsize = 5041312
 
 	#
-	# Disconnect the camera
+	# Close the camera
 	#
-	def Disconnect( self ) :
+	def Close( self ) :
 		
 		# Close the camera
 		vimba.VmbCameraClose( self.handle )
@@ -219,13 +223,22 @@ class VmbStereoCamera( object ) :
 		self.camera_2 = VmbCamera( camera_2_id )
 
 	#
-	# Disconnect the cameras
+	# Open the cameras
 	#
-	def Disconnect( self ) :
+	def Open( self ) :
+		
+		# Open the cameras
+		self.camera_1.Open()
+		self.camera_2.Open()
+
+	#
+	# Close the cameras
+	#
+	def Close( self ) :
 		
 		# Close the cameras
-		self.camera_1.Disconnect()
-		self.camera_2.Disconnect()
+		self.camera_1.Close()
+		self.camera_2.Close()
 
 	#
 	# Start synchronous acquisition
@@ -301,13 +314,22 @@ class VmbStereoCamera2( object ) :
 		self.camera_2 = VmbCamera( camera_2_id )
 
 	#
-	# Disconnect the cameras
+	# Open the cameras
 	#
-	def Disconnect( self ) :
+	def Open( self ) :
+		
+		# Open the cameras
+		self.camera_1.Open()
+		self.camera_2.Open()
+
+	#
+	# Close the cameras
+	#
+	def Close( self ) :
 		
 		# Close the cameras
-		self.camera_1.Disconnect()
-		self.camera_2.Disconnect()
+		self.camera_1.Close()
+		self.camera_2.Close()
 
 	#
 	# Start synchronous acquisition
