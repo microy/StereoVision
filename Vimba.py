@@ -380,3 +380,8 @@ class VmbStereoCamera2( object ) :
 		self.camera_1.StopCapture()
 		self.camera_2.StopCapture()
 
+		# Restore freerun trigger (bug with VimbaViewer)
+		vimba.VmbFeatureEnumSet( self.camera_1.handle, "TriggerSource", "Freerun" )
+		vimba.VmbFeatureEnumSet( self.camera_2.handle, "TriggerSource", "Freerun" )
+		
+
