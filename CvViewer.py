@@ -39,7 +39,7 @@ class VmbViewer( object ) :
 	#
 	def LiveDisplay( self ) :
 
-		# Number of images saved
+		# Number of image saved
 		image_count = 0
 
 		# Active live chessboard finding and drawing on the image
@@ -79,14 +79,14 @@ class VmbViewer( object ) :
 			# Escape key
 			if key == 27 :
 				
-				# Exit live display
+				# Exit the streaming loop
 				break
 				
 			# Space key
 			elif key == 32 :
 				
 				# Save image to disk 
-				self.image_count += 1
+				image_count += 1
 				print( 'Save image {} to disk...'.format(image_count) )
 				cv2.imwrite( 'camera-{}-{:0>2}.png'.format(self.camera.id_string, image_count), image )
 				
@@ -95,7 +95,9 @@ class VmbViewer( object ) :
 				
 				# Enable / Disable chessboard preview
 				chessboard_enabled = not chessboard_enabled
-
+				
+			# Initialize frame status
+			self.frame_ready = False
 
 		# Stop image acquisition
 		self.camera.StopCapture()
@@ -136,7 +138,7 @@ class VmbStereoViewer( object ) :
 	#
 	def LiveDisplay( self ) :
 
-		# Number of images saved
+		# Number of image saved
 		image_count = 0
 
 		# Active live chessboard finding and drawing on the image
@@ -168,7 +170,7 @@ class VmbStereoViewer( object ) :
 			stereo_image = np.concatenate( (image_1_displayed, image_2_displayed), axis=1 )
 			
 			# Display the image (scaled down)
-			cv2.imshow( "Stereo Cameras", stereo_image )
+			cv2.imshow( "{} - {}".format( self.camera_1_id, self.camera_2_id ), stereo_image )
 
 			# Keyboard interruption
 			key = cv2.waitKey( 1 ) & 0xFF
@@ -185,8 +187,8 @@ class VmbStereoViewer( object ) :
 				# Save images to disk 
 				image_count += 1
 				print( 'Save images {} to disk...'.format(image_count) )
-				cv2.imwrite( 'camera-1-{:0>2}.png'.format(image_count), image_1 )
-				cv2.imwrite( 'camera-2-{:0>2}.png'.format(image_count), image_2 )
+				cv2.imwrite( 'camera-{}-{:0>2}.png'.format(self.camera_1_id, image_count), image_1 )
+				cv2.imwrite( 'camera-{}-{:0>2}.png'.format(self.camera_2_id, image_count), image_2 )
 				
 			# C key
 			elif key == ord('c') :
