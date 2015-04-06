@@ -61,7 +61,7 @@ class VmbViewer( object ) :
 			while not self.frame_ready : pass
 
 			# Retreive the camera image
-			image = self.frame.ConvertToImage()
+			image = self.frame.GetImage()
 			
 			# Resize image for display
 			image_displayed = cv2.resize( image, None, fx=scale_factor, fy=scale_factor )

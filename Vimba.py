@@ -83,7 +83,7 @@ class VmbFrame( ct.Structure ) :
 	#
 	# Convert the frame to a numpy array
 	#
-	def ConvertToImage( self ) :
+	def GetImage( self ) :
 		
 		return np.ndarray( buffer=self.buffer[0 : self.bufferSize], dtype=np.uint8, shape=(self.height, self.width) )
 
@@ -287,7 +287,7 @@ class VmbStereoCamera( object ) :
 			print( "Invalid frame status..." )
 		
 		# Return images from both camera
-		return self.frame_1.ConvertToImage(), self.frame_2.ConvertToImage()
+		return self.frame_1.GetImage(), self.frame_2.GetImage()
 
 	#
 	# Stop the acquisition
@@ -358,7 +358,7 @@ class VmbStereoCamera2( object ) :
 		vimba.VmbFeatureCommandRun( self.camera_2.handle, "TriggerSoftware" )
 
 		# Wait for the frames
-		while not ( self.frame_1_ready and self.frame_2_ready ) : continue
+		while not ( self.frame_1_ready and self.frame_2_ready ) : pass
 		
 		# Check frame validity
 		if self.frame_1.receiveStatus or self.frame_2.receiveStatus :
@@ -369,7 +369,7 @@ class VmbStereoCamera2( object ) :
 		self.frame_2_ready = False
 		
 		# Return images from both camera
-		return self.frame_1.ConvertToImage(), self.frame_2.ConvertToImage()
+		return self.frame_1.GetImage(), self.frame_2.GetImage()
 
 	#
 	# Retreive the current image from camera 1
