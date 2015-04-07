@@ -87,6 +87,13 @@ class VmbFrame( ct.Structure ) :
 		
 		return np.ndarray( buffer=self.buffer[0 : self.bufferSize], dtype=np.uint8, shape=(self.height, self.width) )
 
+	#
+	# Tell if the frame is valid
+	#
+	def IsValid( self ) :
+		
+		return not self.receiveStatus
+
 
 #
 # Vimba camera
@@ -144,21 +151,21 @@ class VmbCamera( object ) :
 		vimba.VmbCameraClose( self.handle )
 
 	#
-	# Start asynchronous acquisition
+	# Start the acquisition
 	#
-	def StartCapture( self, frame_done_callback_function, buffer_count = 3 ) :
+	def StartCapture( self, frame_callback_function, buffer_count = 3 ) :
+
+		# Register the external image callback function
+		self.external_frame_callback_function = frame_callback_function
+		
+		# Register the internal frame callback function
+		self.internal_frame_callback_function = ct.CFUNCTYPE( None, ct.c_void_p, ct.POINTER(VmbFrame) )( self.FrameCallback )
 
 		# Initialize frame buffer
 		self.frame_buffer = []
 		for i in range( buffer_count ) :
 			self.frame_buffer.append( VmbFrame( self.payloadsize ) )
 		
-		# Register the external image callback function
-		self.frame_done_callback_function = frame_done_callback_function
-		
-		# Register the internal frame callback function
-		self.frame_callback_function = ct.CFUNCTYPE( None, ct.c_void_p, ct.POINTER(VmbFrame) )( self.FrameCallback )
-
 		# Announce the frames
 		for i in range( buffer_count ) :
 			vimba.VmbFrameAnnounce( self.handle, ct.byref(self.frame_buffer[i]), ct.sizeof(self.frame_buffer[i]) )
@@ -168,27 +175,10 @@ class VmbCamera( object ) :
 		
 		# Queue the frames
 		for i in range( buffer_count ) :
-			vimba.VmbCaptureFrameQueue( self.handle, ct.byref(self.frame_buffer[i]), self.frame_callback_function )
-
-		# Reset the camera timestamp
-		vimba.VmbFeatureCommandRun( self.handle, "GevTimestampControlReset" )
+			vimba.VmbCaptureFrameQueue( self.handle, ct.byref(self.frame_buffer[i]), self.internal_frame_callback_function )
 
 		# Start acquisition
-		vimba.VmbFeatureCommandRun( self.handle, "AcquisitionStart" )
-		
-	#
-	# Frame callback function called by Vimba
-	#
-	def FrameCallback( self, camera, frame ) :
-
-		# Check frame validity
-		if not frame.contents.receiveStatus :
-			
-			# Call foreign image processing function
-			self.frame_done_callback_function( frame.contents )
-
-		# Requeue the frame so it can be filled again
-		vimba.VmbCaptureFrameQueue( camera, frame, self.frame_callback_function )
+		vimba.VmbFeatureCommandRun( self.handle, "AcquisitionStart" )	
 
 	#
 	# Stop the acquisition
@@ -207,6 +197,17 @@ class VmbCamera( object ) :
 		# Revoke frames
 		vimba.VmbFrameRevokeAll( self.handle )
 		
+	#
+	# Frame callback function called by Vimba
+	#
+	def FrameCallback( self, camera, frame ) :
+
+		# Call external frame callback function
+		self.external_frame_callback_function( frame.contents )
+
+		# Requeue the frame so it can be filled again
+		vimba.VmbCaptureFrameQueue( camera, frame, self.frame_callback_function )
+
 
 #
 # Vimba stereo camera
@@ -322,10 +323,18 @@ class VmbStereoCamera2( object ) :
 		self.camera_1.Open()
 		self.camera_2.Open()
 
+		# Configure software trigger
+		vimba.VmbFeatureEnumSet( self.camera_1.handle, "TriggerSource", "Software" )
+		vimba.VmbFeatureEnumSet( self.camera_2.handle, "TriggerSource", "Software" )
+
 	#
 	# Close the cameras
 	#
 	def Close( self ) :
+
+		# Restore freerun trigger (bug with VimbaViewer)
+		vimba.VmbFeatureEnumSet( self.camera_1.handle, "TriggerSource", "Freerun" )
+		vimba.VmbFeatureEnumSet( self.camera_2.handle, "TriggerSource", "Freerun" )
 		
 		# Close the cameras
 		self.camera_1.Close()
@@ -336,13 +345,18 @@ class VmbStereoCamera2( object ) :
 	#
 	def StartCapture( self ) :
 		
-		# Configure software trigger
-		vimba.VmbFeatureEnumSet( self.camera_1.handle, "TriggerSource", "Software" )
-		vimba.VmbFeatureEnumSet( self.camera_2.handle, "TriggerSource", "Software" )
-
 		# Start acquisition
 		self.camera_1.StartCapture( self.FrameCallback_1 )
 		self.camera_2.StartCapture( self.FrameCallback_2 )
+
+	#
+	# Stop the acquisition
+	#
+	def StopCapture( self ) :
+
+		# Stop image acquisition
+		self.camera_1.StopCapture()
+		self.camera_2.StopCapture()
 
 	#
 	# Capture a frame on both cameras
@@ -360,12 +374,8 @@ class VmbStereoCamera2( object ) :
 		# Wait for the frames
 		while not ( self.frame_1_ready and self.frame_2_ready ) : pass
 		
-		# Check frame validity
-		if self.frame_1.receiveStatus or self.frame_2.receiveStatus :
-			print( "Invalid frame status..." )
-			
-		# Return images from both camera
-		return self.frame_1.GetImage(), self.frame_2.GetImage()
+		# Return the frames from both cameras
+		return self.frame_1, self.frame_2
 
 	#
 	# Retreive the current image from camera 1
@@ -388,18 +398,3 @@ class VmbStereoCamera2( object ) :
 		
 		# Frame ready
 		self.frame_2_ready = True
-
-	#
-	# Stop the acquisition
-	#
-	def StopCapture( self ) :
-
-		# Stop image acquisition
-		self.camera_1.StopCapture()
-		self.camera_2.StopCapture()
-
-		# Restore freerun trigger (bug with VimbaViewer)
-		vimba.VmbFeatureEnumSet( self.camera_1.handle, "TriggerSource", "Freerun" )
-		vimba.VmbFeatureEnumSet( self.camera_2.handle, "TriggerSource", "Freerun" )
-		
-
