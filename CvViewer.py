@@ -45,9 +45,6 @@ class VmbViewer( object ) :
 		# Active live chessboard finding and drawing on the image
 		chessboard_enabled = False
 
-		# Initialize frame status
-		self.frame_ready = False
-
 		# Open the camera
 		self.camera.Open()
 		
