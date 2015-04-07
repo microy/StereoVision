@@ -339,10 +339,6 @@ class VmbStereoCamera2( object ) :
 		# Configure software trigger
 		vimba.VmbFeatureEnumSet( self.camera_1.handle, "TriggerSource", "Software" )
 		vimba.VmbFeatureEnumSet( self.camera_2.handle, "TriggerSource", "Software" )
-		
-		# Initialize frame status
-		self.frame_1_ready = False
-		self.frame_2_ready = False
 
 		# Start acquisition
 		self.camera_1.StartCapture( self.FrameCallback_1 )
@@ -352,6 +348,10 @@ class VmbStereoCamera2( object ) :
 	# Capture a frame on both cameras
 	#
 	def CaptureFrames( self ) :
+		
+		# Initialize frame status
+		self.frame_1_ready = False
+		self.frame_2_ready = False
 		
 		# Send software trigger
 		vimba.VmbFeatureCommandRun( self.camera_1.handle, "TriggerSoftware" )
@@ -364,10 +364,6 @@ class VmbStereoCamera2( object ) :
 		if self.frame_1.receiveStatus or self.frame_2.receiveStatus :
 			print( "Invalid frame status..." )
 			
-		# Initialize frame status
-		self.frame_1_ready = False
-		self.frame_2_ready = False
-		
 		# Return images from both camera
 		return self.frame_1.GetImage(), self.frame_2.GetImage()
 

@@ -32,7 +32,7 @@ class VmbViewer( object ) :
 	def __init__( self, camera_id ) :
 		
 		# The camera
-		self.camera = Vimba.VmbCamera( self.camera_id )
+		self.camera = Vimba.VmbCamera( camera_id )
 		
 	#
 	# Start capture and display image stream
@@ -131,7 +131,7 @@ class VmbStereoViewer( object ) :
 	def __init__( self, camera_1_id, camera_2_id ) :
 
 		# The cameras
-		self.stereo_camera = Vimba.VmbStereoCamera( self.camera_1_id, self.camera_2_id )
+		self.stereo_camera = Vimba.VmbStereoCamera2( camera_1_id, camera_2_id )
 
 	#
 	# Start capture and display image stream
@@ -170,7 +170,7 @@ class VmbStereoViewer( object ) :
 			stereo_image = np.concatenate( (image_1_displayed, image_2_displayed), axis=1 )
 			
 			# Display the image (scaled down)
-			cv2.imshow( "{} - {}".format( self.camera_1_id, self.camera_2_id ), stereo_image )
+			cv2.imshow( "{} - {}".format( self.stereo_camera.camera_1.id_string, self.stereo_camera.camera_2.id_string ), stereo_image )
 
 			# Keyboard interruption
 			key = cv2.waitKey( 1 ) & 0xFF
@@ -187,8 +187,8 @@ class VmbStereoViewer( object ) :
 				# Save images to disk 
 				image_count += 1
 				print( 'Save images {} to disk...'.format(image_count) )
-				cv2.imwrite( 'camera-{}-{:0>2}.png'.format(self.camera_1_id, image_count), image_1 )
-				cv2.imwrite( 'camera-{}-{:0>2}.png'.format(self.camera_2_id, image_count), image_2 )
+				cv2.imwrite( 'camera-{}-{:0>2}.png'.format(self.stereo_camera.camera_1.id_string, image_count), image_1 )
+				cv2.imwrite( 'camera-{}-{:0>2}.png'.format(self.stereo_camera.camera_2.id_string, image_count), image_2 )
 				
 			# C key
 			elif key == ord('c') :
