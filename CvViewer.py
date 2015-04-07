@@ -57,8 +57,15 @@ class VmbViewer( object ) :
 		# Streaming loop
 		while True :
 			
+			# Initialize frame status
+			self.frame_ready = False
+
 			# Wait for a frame
 			while not self.frame_ready : pass
+			
+			# Check the frame
+			if not self.frame.IsValid() :
+				print( 'Invalid frame...' )
 
 			# Retreive the camera image
 			image = self.frame.GetImage()
@@ -96,9 +103,6 @@ class VmbViewer( object ) :
 				# Enable / Disable chessboard preview
 				chessboard_enabled = not chessboard_enabled
 				
-			# Initialize frame status
-			self.frame_ready = False
-
 		# Stop image acquisition
 		self.camera.StopCapture()
 
@@ -153,9 +157,17 @@ class VmbStereoViewer( object ) :
 		# Live display
 		while True :
 
-			# Capture images
-			image_1, image_2 = self.stereo_camera.CaptureFrames()
+			# Capture the frames
+			frame_1, frame_2 = self.stereo_camera.CaptureFrames()
 			
+			# Check the frames
+			if not ( self.frame_1.IsValid() and self.frame_2.IsValid() ) :
+				print( 'Invalid frame...' )
+
+			# Convert the frames to images
+			image_1 = frame_1.GetImage()
+			image_2 = frame_2.GetImage()
+
 			# Prepare image for display
 			image_1_displayed = cv2.resize( image_1, None, fx=scale_factor, fy=scale_factor )
 			image_2_displayed = cv2.resize( image_2, None, fx=scale_factor, fy=scale_factor )
