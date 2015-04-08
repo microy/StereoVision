@@ -208,104 +208,13 @@ class VmbCamera( object ) :
 		self.external_frame_callback_function( frame.contents )
 
 		# Requeue the frame so it can be filled again
-		vimba.VmbCaptureFrameQueue( camera, frame, self.frame_callback_function )
-
+		vimba.VmbCaptureFrameQueue( camera, frame, self.internal_frame_callback_function )
+		
 
 #
 # Vimba stereo camera
 #
 class VmbStereoCamera( object ) :
-	
-	#
-	# Initialize the cameras
-	#
-	def __init__( self, camera_1_id, camera_2_id ) :
-
-		# Camera connection
-		self.camera_1 = VmbCamera( camera_1_id )
-		self.camera_2 = VmbCamera( camera_2_id )
-
-	#
-	# Open the cameras
-	#
-	def Open( self ) :
-		
-		# Open the cameras
-		self.camera_1.Open()
-		self.camera_2.Open()
-
-	#
-	# Close the cameras
-	#
-	def Close( self ) :
-		
-		# Close the cameras
-		self.camera_1.Close()
-		self.camera_2.Close()
-
-	#
-	# Start synchronous acquisition
-	#
-	def StartCapture( self ) :
-		
-		# Create the image frames
-		self.frame_1 = VmbFrame( self.camera_1.payloadsize )
-		self.frame_2 = VmbFrame( self.camera_2.payloadsize )
-
-		# Configure frame software trigger
-		vimba.VmbFeatureEnumSet( self.camera_1.handle, "TriggerSource", "Software" )
-		vimba.VmbFeatureEnumSet( self.camera_2.handle, "TriggerSource", "Software" )
-
-		# Announce the frames
-		vimba.VmbFrameAnnounce( self.camera_1.handle, ct.byref(self.frame_1), ct.sizeof(self.frame_1) )
-		vimba.VmbFrameAnnounce( self.camera_2.handle, ct.byref(self.frame_2), ct.sizeof(self.frame_2) )
-
-		# Start capture engine
-		vimba.VmbCaptureStart( self.camera_1.handle )
-		vimba.VmbCaptureStart( self.camera_2.handle )
-		
-		# Start acquisition
-		vimba.VmbFeatureCommandRun( self.camera_1.handle, "AcquisitionStart" )
-		vimba.VmbFeatureCommandRun( self.camera_2.handle, "AcquisitionStart" )
-		
-	#
-	# Capture a frame on both cameras
-	#
-	def CaptureFrames( self ) :
-		
-		# Queue frames
-		vimba.VmbCaptureFrameQueue( self.camera_1.handle, ct.byref(self.frame_1), None )
-		vimba.VmbCaptureFrameQueue( self.camera_2.handle, ct.byref(self.frame_2), None )
-		
-		# Send software trigger
-		vimba.VmbFeatureCommandRun( self.camera_1.handle, "TriggerSoftware" )
-		vimba.VmbFeatureCommandRun( self.camera_2.handle, "TriggerSoftware" )
-
-		# Get frames back
-		vimba.VmbCaptureFrameWait( self.camera_1.handle, ct.byref(self.frame_1), 1000 )
-		vimba.VmbCaptureFrameWait( self.camera_2.handle, ct.byref(self.frame_2), 1000 )
-
-		# Check frame validity
-		if self.frame_1.receiveStatus or self.frame_2.receiveStatus :
-			print( "Invalid frame status..." )
-		
-		# Return images from both camera
-		return self.frame_1.GetImage(), self.frame_2.GetImage()
-
-	#
-	# Stop the acquisition
-	#
-	def StopCapture( self ) :
-
-		# Stop image acquisition
-		self.camera_1.StopCapture()
-		self.camera_2.StopCapture()
-
-
-#
-# Vimba stereo camera
-#
-class VmbStereoCamera2( object ) :
 	
 	#
 	# Initialize the cameras
@@ -380,7 +289,7 @@ class VmbStereoCamera2( object ) :
 		return self.frame_1, self.frame_2
 
 	#
-	# Retreive the current image from camera 1
+	# Receive a frame from camera 1
 	#
 	def FrameCallback_1( self, frame ) :
 
@@ -391,11 +300,11 @@ class VmbStereoCamera2( object ) :
 		self.frame_1_ready = True
 
 	#
-	# Retreive the current image from camera 2
+	# Receive a frame from camera 2
 	#
 	def FrameCallback_2( self, frame ) :
 
-		# Save current image
+		# Save current frame
 		self.frame_2 = frame
 		
 		# Frame ready
