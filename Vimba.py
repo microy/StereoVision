@@ -83,14 +83,16 @@ class VmbFrame( ct.Structure ) :
 	#
 	# Convert the frame to a numpy array
 	#
-	def GetImage( self ) :
-		
+	@property
+	def image( self ) :
+
 		return np.ndarray( buffer=self.buffer[0 : self.bufferSize], dtype=np.uint8, shape=(self.height, self.width) )
 
 	#
 	# Tell if the frame is valid
 	#
-	def IsValid( self ) :
+	@property
+	def is_valid( self ) :
 		
 		return not self.receiveStatus
 

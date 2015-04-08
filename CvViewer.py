@@ -61,11 +61,11 @@ class VmbViewer( object ) :
 			while not self.frame_ready : pass
 			
 			# Check the frame
-			if not self.frame.IsValid() :
+			if not self.frame.is_valid :
 				print( 'Invalid frame...' )
 
 			# Retreive the camera image
-			image = self.frame.GetImage()
+			image = self.frame.image
 			
 			# Resize image for display
 			image_displayed = cv2.resize( image, None, fx=scale_factor, fy=scale_factor )
@@ -158,12 +158,12 @@ class VmbStereoViewer( object ) :
 			frame_1, frame_2 = self.stereo_camera.CaptureFrames()
 			
 			# Check the frames
-			if not ( self.frame_1.IsValid() and self.frame_2.IsValid() ) :
+			if not ( self.frame_1.is_valid and self.frame_2.is_valid ) :
 				print( 'Invalid frame...' )
 
 			# Convert the frames to images
-			image_1 = frame_1.GetImage()
-			image_2 = frame_2.GetImage()
+			image_1 = frame_1.image
+			image_2 = frame_2.image
 
 			# Prepare image for display
 			image_1_displayed = cv2.resize( image_1, None, fx=scale_factor, fy=scale_factor )
