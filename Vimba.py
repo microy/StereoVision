@@ -105,13 +105,13 @@ class VmbCamera( object ) :
 	#
 	# Initialize the camera
 	#
-	def __init__( self, id_string ) :
+	def __init__( self, camera_id ) :
 		
 		# Camera handle
 		self.handle = ct.c_void_p()
 
 		# Camera ID (serial number, IP address...)
-		self.id_string = id_string
+		self.id = camera_id
 		
 	#
 	# Open the camera
@@ -119,7 +119,7 @@ class VmbCamera( object ) :
 	def Open( self ) :
 		
 		# Connect the camera
-		vimba.VmbCameraOpen( self.id_string, 1, ct.byref(self.handle) )
+		vimba.VmbCameraOpen( self.id, 1, ct.byref(self.handle) )
 
 		# Adjust packet size automatically
 		vimba.VmbFeatureCommandRun( self.handle, "GVSPAdjustPacketSize" )

@@ -75,7 +75,7 @@ class VmbViewer( object ) :
 				image_displayed = Calibration.PreviewChessboard( image_displayed )
 			
 			# Display the image (scaled down)
-			cv2.imshow( self.camera.id_string, image_displayed )
+			cv2.imshow( self.camera.id, image_displayed )
 			
 			# Keyboard interruption
 			key = cv2.waitKey( 1 ) & 0xFF
@@ -92,7 +92,7 @@ class VmbViewer( object ) :
 				# Save image to disk 
 				image_count += 1
 				print( 'Save image {} to disk...'.format(image_count) )
-				cv2.imwrite( 'camera-{}-{:0>2}.png'.format(self.camera.id_string, image_count), image )
+				cv2.imwrite( 'camera-{}-{:0>2}.png'.format(self.camera.id, image_count), image )
 				
 			# C key
 			elif key == ord('c') :
@@ -179,7 +179,7 @@ class VmbStereoViewer( object ) :
 			stereo_image = np.concatenate( (image_1_displayed, image_2_displayed), axis=1 )
 			
 			# Display the image (scaled down)
-			cv2.imshow( "{} - {}".format( self.stereo_camera.camera_1.id_string, self.stereo_camera.camera_2.id_string ), stereo_image )
+			cv2.imshow( "{} - {}".format( self.stereo_camera.camera_1.id, self.stereo_camera.camera_2.id ), stereo_image )
 
 			# Keyboard interruption
 			key = cv2.waitKey( 1 ) & 0xFF
@@ -196,8 +196,8 @@ class VmbStereoViewer( object ) :
 				# Save images to disk 
 				image_count += 1
 				print( 'Save images {} to disk...'.format(image_count) )
-				cv2.imwrite( 'camera-{}-{:0>2}.png'.format(self.stereo_camera.camera_1.id_string, image_count), image_1 )
-				cv2.imwrite( 'camera-{}-{:0>2}.png'.format(self.stereo_camera.camera_2.id_string, image_count), image_2 )
+				cv2.imwrite( 'camera-{}-{:0>2}.png'.format(self.stereo_camera.camera_1.id, image_count), image_1 )
+				cv2.imwrite( 'camera-{}-{:0>2}.png'.format(self.stereo_camera.camera_2.id, image_count), image_2 )
 				
 			# C key
 			elif key == ord('c') :
