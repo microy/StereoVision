@@ -161,7 +161,7 @@ class VmbStereoViewer( object ) :
 			# Check the frames
 			if not ( frame_1.is_valid and frame_2.is_valid ) :
 				print( 'Invalid frame...' )
-				continue
+	#			continue
 
 			# Convert the frames to images
 			image_1 = frame_1.image

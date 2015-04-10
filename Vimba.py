@@ -281,7 +281,11 @@ class VmbStereoCamera( object ) :
 		# Send software trigger
 		vimba.VmbFeatureCommandRun( self.camera_1.handle, "TriggerSoftware" )
 		vimba.VmbFeatureCommandRun( self.camera_2.handle, "TriggerSoftware" )
-
+		
+		#
+		import time
+		time.sleep( 0.1 )
+		
 		# Wait for the frames
 		while not ( self.frame_1_ready and self.frame_2_ready ) : pass
 		
