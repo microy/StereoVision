@@ -62,7 +62,7 @@ class VmbViewer( object ) :
 			
 			# Check the frame
 			if not self.frame.is_valid :
-				print( 'Invalid frame...' )
+				print( 'Invalid frame : {} ...'.format( self.frame.receiveStatus ) )
 				continue
 
 			# Retreive the camera image
@@ -160,8 +160,8 @@ class VmbStereoViewer( object ) :
 			
 			# Check the frames
 			if not ( frame_1.is_valid and frame_2.is_valid ) :
-				print( 'Invalid frame...' )
-	#			continue
+				print( 'Invalid frames : {} - {} ...'.format( frame_1.receiveStatus, frame_2.receiveStatus ) )
+				continue
 
 			# Convert the frames to images
 			image_1 = frame_1.image
