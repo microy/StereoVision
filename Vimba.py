@@ -237,6 +237,10 @@ class VmbStereoCamera( object ) :
 		# Configure software trigger
 		vimba.VmbFeatureEnumSet( self.camera_1.handle, "TriggerSource", "Software" )
 		vimba.VmbFeatureEnumSet( self.camera_2.handle, "TriggerSource", "Software" )
+		
+		# Reset the camera timestamps
+		vimba.VmbFeatureCommandRun( self.camera_1.handle, "GevTimestampControlReset" )
+		vimba.VmbFeatureCommandRun( self.camera_2.handle, "GevTimestampControlReset" )
 
 	#
 	# Close the cameras
@@ -272,7 +276,7 @@ class VmbStereoCamera( object ) :
 	#
 	# Capture a frame on both cameras
 	#
-	def CaptureFrames( self ) :
+	def CaptureFrames( self, timeout = 1 ) :
 		
 		# Initialize frame status
 		self.frame_1_ready = False
@@ -284,10 +288,18 @@ class VmbStereoCamera( object ) :
 		
 		#
 		import time
-		time.sleep( 0.1 )
+#		time.sleep( 0.1 )
 		
 		# Wait for the frames
-		while not ( self.frame_1_ready and self.frame_2_ready ) : pass
+		start_time = time.time()
+		while not ( self.frame_1_ready and self.frame_2_ready ) :
+			if ( time.time() - start_time ) > timeout :
+				print( 'Timeout...' )
+				break
+			pass
+		
+		# Timestamp diff
+		print( "Frames : {} - {} - Timestamp diff : {}".format( self.frame_1.frameID, self.frame_2.frameID, abs( self.frame_1.timestamp - self.frame_2.timestamp ) ) )
 		
 		# Return the frames from both cameras
 		return self.frame_1, self.frame_2
