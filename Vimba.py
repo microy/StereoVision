@@ -155,7 +155,7 @@ class VmbCamera( object ) :
 	#
 	# Start the acquisition
 	#
-	def StartCapture( self, frame_callback_function, frame_buffer_size = 3 ) :
+	def StartCapture( self, frame_callback_function, frame_buffer_size = 10 ) :
 
 		# Register the external image callback function
 		self.external_frame_callback_function = frame_callback_function
@@ -209,15 +209,6 @@ class VmbCamera( object ) :
 
 		# Requeue the frame so it can be filled again
 		vimba.VmbCaptureFrameQueue( camera, frame, self.internal_frame_callback_function )
-		
-	#
-	# Requeue the frame to continue streaming
-	#
-	def QueueFrame( self, frame ) :
-
-		# Requeue the frame so it can be filled again
-		vimba.VmbCaptureFrameQueue( self.handle, ct.byref(frame), self.internal_frame_callback_function )
-		
 
 
 #
@@ -246,10 +237,6 @@ class VmbStereoCamera( object ) :
 		# Configure software trigger
 		vimba.VmbFeatureEnumSet( self.camera_1.handle, "TriggerSource", "Software" )
 		vimba.VmbFeatureEnumSet( self.camera_2.handle, "TriggerSource", "Software" )
-		
-		# Reset the camera timestamps
-		vimba.VmbFeatureCommandRun( self.camera_1.handle, "GevTimestampControlReset" )
-		vimba.VmbFeatureCommandRun( self.camera_2.handle, "GevTimestampControlReset" )
 
 	#
 	# Close the cameras
@@ -285,7 +272,7 @@ class VmbStereoCamera( object ) :
 	#
 	# Capture a frame on both cameras
 	#
-	def CaptureFrames( self, timeout = 1 ) :
+	def CaptureFrames( self ) :
 		
 		# Initialize frame status
 		self.frame_1_ready = False
@@ -295,21 +282,9 @@ class VmbStereoCamera( object ) :
 		vimba.VmbFeatureCommandRun( self.camera_1.handle, "TriggerSoftware" )
 		vimba.VmbFeatureCommandRun( self.camera_2.handle, "TriggerSoftware" )
 		
-		#
-		import time
-#		time.sleep( 0.1 )
-		
 		# Wait for the frames
-		start_time = time.time()
-		while not ( self.frame_1_ready and self.frame_2_ready ) :
-			if ( time.time() - start_time ) > timeout :
-				print( 'Timeout...' )
-				break
-			pass
-		
-		# Timestamp diff
-		print( "Frames : {} - {} - Timestamp diff : {}".format( self.frame_1.frameID, self.frame_2.frameID, abs( self.frame_1.timestamp - self.frame_2.timestamp ) ) )
-		
+		while not ( self.frame_1_ready and self.frame_2_ready ) : pass
+
 		# Return the frames from both cameras
 		return self.frame_1, self.frame_2
 

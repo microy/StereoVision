@@ -62,7 +62,7 @@ class VmbViewer( object ) :
 			
 			# Check the frame
 			if not self.frame.is_valid :
-				print( 'Invalid frame : {} ...'.format( self.frame.receiveStatus ) )
+				print( 'Invalid frame...' )
 				continue
 
 			# Retreive the camera image
@@ -76,7 +76,7 @@ class VmbViewer( object ) :
 				image_displayed = Calibration.PreviewChessboard( image_displayed )
 			
 			# Display the image (scaled down)
-			cv2.imshow( "[ {} ]".format(self.camera.id), image_displayed )
+			cv2.imshow( self.camera.id, image_displayed )
 			
 			# Keyboard interruption
 			key = cv2.waitKey( 1 ) & 0xFF
@@ -160,7 +160,7 @@ class VmbStereoViewer( object ) :
 			
 			# Check the frames
 			if not ( frame_1.is_valid and frame_2.is_valid ) :
-				print( 'Invalid frames : {} - {} ...'.format( frame_1.receiveStatus, frame_2.receiveStatus ) )
+				print( 'Invalid frames...' )
 				continue
 
 			# Convert the frames to images
@@ -181,7 +181,7 @@ class VmbStereoViewer( object ) :
 			stereo_image = np.concatenate( (image_1_displayed, image_2_displayed), axis=1 )
 			
 			# Display the image (scaled down)
-			cv2.imshow( "[ {} ] - [ {} ]".format( self.stereo_camera.camera_1.id, self.stereo_camera.camera_2.id ), stereo_image )
+			cv2.imshow( "{} - {}".format( self.stereo_camera.camera_1.id, self.stereo_camera.camera_2.id ), stereo_image )
 
 			# Keyboard interruption
 			key = cv2.waitKey( 1 ) & 0xFF
