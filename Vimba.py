@@ -210,6 +210,15 @@ class VmbCamera( object ) :
 		# Requeue the frame so it can be filled again
 		vimba.VmbCaptureFrameQueue( camera, frame, self.internal_frame_callback_function )
 		
+	#
+	# Requeue the frame to continue streaming
+	#
+	def QueueFrame( self, frame ) :
+
+		# Requeue the frame so it can be filled again
+		vimba.VmbCaptureFrameQueue( self.handle, ct.byref(frame), self.internal_frame_callback_function )
+		
+
 
 #
 # Vimba stereo camera
