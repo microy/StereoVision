@@ -155,7 +155,7 @@ class VmbCamera( object ) :
 	#
 	# Start the acquisition
 	#
-	def StartCapture( self, frame_callback_function, buffer_count = 3 ) :
+	def StartCapture( self, frame_callback_function, frame_buffer_size = 3 ) :
 
 		# Register the external image callback function
 		self.external_frame_callback_function = frame_callback_function
@@ -165,18 +165,18 @@ class VmbCamera( object ) :
 
 		# Initialize frame buffer
 		self.frame_buffer = []
-		for i in range( buffer_count ) :
+		for i in range( frame_buffer_size ) :
 			self.frame_buffer.append( VmbFrame( self.payloadsize ) )
 		
 		# Announce the frames
-		for i in range( buffer_count ) :
+		for i in range( frame_buffer_size ) :
 			vimba.VmbFrameAnnounce( self.handle, ct.byref(self.frame_buffer[i]), ct.sizeof(self.frame_buffer[i]) )
 
 		# Start capture engine
 		vimba.VmbCaptureStart( self.handle )
 		
 		# Queue the frames
-		for i in range( buffer_count ) :
+		for i in range( frame_buffer_size ) :
 			vimba.VmbCaptureFrameQueue( self.handle, ct.byref(self.frame_buffer[i]), self.internal_frame_callback_function )
 
 		# Start acquisition
