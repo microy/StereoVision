@@ -10,6 +10,7 @@
 # External dependencies
 #
 import os
+import time
 import ctypes as ct
 import numpy as np
 
@@ -281,6 +282,9 @@ class VmbStereoCamera( object ) :
 		# Send software trigger
 		vimba.VmbFeatureCommandRun( self.camera_1.handle, "TriggerSoftware" )
 		vimba.VmbFeatureCommandRun( self.camera_2.handle, "TriggerSoftware" )
+		
+		# Avoid infinite loop
+		time.sleep( 0.1 )
 		
 		# Wait for the frames
 		while not ( self.frame_1_ready and self.frame_2_ready ) : pass
