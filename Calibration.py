@@ -19,8 +19,8 @@ import numpy as np
 #
 # Chessboard pattern dimensions
 #
-pattern_size = ( 15, 10 )
-#pattern_size = ( 13, 10 )
+#pattern_size = ( 15, 10 )
+pattern_size = ( 13, 10 )
 #pattern_size = ( 17, 12 )
 
 
