@@ -62,6 +62,9 @@ def CameraCalibration( imagefile_name, preview = False ) :
 	# Scale factor for corner detection
 	scale = 0.35
 	
+	# Image size
+	height, width = 0, 0
+	
 	# 3D points
 	obj_points = []
 	
@@ -131,4 +134,15 @@ def CameraCalibration( imagefile_name, preview = False ) :
 #		error = cv2.norm(img_points[i],imgpoints2, cv2.NORM_L2)/len(imgpoints2)
 #		mean_error += error
 #	print "total error: ", mean_error/len(obj_points)
+
+
+#
+# Stereo camera calibration
+#
+def StereoCameraCalibration( left_image_files, right_image_files, row_number = 10, column_number = 15, preview = False ) :
+
+	# Get image file names
+	image_files = np.array( zip( sorted(glob.glob( left_image_files )), sorted(glob.glob( right_image_files )) ) )
+	
+	
 
