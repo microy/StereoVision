@@ -27,4 +27,4 @@ parser.add_argument( '-d', action='store_true', default=False, help='Display the
 args = parser.parse_args()
 
 # Launch calibration
-Calibration.StereoCameraCalibration( args.left_camera_input_files, args.right_camera_input_files, args.r, args.c, args.d )
+Calibration.StereoCameraCalibration( args.left_camera_input_files, args.right_camera_input_files, int(args.r), int(args.c), args.d )

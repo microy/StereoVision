@@ -47,12 +47,13 @@ def PreviewChessboard( image ) :
 #
 # Camera calibration
 #
-def CameraCalibration( imagefile_name, preview = False ) :
+def CameraCalibration( imagefile_name, row_number, column_number, preview = False ) :
 
 	# Get image file names
 	image_files = glob.glob( imagefile_name )
 
 	# Chessboard pattern
+	pattern_size = ( row_number, column_number )
 	pattern_points = np.zeros( (np.prod(pattern_size), 3), np.float32 )
 	pattern_points[:,:2] = np.indices(pattern_size).T.reshape(-1, 2)
 
@@ -139,10 +140,29 @@ def CameraCalibration( imagefile_name, preview = False ) :
 #
 # Stereo camera calibration
 #
-def StereoCameraCalibration( left_image_files, right_image_files, row_number = 10, column_number = 15, preview = False ) :
+def StereoCameraCalibration( left_image_files, right_image_files, row_number, column_number, preview = False ) :
 
 	# Get image file names
 	image_files = np.array( zip( sorted(glob.glob( left_image_files )), sorted(glob.glob( right_image_files )) ) )
 	
+	# Chessboard pattern
+	pattern_size = ( row_number, column_number )
+	pattern_points = np.zeros( (np.prod(pattern_size), 3), np.float32 )
+	pattern_points[:,:2] = np.indices(pattern_size).T.reshape(-1, 2)
+
+	# Termination criteria
+	term = ( cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_COUNT, 30, 0.1 )
 	
+	# Scale factor for corner detection
+	scale = 0.35
+	
+	# Image size
+	height, width = 0, 0
+	
+	# 3D points
+	obj_points = []
+	
+	# 2D points
+	img_points = []
+
 
