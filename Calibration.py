@@ -17,11 +17,17 @@ import numpy as np
 
 
 #
-# Chessboard pattern dimensions
+# Calibration pattern parameters
 #
-#pattern_size = ( 15, 10 )
-#pattern_size = ( 13, 10 )
-pattern_size = ( 17, 12 )
+pattern_size = ( 15, 10 )
+pattern_type = 'Chessboard'
+
+
+#
+# Image scale factor for pattern detection
+#
+image_scale = 0.35
+	
 
 
 #
@@ -32,9 +38,18 @@ def PreviewChessboard( image ) :
 	# Convert grayscale image in color
 	image = cv2.cvtColor( image, cv2.COLOR_GRAY2BGR )
 
-	# Find the chessboard corners on the image
-	found_all, corners = cv2.findChessboardCorners( image, pattern_size, flags = cv2.CALIB_CB_FAST_CHECK )	
+	# Chessboard pattern
+	if pattern_type == 'Chessboard' :
+		
+		# Find the chessboard corners on the image
+		found_all, corners = cv2.findChessboardCorners( image, pattern_size, flags = cv2.CALIB_CB_FAST_CHECK )	
 
+	# Asymetric circle grid pattern
+	else :
+		
+		# Find the circle grid on the image
+		found_all, corners = cv2.findCirclesGridDefault( image, pattern_size, None, cv2.CALIB_CB_ASYMMETRIC_GRID )
+		
 	# Chessboard found
 	if found_all :
 		
@@ -42,27 +57,20 @@ def PreviewChessboard( image ) :
 		cv2.drawChessboardCorners( image, pattern_size, corners, found_all )
 		
 	return image
-	
+
 
 #
 # Camera calibration
 #
-def CameraCalibration( imagefile_name, row_number, column_number, preview = False ) :
-
+def CameraCalibration( imagefile_name, debug = False ) :
+	
 	# Get image file names
 	image_files = glob.glob( imagefile_name )
 
 	# Chessboard pattern
-	pattern_size = ( row_number, column_number )
 	pattern_points = np.zeros( (np.prod(pattern_size), 3), np.float32 )
 	pattern_points[:,:2] = np.indices(pattern_size).T.reshape(-1, 2)
 
-	# Termination criteria
-	term = ( cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_COUNT, 30, 0.1 )
-	
-	# Scale factor for corner detection
-	scale = 0.35
-	
 	# Image size
 	height, width = 0, 0
 	
@@ -82,44 +90,65 @@ def CameraCalibration( imagefile_name, row_number, column_number, preview = Fals
 		height, width = image.shape[:2]
 
 		# Resize image
-		image_small = cv2.resize( image, None, fx=scale, fy=scale )
+		image_small = cv2.resize( image, None, fx=image_scale, fy=image_scale )
 
-		# Find the chessboard corners on the image
-		found_all, corners = cv2.findChessboardCorners( image_small, pattern_size, None , cv2.cv.CV_CALIB_CB_ADAPTIVE_THRESH + cv2.CALIB_CB_FILTER_QUADS )
-		
-		# Chessboard found
-		if found_all :
+		# Chessboard pattern
+		if pattern_type == 'Chessboard' :
 			
-			# Preview chessboard on image
-			if preview :
-				
-				# Convert grayscale image in color
-				image_color = cv2.cvtColor( image_small, cv2.COLOR_GRAY2BGR )
-				
-				# Draw the chessboard corners on the image
-				cv2.drawChessboardCorners( image_color, pattern_size, corners, found_all )
-				
-				# Display the image with the chessboard
-				cv2.imshow( filename, image_color )
-				
-				# Wait for a key
-				cv2.waitKey()
+			# Chessboard detection flags
+			flags = cv2.cv.CV_CALIB_CB_ADAPTIVE_THRESH + cv2.CALIB_CB_FILTER_QUADS
 
-				# Cleanup OpenCV window
-				cv2.destroyWindow( filename )
+			# Find the chessboard corners on the image
+			found_all, corners = cv2.findChessboardCorners( image_small, pattern_size )
+
+		# Asymetric circles grid pattern
+		else :
 		
-			# Rescale the corner position
-			corners /= scale
+			# Circles grid detection flags
+			flags = cv2.CALIB_CB_ASYMMETRIC_GRID
 			
-			# Refine the corner position
-			cv2.cornerSubPix( image, corners, (11, 11), (-1, -1), term )
+			# Find the circles grid on the image
+			found_all, corners = cv2.findCirclesGridDefault( image_small, pattern_size, None, flags )
+		
+		# Pattern not found
+		if not found_all :
+			
+			print( "Pattern not found on image {}...".format(filename) )
+			continue
+			
+		# Preview chessboard on image
+		if debug :
+			
+			# Convert grayscale image in color
+			image_color = cv2.cvtColor( image_small, cv2.COLOR_GRAY2BGR )
+			
+			# Draw the chessboard corners on the image
+			cv2.drawChessboardCorners( image_color, pattern_size, corners, found_all )
+			
+			# Display the image with the chessboard
+			cv2.imshow( filename, image_color )
+			
+			# Wait for a key
+			cv2.waitKey()
 
-			# Store image and corner informations
-			img_points.append( corners.reshape(-1, 2) )
-			obj_points.append( pattern_points )
+			# Cleanup OpenCV window
+			cv2.destroyWindow( filename )
+		
+		# Rescale the corner position
+		corners /= image_scale
 
-		# No chessboard found
-		else : print( "Chessboard no found on image {}...".format(filename) )
+		# Refine chessboard corner positions
+		if pattern_type == 'Chessboard' :
+
+			# Termination criteria
+			term = ( cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_COUNT, 30, 0.1 )
+	
+			# Refine the corner positions
+			cv2.cornerSubPix( image, corners, (5, 5), (-1, -1), term )
+		
+		# Store image and corner informations
+		img_points.append( corners.reshape(-1, 2) )
+		obj_points.append( pattern_points )
 
 	# Camera calibration
 	rms, camera_matrix, dist_coefs, rvecs, tvecs = cv2.calibrateCamera( obj_points, img_points, (width, height), None, None )
@@ -140,13 +169,12 @@ def CameraCalibration( imagefile_name, row_number, column_number, preview = Fals
 #
 # Stereo camera calibration
 #
-def StereoCameraCalibration( left_image_files, right_image_files, row_number, column_number, preview = False ) :
+def StereoCameraCalibration( left_image_files, right_image_files, debug = False ) :
 
 	# Get image file names
 	image_files = np.array( zip( sorted(glob.glob( left_image_files )), sorted(glob.glob( right_image_files )) ) )
 	
 	# Chessboard pattern
-	pattern_size = ( row_number, column_number )
 	pattern_points = np.zeros( (np.prod(pattern_size), 3), np.float32 )
 	pattern_points[:,:2] = np.indices(pattern_size).T.reshape(-1, 2)
 
