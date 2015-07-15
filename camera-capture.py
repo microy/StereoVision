@@ -12,6 +12,7 @@
 import argparse
 import sys
 import Vimba
+import Calibration
 import CvViewer
 
 # Camera serial numbers
@@ -21,6 +22,9 @@ camera_2_id = '50-0503326223'
 # Create a command line argument parser
 parser = argparse.ArgumentParser( description='Display images from AVT cameras' )
 parser.add_argument( 'Number', help='Camera number (1, 2, 12 )' )
+parser.add_argument( '-r', action='store', metavar='rows', default=15, help='Number of rows in the chessboard' )
+parser.add_argument( '-c', action='store', metavar='columns', default=10, help='Number of columns in the chessboard' )
+parser.add_argument( '-g', action='store_true', default=False, help='Asymetric circles grid pattern' )
 
 # Process command line parameters
 args = parser.parse_args()
@@ -30,6 +34,13 @@ if args.Number not in [ '1', '2', '12' ] :
 	parser.print_help()
 	sys.exit()
 	
+# Setup pattern type
+if args.g :
+	Calibration.pattern_type = 'CirclesGrid'
+
+# Setup pattern size
+Calibration.pattern_size = ( int(args.r), int(args.c) )
+
 # Vimba initialization
 Vimba.VmbStartup()
 
