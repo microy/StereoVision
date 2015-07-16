@@ -141,29 +141,24 @@ def CameraCalibration( imagefile_name, debug = False ) :
 		if pattern_type == 'Chessboard' :
 
 			# Termination criteria
-			term = ( cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_COUNT, 30, 0.1 )
+			term = ( cv2.TERM_CRITERIA_MAX_ITER + cv2.TERM_CRITERIA_EPS, 30, 0.01 )
 	
 			# Refine the corner positions
-			cv2.cornerSubPix( image, corners, (5, 5), (-1, -1), term )
+			cv2.cornerSubPix( image, corners, (11, 11), (-1, -1), term )
 		
 		# Store image and corner informations
 		img_points.append( corners.reshape(-1, 2) )
 		obj_points.append( pattern_points )
 
 	# Camera calibration
-	rms, camera_matrix, dist_coefs, rvecs, tvecs = cv2.calibrateCamera( obj_points, img_points, (width, height), None, None )
-	print( "RMS : {}".format( rms ) )
-	print( "Camera matrix :\n{}".format( camera_matrix ) )
-	print( "Distortion coefficients :\n{}".format( dist_coefs.ravel() ) )
+	parameter_names = ( 'rms', 'camera_matrix', 'dist_coefs', 'rvecs', 'tvecs' )
+	calibration = dict( zip( parameter_names, cv2.calibrateCamera( obj_points, img_points, (width, height), None, None ) ) )
 
-	# Reprojection error
-#	mean_error = 0
-#	for i in xrange(len(obj_points)):
-#		imgpoints2, _ = cv2.projectPoints(obj_points[i], rvecs[i], tvecs[i], camera_matrix, dist_coefs)
-#		print( img_points[i].shape, imgpoints2.shape )
-#		error = cv2.norm(img_points[i],imgpoints2, cv2.NORM_L2)/len(imgpoints2)
-#		mean_error += error
-#	print "total error: ", mean_error/len(obj_points)
+	print( "RMS : {}".format( calibration['rms'] ) )
+	print( "Camera matrix :\n{}".format( calibration['camera_matrix'] ) )
+	print( "Distortion coefficients :\n{}".format( calibration['dist_coefs'].ravel() ) )
+
+	return calibration, img_points, obj_points
 
 
 #
@@ -174,23 +169,37 @@ def StereoCameraCalibration( left_image_files, right_image_files, debug = False 
 	# Get image file names
 	image_files = np.array( zip( sorted(glob.glob( left_image_files )), sorted(glob.glob( right_image_files )) ) )
 	
-	# Chessboard pattern
-	pattern_points = np.zeros( (np.prod(pattern_size), 3), np.float32 )
-	pattern_points[:,:2] = np.indices(pattern_size).T.reshape(-1, 2)
+	# Load the image
+	image = cv2.imread( image_files[0,0], cv2.CV_LOAD_IMAGE_GRAYSCALE )
 
-	# Termination criteria
-	term = ( cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_COUNT, 30, 0.1 )
-	
-	# Scale factor for corner detection
-	scale = 0.35
-	
-	# Image size
-	height, width = 0, 0
-	
-	# 3D points
-	obj_points = []
-	
-	# 2D points
-	img_points = []
+	# Get image size
+	height, width = image.shape[:2]
+	print( height, width )
+	print( image_files[0,:] )
 
+#	calibration1, img_points1, obj_points1 = CameraCalibration( left_image_files )
+#	calibration2, img_points2, obj_points2 = CameraCalibration( right_image_files )
+	
+#	criteria = (cv2.TERM_CRITERIA_MAX_ITER + cv2.TERM_CRITERIA_EPS, 100, 1e-5)
+#	flags = (cv2.CALIB_FIX_ASPECT_RATIO + cv2.CALIB_ZERO_TANGENT_DIST + cv2.CALIB_SAME_FOCAL_LENGTH)
+	
+#	stereo_calibration = cv2.stereoCalibrate(obj_points1, img_points1, img_points2, (width, height), criteria=criteria, flags=flags)[1:]
+#	print( stereo_calibration )
+#	stereo_rectify = cv2.stereoRectify(calib.cam_mats["left"], calib.dist_coefs["left"], calib.cam_mats["right"], calib.dist_coefs["right"], self.image_size, calib.rot_mat, calib.trans_vec, flags=0)
+
+
+#	(error, left_intrinsics, left_distortion, right_intrinsics, right_distorition, R, T, E, F) = cv2.stereoCalibrate( obj_points1, img_points1, img_points2, (width, height), criteria=criteria, flags=flags)
+#	print( error )
+
+#	R1, R2, P1, P2, Q, roi1, roi2 = cv2.stereoRectify( left_intrinsics, left_distortion, right_intrinsics, right_distortion, (width, height), R, T, alpha=0 )
+	
+	
+	bm = cv2.StereoBM( cv2.STEREO_BM_BASIC_PRESET, 48, 9)
+	left_image = cv2.imread( image_files[0,0], cv2.CV_LOAD_IMAGE_GRAYSCALE )
+	right_image = cv2.imread( image_files[0,1], cv2.CV_LOAD_IMAGE_GRAYSCALE )
+	disparity = bm.compute( left_image, right_image, disptype=cv2.CV_16S)
+	disparity *= 255 / (disparity.min() - disparity.max())
+	disparity = disparity.astype(np.uint8)
+	cv2.imshow( "disparity", cv2.resize( disparity, None, fx=image_scale, fy=image_scale ) )
+	cv2.waitKey()
 
