@@ -130,15 +130,13 @@ class VmbStereoViewer( object ) :
 	#
 	# Initialization
 	#
-	def __init__( self, camera_1_id, camera_2_id ) :
+	def __init__( self ) :
+
+		# Vimba initialization
+		Vimba.VmbStartup()
 
 		# The cameras
-		self.stereo_camera = Vimba.VmbStereoCamera( camera_1_id, camera_2_id )
-
-	#
-	# Start capture and display image stream
-	#
-	def LiveDisplay( self ) :
+		self.stereo_camera = Vimba.VmbStereoCamera( '50-0503323406', '50-0503326223' )
 
 		# Number of image saved
 		image_count = 0
@@ -215,3 +213,6 @@ class VmbStereoViewer( object ) :
 	
 		# Close the cameras
 		self.stereo_camera.Close()
+
+		# Vimba shutdown
+		Vimba.VmbShutdown()
