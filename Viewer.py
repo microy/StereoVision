@@ -2,7 +2,7 @@
 
 
 #
-# Module to display live images from AVT cameras
+# Module to display live images from two AVT cameras
 #
 
 
@@ -16,113 +16,6 @@ import Vimba
 
 
 #
-# Image scale factor for display
-#
-scale_factor = 0.37
-
-
-#
-# Vimba camera viewer
-#
-class VmbViewer( object ) :
-	
-	#
-	# Initialization
-	#
-	def __init__( self, camera_id ) :
-		
-		# The camera
-		self.camera = Vimba.VmbCamera( camera_id )
-		
-	#
-	# Start capture and display image stream
-	#
-	def LiveDisplay( self ) :
-
-		# Number of image saved
-		image_count = 0
-
-		# Active live chessboard finding and drawing on the image
-		chessboard_enabled = False
-
-		# Open the camera
-		self.camera.Open()
-		
-		# Start image acquisition
-		self.camera.StartCapture( self.FrameCallback )
-		
-		# Streaming loop
-		while True :
-			
-			# Initialize frame status
-			self.frame_ready = False
-
-			# Wait for a frame
-			while not self.frame_ready : pass
-			
-			# Check the frame
-			if not self.frame.is_valid :
-				print( 'Invalid frame...' )
-				continue
-
-			# Retreive the camera image
-			image = self.frame.image
-			
-			# Resize image for display
-			image_displayed = cv2.resize( image, None, fx=scale_factor, fy=scale_factor )
-
-			# Preview the calibration chessboard on the image
-			if chessboard_enabled :
-				image_displayed = Calibration.PreviewChessboard( image_displayed )
-			
-			# Display the image (scaled down)
-			cv2.imshow( self.camera.id, image_displayed )
-			
-			# Keyboard interruption
-			key = cv2.waitKey( 1 ) & 0xFF
-				
-			# Escape key
-			if key == 27 :
-				
-				# Exit the streaming loop
-				break
-				
-			# Space key
-			elif key == 32 :
-				
-				# Save image to disk 
-				image_count += 1
-				print( 'Save image {} to disk...'.format(image_count) )
-				cv2.imwrite( 'camera-{}-{:0>2}.png'.format(self.camera.id, image_count), image )
-				
-			# C key
-			elif key == ord('c') :
-				
-				# Enable / Disable chessboard preview
-				chessboard_enabled = not chessboard_enabled
-				
-		# Stop image acquisition
-		self.camera.StopCapture()
-
-		# Cleanup OpenCV
-		cv2.destroyAllWindows()
-		
-		# Close the camera
-		self.camera.Close()
-
-	#
-	# Receive a frame from the camera
-	#
-	def FrameCallback( self, frame ) :
-		
-		# Save current frame
-		self.frame = frame
-		
-		# Frame ready
-		self.frame_ready = True
-
-
-#
 # Vimba stereo camera viewer
 #
 class VmbStereoViewer( object ) :
@@ -130,7 +23,7 @@ class VmbStereoViewer( object ) :
 	#
 	# Initialization
 	#
-	def __init__( self ) :
+	def __init__( self, scale_factor = 0.37 ) :
 
 		# Vimba initialization
 		Vimba.VmbStartup()

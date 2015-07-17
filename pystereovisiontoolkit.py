@@ -12,7 +12,7 @@
 #
 import argparse
 import Calibration
-import CvViewer
+import Viewer
 
 
 #
@@ -41,7 +41,7 @@ Calibration.pattern_size = ( int(args.rows), int(args.cols) )
 if args.live :
 
 	# Stereo camera viewer
-	CvViewer.VmbStereoViewer()
+	Viewer.VmbStereoViewer()
 
 
 #
