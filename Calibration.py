@@ -245,32 +245,33 @@ def StereoCameraCalibration( left_image_files, right_image_files, debug = False 
 
 	# Get image size
 	height, width = image.shape[:2]
-	print( height, width )
-	print( image_files[0,:] )
 
-#	calibration1, img_points1, obj_points1 = CameraCalibration( left_image_files )
-#	calibration2, img_points2, obj_points2 = CameraCalibration( right_image_files )
+	# Calibrate the cameras
+	calibration1, img_points1, obj_points1 = CameraCalibration( left_image_files )
+	calibration2, img_points2, obj_points2 = CameraCalibration( right_image_files )
 	
-#	criteria = (cv2.TERM_CRITERIA_MAX_ITER + cv2.TERM_CRITERIA_EPS, 100, 1e-5)
-#	flags = (cv2.CALIB_FIX_ASPECT_RATIO + cv2.CALIB_ZERO_TANGENT_DIST + cv2.CALIB_SAME_FOCAL_LENGTH)
+	criteria = (cv2.TERM_CRITERIA_MAX_ITER + cv2.TERM_CRITERIA_EPS, 100, 1e-5)
+	flags = (cv2.CALIB_FIX_ASPECT_RATIO + cv2.CALIB_ZERO_TANGENT_DIST + cv2.CALIB_SAME_FOCAL_LENGTH)
 	
 #	stereo_calibration = cv2.stereoCalibrate(obj_points1, img_points1, img_points2, (width, height), criteria=criteria, flags=flags)[1:]
 #	print( stereo_calibration )
 #	stereo_rectify = cv2.stereoRectify(calib.cam_mats["left"], calib.dist_coefs["left"], calib.cam_mats["right"], calib.dist_coefs["right"], self.image_size, calib.rot_mat, calib.trans_vec, flags=0)
 
 
-#	(error, left_intrinsics, left_distortion, right_intrinsics, right_distorition, R, T, E, F) = cv2.stereoCalibrate( obj_points1, img_points1, img_points2, (width, height), criteria=criteria, flags=flags)
-#	print( error )
+	stereo_calibration = cv2.stereoCalibrate( obj_points1, img_points1, img_points2, calibration1['camera_matrix'], calibration1['dist_coefs'], calibration2['camera_matrix'], calibration2['dist_coefs'], (width, height) )
+	parameter_names = ( 'rms_stereo', 'camera_matrix_l', 'dist_coeffs_l', 'camera_matrix_r', 'dist_coeffs_r', 'R', 'T', 'E', 'F' )
+	stereo_calibration = dict( zip( parameter_names, stereo_calibration ) )
 
-#	R1, R2, P1, P2, Q, roi1, roi2 = cv2.stereoRectify( left_intrinsics, left_distortion, right_intrinsics, right_distortion, (width, height), R, T, alpha=0 )
+	stereo_rectify = cv2.cv.StereoRectify( calibration1['camera_matrix'], calibration1['dist_coefs'], calibration2['camera_matrix'], calibration2['dist_coefs'], (width, height), stereo_calibration['R'], stereo_calibration['T'], stereo_calibration['E'], stereo_calibration['F'], alpha=0 )
+	print( stereo_rectify )
 	
-	
-	bm = cv2.StereoBM( cv2.STEREO_BM_BASIC_PRESET, 48, 9)
-	left_image = cv2.imread( image_files[0,0], cv2.CV_LOAD_IMAGE_GRAYSCALE )
-	right_image = cv2.imread( image_files[0,1], cv2.CV_LOAD_IMAGE_GRAYSCALE )
-	disparity = bm.compute( left_image, right_image, disptype=cv2.CV_16S)
-	disparity *= 255 / (disparity.min() - disparity.max())
-	disparity = disparity.astype(np.uint8)
-	cv2.imshow( "disparity", cv2.resize( disparity, None, fx=image_scale, fy=image_scale ) )
-	cv2.waitKey()
+
+	#bm = cv2.StereoBM( cv2.STEREO_BM_BASIC_PRESET, 48, 9)
+	#left_image = cv2.imread( image_files[0,0], cv2.CV_LOAD_IMAGE_GRAYSCALE )
+	#right_image = cv2.imread( image_files[0,1], cv2.CV_LOAD_IMAGE_GRAYSCALE )
+	#disparity = bm.compute( left_image, right_image, disptype=cv2.CV_16S)
+	#disparity *= 255 / (disparity.min() - disparity.max())
+	#disparity = disparity.astype(np.uint8)
+	#cv2.imshow( "disparity", cv2.resize( disparity, None, fx=image_scale, fy=image_scale ) )
+	#cv2.waitKey()
 

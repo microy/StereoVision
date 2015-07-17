@@ -51,3 +51,11 @@ elif args.mono :
 	# Launch calibration
 	Calibration.CameraCalibration( args.mono, args.debug )
 
+#
+# Mono camera calibration
+#
+elif args.stereo :
+	
+	# Launch calibration
+	Calibration.StereoCameraCalibration( args.stereo[0], args.stereo[1], args.debug )
+
