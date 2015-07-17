@@ -126,7 +126,7 @@ class VmbCamera( object ) :
 		# Adjust packet size automatically
 		vimba.VmbFeatureCommandRun( self.handle, "GVSPAdjustPacketSize" )
 
-		# Configure freerun trigger (full camera speed)
+		# Configure freerun trigger
 		vimba.VmbFeatureEnumSet( self.handle, "TriggerSource", "Freerun" )
 		
 		# Configure the image format
@@ -298,9 +298,6 @@ class VmbStereoCamera( object ) :
 		# Frame ready
 		self.frame_1_ready = True
 
-		# Frame time
-		self.frame_1_time = time.clock()
-
 		# Synchronize the frames
 		self.Synchronize()
 		
@@ -315,9 +312,6 @@ class VmbStereoCamera( object ) :
 		# Frame ready
 		self.frame_2_ready = True
 		
-		# Frame time
-		self.frame_2_time = time.clock()
-
 		# Synchronize the frames
 		self.Synchronize()
 
@@ -325,17 +319,17 @@ class VmbStereoCamera( object ) :
 	# Synchronize the frames from both camera
 	#
 	def Synchronize( self ) :
-		
+
+		# Wait for both frames
 		if self.frame_1_ready and self.frame_2_ready :
 			
-			if self.frame_1.is_valid and self.frame_2.is_valid :
-				print( 'Sync : {}'.format( abs( self.frame_1_time - self.frame_2_time ) ) )
-				self.external_frame_callback_function( self.frame_1, self.frame_2 )
-			else : print( 'Invalid frame...' )
+			# Send the frames to the external program
+			self.external_frame_callback_function( self.frame_1, self.frame_2 )
 			
 			# Initialize frame status
 			self.frame_1_ready = False
 			self.frame_2_ready = False
+
 		
 #
 # Thread to send software trigger to both cameras
@@ -345,7 +339,7 @@ class VmbSoftwareTrigger( threading.Thread ) :
 	#
 	# Initialisation
 	#
-	def __init__( self, camera_1, camera_2, period = 0.15 ) :
+	def __init__( self, camera_1, camera_2 ) :
 
 		# Initialise the thread
 		threading.Thread.__init__( self )
@@ -353,12 +347,6 @@ class VmbSoftwareTrigger( threading.Thread ) :
 		# Register the cameras
 		self.camera_1 = camera_1
 		self.camera_2 = camera_2
-		
-		# Setup the period between two triggers
-		self.period = period
-		
-		# Debug
-		self.time = time.clock()
 
 	#
 	# Start the software trigger thread
@@ -381,13 +369,12 @@ class VmbSoftwareTrigger( threading.Thread ) :
 	#
 	def run( self ) :
 
+		# Thread running
 		while self.running :
-			print( "Software trigger..." )
-			# Send software trigger
+
+			# Send software trigger to both cameras
 			vimba.VmbFeatureCommandRun( self.camera_1.handle, "TriggerSoftware" )
 			vimba.VmbFeatureCommandRun( self.camera_2.handle, "TriggerSoftware" )
-			time.sleep( self.period )
-			if ( time.clock() - self.time ) > 10 :
-				print( "Stop" )
-				self.running = False
-
+			
+			# Wait 120ms between two consecutive triggers
+			time.sleep( 0.12 )
