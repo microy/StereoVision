@@ -41,22 +41,20 @@ class VmbStereoViewer( object ) :
 		self.stereo_camera.Open()
 
 		# Start image acquisition
-		self.stereo_camera.StartCapture()
+		self.stereo_camera.StartCapture( self.FrameCallback )
 
 		# Live display
 		while True :
 
-			# Capture the frames
-			frame_1, frame_2 = self.stereo_camera.CaptureFrames()
-			
-			# Check the frames
-			if not ( frame_1.is_valid and frame_2.is_valid ) :
-				print( 'Invalid frames...' )
-				continue
+			# Initialize frame status
+			self.frames_ready = False
+
+			# Wait for the frames
+			while not self.frames_ready : pass
 
 			# Convert the frames to images
-			image_1 = frame_1.image
-			image_2 = frame_2.image
+			image_1 = self.frame_1.image
+			image_2 = self.frame_2.image
 
 			# Prepare image for display
 			image_1_displayed = cv2.resize( image_1, None, fx=scale_factor, fy=scale_factor )
@@ -109,3 +107,15 @@ class VmbStereoViewer( object ) :
 
 		# Vimba shutdown
 		Vimba.VmbShutdown()
+
+	#
+	# Receive the frames from both cameras
+	#
+	def FrameCallback( self, frame_1, frame_2 ) :
+
+		# Save current frame
+		self.frame_1 = frame_1
+		self.frame_2 = frame_2
+
+		# Frame ready
+		self.frames_ready = True
