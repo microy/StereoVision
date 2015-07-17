@@ -23,15 +23,14 @@ parser.add_argument( '-live', action='store_true', default=False, help='Stereo c
 parser.add_argument( '-rows', action='store', default=15, help='Number of rows in the chessboard pattern' )
 parser.add_argument( '-cols', action='store', default=10, help='Number of columns in the chessboard pattern' )
 parser.add_argument( '-debug', action='store_true', default=False, help='Display the chessboard on each image' )
-parser.add_argument( '-mono', action='store', help='Image file for mono camera calibration' )
-parser.add_argument( '-stereo', action='store', nargs=2, metavar=('cam1', 'cam2'), help='Image file for stereo camera calibration' )
+parser.add_argument( '-mono', action='store', help='Image files for mono camera calibration' )
+parser.add_argument( '-stereo', action='store', nargs=2, metavar=('CAM1FILES', 'CAM2FILES'), help='Image files for stereo camera calibration' )
 args = parser.parse_args()
 
 
 #
 # Calibration pattern setup
 #
-if args.grid : Calibration.pattern_type = 'CirclesGrid'
 Calibration.pattern_size = ( int(args.rows), int(args.cols) )
 
 
