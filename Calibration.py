@@ -9,7 +9,9 @@
 #
 # External dependencies
 #
+import base64
 import glob
+import json
 import sys
 import cv2
 import numpy as np
@@ -121,7 +123,7 @@ class CameraCalibration( object ) :
 		print( "RMS : {}".format( calibration['rms'] ) )
 		print( "Camera matrix :\n{}".format( calibration['camera_matrix'] ) )
 		print( "Distortion coefficients :\n{}".format( calibration['dist_coefs'].ravel() ) )
-
+		
 		return calibration, img_points, obj_points
 
 
@@ -146,12 +148,23 @@ def PreviewChessboard( image ) :
 
 
 #
+# JSON encoder for numlpy arrays
+#
+class NumpyEncoder( json.JSONEncoder ) :
+    def default( self, obj ) :
+        if isinstance( obj, np.ndarray ) :
+            if obj.ndim == 1 : return obj.tolist()
+            else : return [ self.default( obj[i] ) for i in range( obj.shape[0] ) ]
+        return json.JSONEncoder.default( self, obj )
+
+
+#
 # Camera calibration
 #
 def CameraCalibration( imagefile_name, debug = False ) :
 	
 	# Get image file names
-	image_files = glob.glob( imagefile_name )
+	image_files = sorted( glob.glob( imagefile_name ) )
 
 	# Chessboard pattern
 	pattern_points = np.zeros( (np.prod(pattern_size), 3), np.float32 )
@@ -228,8 +241,14 @@ def CameraCalibration( imagefile_name, debug = False ) :
 	print( "RMS : {}".format( calibration['rms'] ) )
 	print( "Camera matrix :\n{}".format( calibration['camera_matrix'] ) )
 	print( "Distortion coefficients :\n{}".format( calibration['dist_coefs'].ravel() ) )
+	
+	calibration['img_points'] = img_points
+	calibration['obj_points'] = obj_points
 
-	return calibration, img_points, obj_points
+	with open( 'camera.json' , 'w') as calibfile :
+		json.dump( calibration, calibfile, cls=NumpyEncoder )
+		
+	return calibration
 
 
 #
@@ -240,30 +259,45 @@ def StereoCameraCalibration( left_image_files, right_image_files, debug = False 
 	# Get image file names
 	image_files = np.array( zip( sorted(glob.glob( left_image_files )), sorted(glob.glob( right_image_files )) ) )
 	
-	# Load the image
-	image = cv2.imread( image_files[0,0], cv2.CV_LOAD_IMAGE_GRAYSCALE )
-
 	# Get image size
-	height, width = image.shape[:2]
+	height, width = cv2.imread( image_files[0,0], cv2.CV_LOAD_IMAGE_GRAYSCALE ).shape[:2]
 
 	# Calibrate the cameras
-	calibration1, img_points1, obj_points1 = CameraCalibration( left_image_files )
-	calibration2, img_points2, obj_points2 = CameraCalibration( right_image_files )
+#	cam1 = CameraCalibration( left_image_files )
+#	cam2 = CameraCalibration( right_image_files )
+
+	# Read camera calibration files
+	with open( 'camera-1.json' , 'r') as calibfile :
+		cam1 = json.load( calibfile )
+	with open( 'camera-2.json' , 'r') as calibfile :
+		cam2 = json.load( calibfile )
+		
+	# Convert camera calibration data into Numpy arrays
+	for key in [ 'img_points', 'obj_points', 'camera_matrix', 'dist_coefs' ] :
+		cam1[ key ] = np.array( cam1[ key ], dtype=np.float32 )
+		cam2[ key ] = np.array( cam2[ key ], dtype=np.float32 )
 	
 	criteria = (cv2.TERM_CRITERIA_MAX_ITER + cv2.TERM_CRITERIA_EPS, 100, 1e-5)
-	flags = (cv2.CALIB_FIX_ASPECT_RATIO + cv2.CALIB_ZERO_TANGENT_DIST + cv2.CALIB_SAME_FOCAL_LENGTH)
-	
+	flags = 0
+	flags |= cv2.CALIB_FIX_ASPECT_RATIO
+	flags |= cv2.CALIB_ZERO_TANGENT_DIST
+	flags |= cv2.CALIB_SAME_FOCAL_LENGTH
+#	flags |= cv2.CALIB_RATIONAL_MODEL
+#	flags |= cv2.CALIB_FIX_K3
+#	flags |= cv2.CALIB_FIX_K4
+#	flags |= cv2.CALIB_FIX_K5
 #	stereo_calibration = cv2.stereoCalibrate(obj_points1, img_points1, img_points2, (width, height), criteria=criteria, flags=flags)[1:]
 #	print( stereo_calibration )
 #	stereo_rectify = cv2.stereoRectify(calib.cam_mats["left"], calib.dist_coefs["left"], calib.cam_mats["right"], calib.dist_coefs["right"], self.image_size, calib.rot_mat, calib.trans_vec, flags=0)
 
 
-	stereo_calibration = cv2.stereoCalibrate( obj_points1, img_points1, img_points2, calibration1['camera_matrix'], calibration1['dist_coefs'], calibration2['camera_matrix'], calibration2['dist_coefs'], (width, height) )
+	stereo_calibration = cv2.stereoCalibrate( cam1['obj_points'], cam1['img_points'], cam2['img_points'], cam1['camera_matrix'], cam1['dist_coefs'], cam2['camera_matrix'], cam2['dist_coefs'], (width, height) )
 	parameter_names = ( 'rms_stereo', 'camera_matrix_l', 'dist_coeffs_l', 'camera_matrix_r', 'dist_coeffs_r', 'R', 'T', 'E', 'F' )
 	stereo_calibration = dict( zip( parameter_names, stereo_calibration ) )
+	print( 'RMS : {}'.format( stereo_calibration['rms_stereo'] ) )
 
-	stereo_rectify = cv2.cv.StereoRectify( calibration1['camera_matrix'], calibration1['dist_coefs'], calibration2['camera_matrix'], calibration2['dist_coefs'], (width, height), stereo_calibration['R'], stereo_calibration['T'], stereo_calibration['E'], stereo_calibration['F'], alpha=0 )
-	print( stereo_rectify )
+	stereo_rectify = cv2.cv.StereoRectify( cam1['camera_matrix'], cam2['camera_matrix'], cam1['dist_coefs'], cam2['dist_coefs'], (width, height), stereo_calibration['R'], stereo_calibration['T'], None, None, None, None, alpha=0 )
+#	print( stereo_rectify )
 	
 
 	#bm = cv2.StereoBM( cv2.STEREO_BM_BASIC_PRESET, 48, 9)
