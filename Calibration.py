@@ -9,13 +9,16 @@
 #
 # External dependencies
 #
-import base64
-import glob
 import json
+import os
 import sys
 import cv2
 import numpy as np
 
+
+#
+# Calibration parameters
+#
 
 # Pattern type
 pattern_size = ( 15, 10 )
@@ -25,106 +28,24 @@ image_scale = 0.35
 
 
 #
-# Class to calibrate a camera
+# JSON encoder for Numpy arrays
 #
-class CameraCalibration( object ) :
+class NumpyEncoder( json.JSONEncoder ) :
 	
-	#
-	# Member variables
-	#
-	
-	# Pattern type
-	pattern_size = ( 15, 10 )
-
-	# Image scale factor for pattern detection
-	image_scale = 0.35
-	
-
-	#
-	# Camera calibration
-	#
-	def Calibrate( imagefile_name, debug = False ) :
-
-		# Get image file names
-		image_files = glob.glob( imagefile_name )
-
-		# Chessboard pattern
-		pattern_points = np.zeros( (np.prod(pattern_size), 3), np.float32 )
-		pattern_points[:,:2] = np.indices(pattern_size).T.reshape(-1, 2)
-
-		# Image size
-		height, width = 0, 0
-
-		# 3D points
-		obj_points = []
-
-		# 2D points
-		img_points = []
-
-		# For each image
-		for filename in image_files :
-			
-			# Load the image
-			image = cv2.imread( filename, cv2.CV_LOAD_IMAGE_GRAYSCALE )
-
-			# Get image size
-			height, width = image.shape[:2]
-
-			# Resize image
-			image_small = cv2.resize( image, None, fx=image_scale, fy=image_scale )
-
-			# Chessboard detection flags
-			flags = cv2.cv.CV_CALIB_CB_ADAPTIVE_THRESH + cv2.CALIB_CB_FILTER_QUADS
-
-			# Find the chessboard corners on the image
-			found_all, corners = cv2.findChessboardCorners( image_small, pattern_size )
-
-			# Pattern not found
-			if not found_all :
-				
-				print( "Pattern not found on image {}...".format(filename) )
-				continue
-				
-			# Preview chessboard on image
-			if debug :
-				
-				# Convert grayscale image in color
-				image_color = cv2.cvtColor( image_small, cv2.COLOR_GRAY2BGR )
-				
-				# Draw the chessboard corners on the image
-				cv2.drawChessboardCorners( image_color, pattern_size, corners, found_all )
-				
-				# Display the image with the chessboard
-				cv2.imshow( filename, image_color )
-				
-				# Wait for a key
-				cv2.waitKey()
-
-				# Cleanup OpenCV window
-				cv2.destroyWindow( filename )
-			
-			# Rescale the corner position
-			corners /= image_scale
-
-			# Termination criteria
-			term = ( cv2.TERM_CRITERIA_MAX_ITER + cv2.TERM_CRITERIA_EPS, 30, 0.01 )
-
-			# Refine the corner positions
-			cv2.cornerSubPix( image, corners, (11, 11), (-1, -1), term )
-			
-			# Store image and corner informations
-			img_points.append( corners.reshape(-1, 2) )
-			obj_points.append( pattern_points )
-
-		# Camera calibration
-		parameter_names = ( 'rms', 'camera_matrix', 'dist_coefs', 'rvecs', 'tvecs' )
-		calibration = dict( zip( parameter_names, cv2.calibrateCamera( obj_points, img_points, (width, height), None, None ) ) )
-
-		print( "RMS : {}".format( calibration['rms'] ) )
-		print( "Camera matrix :\n{}".format( calibration['camera_matrix'] ) )
-		print( "Distortion coefficients :\n{}".format( calibration['dist_coefs'].ravel() ) )
+	# Overload the defaut JSON encoder
+    def default( self, obj ) :
 		
-		return calibration, img_points, obj_points
+		# Encoder for Numpy arrays
+		if isinstance( obj, np.ndarray ) :
+			
+			# Array of dimension = 1
+			if obj.ndim == 1 : return obj.tolist()
+
+			# Array of dimension > 1
+			else : return [ self.default( obj[i] ) for i in range( obj.shape[0] ) ]
+
+		# Default encoder
+		return json.JSONEncoder.default( self, obj )
 
 
 #
@@ -148,30 +69,16 @@ def PreviewChessboard( image ) :
 
 
 #
-# JSON encoder for numlpy arrays
-#
-class NumpyEncoder( json.JSONEncoder ) :
-    def default( self, obj ) :
-        if isinstance( obj, np.ndarray ) :
-            if obj.ndim == 1 : return obj.tolist()
-            else : return [ self.default( obj[i] ) for i in range( obj.shape[0] ) ]
-        return json.JSONEncoder.default( self, obj )
-
-
-#
 # Camera calibration
 #
-def CameraCalibration( imagefile_name, debug = False ) :
+def CameraCalibration( image_files, output = None, debug = False ) :
 	
-	# Get image file names
-	image_files = sorted( glob.glob( imagefile_name ) )
-
 	# Chessboard pattern
 	pattern_points = np.zeros( (np.prod(pattern_size), 3), np.float32 )
 	pattern_points[:,:2] = np.indices(pattern_size).T.reshape(-1, 2)
 
-	# Image size
-	height, width = 0, 0
+	# Get image size
+	img_size = cv2.imread( image_files[0], cv2.CV_LOAD_IMAGE_GRAYSCALE ).shape[:2]
 	
 	# 3D points
 	obj_points = []
@@ -179,23 +86,23 @@ def CameraCalibration( imagefile_name, debug = False ) :
 	# 2D points
 	img_points = []
 	
+	# Images with chessboard found
+	img_files = []
+	
 	# For each image
 	for filename in image_files :
 		
 		# Load the image
 		image = cv2.imread( filename, cv2.CV_LOAD_IMAGE_GRAYSCALE )
 
-		# Get image size
-		height, width = image.shape[:2]
-
 		# Resize image
 		image_small = cv2.resize( image, None, fx=image_scale, fy=image_scale )
 
 		# Chessboard detection flags
-		flags = cv2.cv.CV_CALIB_CB_ADAPTIVE_THRESH + cv2.CALIB_CB_FILTER_QUADS
+		flags = cv2.CALIB_CB_ADAPTIVE_THRESH | cv2.CALIB_CB_NORMALIZE_IMAGE
 
 		# Find the chessboard corners on the image
-		found_all, corners = cv2.findChessboardCorners( image_small, pattern_size )
+		found_all, corners = cv2.findChessboardCorners( image_small, pattern_size, flags=flags )
 
 		# Pattern not found
 		if not found_all :
@@ -225,87 +132,143 @@ def CameraCalibration( imagefile_name, debug = False ) :
 		corners /= image_scale
 
 		# Termination criteria
-		term = ( cv2.TERM_CRITERIA_MAX_ITER + cv2.TERM_CRITERIA_EPS, 30, 0.01 )
+		criteria = ( cv2.TERM_CRITERIA_COUNT + cv2.TERM_CRITERIA_EPS, 30, sys.float_info.epsilon )
 	
 		# Refine the corner positions
-		cv2.cornerSubPix( image, corners, (11, 11), (-1, -1), term )
+		cv2.cornerSubPix( image, corners, (11, 11), (-1, -1), criteria )
 		
 		# Store image and corner informations
 		img_points.append( corners.reshape(-1, 2) )
 		obj_points.append( pattern_points )
+		img_files.append( filename )
 
 	# Camera calibration
+	calibration = cv2.calibrateCamera( obj_points, img_points, img_size )
 	parameter_names = ( 'rms', 'camera_matrix', 'dist_coefs', 'rvecs', 'tvecs' )
-	calibration = dict( zip( parameter_names, cv2.calibrateCamera( obj_points, img_points, (width, height), None, None ) ) )
-
-	print( "RMS : {}".format( calibration['rms'] ) )
-	print( "Camera matrix :\n{}".format( calibration['camera_matrix'] ) )
-	print( "Distortion coefficients :\n{}".format( calibration['dist_coefs'].ravel() ) )
+	calibration = dict( zip( parameter_names, calibration ) )
 	
+	# Backup image and object points
 	calibration['img_points'] = img_points
 	calibration['obj_points'] = obj_points
 
-	with open( 'camera.json' , 'w') as calibfile :
-		json.dump( calibration, calibfile, cls=NumpyEncoder )
-		
-	return calibration
+	# Backup image size and filenames
+	calibration['img_size'] = img_size
+	calibration['img_files'] = img_files
 
+	# Print calibration results
+	if debug :
+		print( "RMS : {}".format( calibration['rms'] ) )
+		print( "Camera matrix :\n{}".format( calibration['camera_matrix'] ) )
+		print( "Distortion coefficients :\n{}".format( calibration['dist_coefs'].ravel() ) )
+	
+	# Write calibration results in a JSON file
+	if output :
+		with open( output , 'w') as output_file :
+			json.dump( calibration, output_file, cls=NumpyEncoder )
+
+	return calibration
 
 #
 # Stereo camera calibration
 #
-def StereoCameraCalibration( left_image_files, right_image_files, debug = False ) :
-
-	# Get image file names
-	image_files = np.array( zip( sorted(glob.glob( left_image_files )), sorted(glob.glob( right_image_files )) ) )
-	
-	# Get image size
-	height, width = cv2.imread( image_files[0,0], cv2.CV_LOAD_IMAGE_GRAYSCALE ).shape[:2]
-
-	# Calibrate the cameras
-#	cam1 = CameraCalibration( left_image_files )
-#	cam2 = CameraCalibration( right_image_files )
+def StereoCameraCalibration( debug = False ) :
 
 	# Read camera calibration files
-	with open( 'camera-1.json' , 'r') as calibfile :
+	with open( 'camera-left.json' , 'r') as calibfile :
 		cam1 = json.load( calibfile )
-	with open( 'camera-2.json' , 'r') as calibfile :
+	with open( 'camera-right.json' , 'r') as calibfile :
 		cam2 = json.load( calibfile )
 		
 	# Convert camera calibration data into Numpy arrays
 	for key in [ 'img_points', 'obj_points', 'camera_matrix', 'dist_coefs' ] :
-		cam1[ key ] = np.array( cam1[ key ], dtype=np.float32 )
-		cam2[ key ] = np.array( cam2[ key ], dtype=np.float32 )
+		cam1[ key ] = np.asarray( cam1[ key ], dtype=np.float32 )
+		cam2[ key ] = np.asarray( cam2[ key ], dtype=np.float32 )
 	
-	criteria = (cv2.TERM_CRITERIA_MAX_ITER + cv2.TERM_CRITERIA_EPS, 100, 1e-5)
-	flags = 0
-	flags |= cv2.CALIB_FIX_ASPECT_RATIO
-	flags |= cv2.CALIB_ZERO_TANGENT_DIST
-	flags |= cv2.CALIB_SAME_FOCAL_LENGTH
+	# Get image size
+	img_size = tuple( cam1['img_size'] )
+	
+#	criteria = (cv2.TERM_CRITERIA_MAX_ITER + cv2.TERM_CRITERIA_EPS, 100, 1e-5)
+#	criteria = ( cv2.TERM_CRITERIA_COUNT + cv2.TERM_CRITERIA_EPS, 30, 1e-6 )
+#	flags = 0
+#	flags |= cv2.CALIB_FIX_ASPECT_RATIO
+#	flags |= cv2.CALIB_ZERO_TANGENT_DIST
+#	flags |= cv2.CALIB_SAME_FOCAL_LENGTH
 #	flags |= cv2.CALIB_RATIONAL_MODEL
 #	flags |= cv2.CALIB_FIX_K3
 #	flags |= cv2.CALIB_FIX_K4
 #	flags |= cv2.CALIB_FIX_K5
-#	stereo_calibration = cv2.stereoCalibrate(obj_points1, img_points1, img_points2, (width, height), criteria=criteria, flags=flags)[1:]
-#	print( stereo_calibration )
-#	stereo_rectify = cv2.stereoRectify(calib.cam_mats["left"], calib.dist_coefs["left"], calib.cam_mats["right"], calib.dist_coefs["right"], self.image_size, calib.rot_mat, calib.trans_vec, flags=0)
 
+	print( 'Stereo-calibration...' )
 
-	stereo_calibration = cv2.stereoCalibrate( cam1['obj_points'], cam1['img_points'], cam2['img_points'], cam1['camera_matrix'], cam1['dist_coefs'], cam2['camera_matrix'], cam2['dist_coefs'], (width, height) )
+	# Stereo calibration
+	stereo_calibration = cv2.stereoCalibrate( cam1['obj_points'], cam1['img_points'], cam2['img_points'], img_size )
 	parameter_names = ( 'rms_stereo', 'camera_matrix_l', 'dist_coeffs_l', 'camera_matrix_r', 'dist_coeffs_r', 'R', 'T', 'E', 'F' )
 	stereo_calibration = dict( zip( parameter_names, stereo_calibration ) )
-	print( 'RMS : {}'.format( stereo_calibration['rms_stereo'] ) )
 
-	stereo_rectify = cv2.cv.StereoRectify( cam1['camera_matrix'], cam2['camera_matrix'], cam1['dist_coefs'], cam2['dist_coefs'], (width, height), stereo_calibration['R'], stereo_calibration['T'], None, None, None, None, alpha=0 )
-#	print( stereo_rectify )
+	# Print calibration results
+	if debug : print( "Stereo RMS : {}".format( stereo_calibration['rms_stereo'] ) )
+
+	print( 'Stereo-rectification...' )
+
+	# Stereo rectification
+	stereo_rectify = cv2.stereoRectify( cam1['camera_matrix'], cam1['dist_coefs'], cam2['camera_matrix'], cam2['dist_coefs'], img_size, stereo_calibration['R'], stereo_calibration['T'] )
+	parameter_names = ( 'R1', 'R2', 'P1', 'P2', 'Q', 'ROI1', 'ROI2' )
+	stereo_rectify = dict( zip( parameter_names, stereo_rectify ) )
 	
 
-	#bm = cv2.StereoBM( cv2.STEREO_BM_BASIC_PRESET, 48, 9)
-	#left_image = cv2.imread( image_files[0,0], cv2.CV_LOAD_IMAGE_GRAYSCALE )
-	#right_image = cv2.imread( image_files[0,1], cv2.CV_LOAD_IMAGE_GRAYSCALE )
-	#disparity = bm.compute( left_image, right_image, disptype=cv2.CV_16S)
-	#disparity *= 255 / (disparity.min() - disparity.max())
-	#disparity = disparity.astype(np.uint8)
-	#cv2.imshow( "disparity", cv2.resize( disparity, None, fx=image_scale, fy=image_scale ) )
-	#cv2.waitKey()
+	left_image = cv2.imread( cam1['img_files'][0], cv2.CV_LOAD_IMAGE_GRAYSCALE )
+	right_image = cv2.imread( cam2['img_files'][0], cv2.CV_LOAD_IMAGE_GRAYSCALE )
 
+
+	print( 'Computing BM disparity...' )
+
+	bm = cv2.StereoBM( cv2.STEREO_BM_BASIC_PRESET, 48, 9)
+	bm_disparity = bm.compute( left_image, right_image, disptype=cv2.CV_16S )
+	bm_disparity *= 255 / ( bm_disparity.min() - bm_disparity.max() )
+	bm_disparity = bm_disparity.astype( np.uint8 )
+
+
+	print( 'Computing SGBM disparity...' )
+
+	# disparity range
+	min_disparity = 0
+	num_disparities = 64
+	sad_window_size = 3
+	p1 = 216
+	p2 = 864
+	disp12_max_diff = 1
+	prefilter_cap = 63
+	uniqueness_ratio = 10
+	speckle_window_size = 100
+	speckle_range = 32
+	full_dp = False
+	
+	sgbm = cv2.StereoSGBM( min_disparity, num_disparities, sad_window_size, p1, p2, disp12_max_diff,
+		prefilter_cap, uniqueness_ratio, speckle_window_size, speckle_range, full_dp )
+
+	sgbm_disparity = sgbm.compute( left_image, right_image )
+	sgbm_disparity *= 255 / ( sgbm_disparity.min() - sgbm_disparity.max() )
+	sgbm_disparity = sgbm_disparity.astype( np.uint8 )
+
+	print( 'Undistord images...' )
+	left_maps = cv2.initUndistortRectifyMap(
+		stereo_calibration['camera_matrix_l'],
+		stereo_calibration['dist_coeffs_l'],
+		stereo_rectify['R1'], stereo_rectify['P1'],
+		img_size, cv2.CV_16SC2 )
+
+	right_maps = cv2.initUndistortRectifyMap(
+		stereo_calibration['camera_matrix_r'],
+		stereo_calibration['dist_coeffs_r'],
+		stereo_rectify['R2'], stereo_rectify['P2'],
+		img_size, cv2.CV_16SC2 )
+
+	left_image = cv2.remap( left_image, left_maps[0], left_maps[1], cv2.INTER_LINEAR )
+	right_image = cv2.remap( right_image, right_maps[0], right_maps[1], cv2.INTER_LINEAR )
+
+#	cv2.imshow('left', cv2.pyrDown(left_image))
+#	cv2.imshow('right', cv2.pyrDown(right_image))
+	cv2.imshow('BM disparity', cv2.pyrDown(bm_disparity))
+	cv2.imshow('SGBM disparity', cv2.pyrDown(sgbm_disparity))
+	cv2.waitKey()
+	cv2.destroyAllWindows()
