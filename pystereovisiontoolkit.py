@@ -11,6 +11,7 @@
 # External dependencies
 #
 import argparse
+import glob
 import Calibration
 import Viewer
 
@@ -19,12 +20,13 @@ import Viewer
 # Command line argument parser
 #
 parser = argparse.ArgumentParser( description='Camera calibration toolkit.' )
-parser.add_argument( '-live', action='store_true', default=False, help='Stereo camera live display' )
+parser.add_argument( '-live', action='store_true', help='Stereo camera live display' )
 parser.add_argument( '-rows', action='store', default=15, help='Number of rows in the chessboard pattern' )
 parser.add_argument( '-cols', action='store', default=10, help='Number of columns in the chessboard pattern' )
-parser.add_argument( '-debug', action='store_true', default=False, help='Display the chessboard on each image' )
+parser.add_argument( '-debug', action='store_true', help='Display the chessboard on each image' )
 parser.add_argument( '-mono', action='store', help='Image files for mono camera calibration' )
-parser.add_argument( '-stereo', action='store', nargs=2, metavar=('CAM1FILES', 'CAM2FILES'), help='Image files for stereo camera calibration' )
+parser.add_argument( '-stereo', action='store_true', help='Stereo camera calibration' )
+parser.add_argument( '-output', action='store', help='Save results in a JSON file' )
 args = parser.parse_args()
 
 
@@ -39,7 +41,6 @@ Calibration.pattern_size = ( int(args.rows), int(args.cols) )
 #
 if args.live :
 
-	# Stereo camera viewer
 	Viewer.VmbStereoViewer()
 
 
@@ -48,14 +49,13 @@ if args.live :
 #
 elif args.mono :
 	
-	# Launch calibration
-	Calibration.CameraCalibration( args.mono, args.debug )
+	calibration = Calibration.CameraCalibration( sorted( glob.glob( args.mono ) ), args.output, args.debug )
+	
 
 #
-# Mono camera calibration
+# Stereo camera calibration
 #
 elif args.stereo :
 	
-	# Launch calibration
-	Calibration.StereoCameraCalibration( args.stereo[0], args.stereo[1], args.debug )
+	Calibration.StereoCameraCalibration( args.debug )
 
