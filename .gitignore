@@ -2,4 +2,4 @@ examples/
 *.py[co]
 *~
 *.png
-*.json
+*.pkl

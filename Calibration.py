@@ -9,8 +9,8 @@
 #
 # External dependencies
 #
-import json
 import os
+import pickle
 import sys
 import cv2
 import numpy as np
@@ -25,27 +25,6 @@ pattern_size = ( 15, 10 )
 
 # Image scale factor for pattern detection
 image_scale = 0.35
-
-
-#
-# JSON encoder for Numpy arrays
-#
-class NumpyEncoder( json.JSONEncoder ) :
-	
-	# Overload the defaut JSON encoder
-    def default( self, obj ) :
-		
-		# Encoder for Numpy arrays
-		if isinstance( obj, np.ndarray ) :
-			
-			# Array of dimension = 1
-			if obj.ndim == 1 : return obj.tolist()
-
-			# Array of dimension > 1
-			else : return [ self.default( obj[i] ) for i in range( obj.shape[0] ) ]
-
-		# Default encoder
-		return json.JSONEncoder.default( self, obj )
 
 
 #
@@ -78,7 +57,7 @@ def CameraCalibration( image_files, output = None, debug = False ) :
 	pattern_points[:,:2] = np.indices(pattern_size).T.reshape(-1, 2)
 
 	# Get image size
-	img_size = cv2.imread( image_files[0], cv2.CV_LOAD_IMAGE_GRAYSCALE ).shape[:2]
+	img_size = tuple( cv2.pyrDown( cv2.imread( image_files[0] ), cv2.CV_LOAD_IMAGE_GRAYSCALE ).shape[:2] )
 	
 	# 3D points
 	obj_points = []
@@ -96,7 +75,9 @@ def CameraCalibration( image_files, output = None, debug = False ) :
 		image = cv2.imread( filename, cv2.CV_LOAD_IMAGE_GRAYSCALE )
 
 		# Resize image
-		image_small = cv2.resize( image, None, fx=image_scale, fy=image_scale )
+	#	image_small = cv2.resize( image, None, fx=image_scale, fy=image_scale )
+		image_small = cv2.pyrDown( image )
+		image = image_small
 
 		# Chessboard detection flags
 		flags = cv2.CALIB_CB_ADAPTIVE_THRESH | cv2.CALIB_CB_NORMALIZE_IMAGE
@@ -129,7 +110,8 @@ def CameraCalibration( image_files, output = None, debug = False ) :
 			cv2.destroyWindow( filename )
 		
 		# Rescale the corner position
-		corners /= image_scale
+	#	corners /= image_scale
+	#	corners *= 2.0
 
 		# Termination criteria
 		criteria = ( cv2.TERM_CRITERIA_COUNT + cv2.TERM_CRITERIA_EPS, 30, sys.float_info.epsilon )
@@ -156,15 +138,14 @@ def CameraCalibration( image_files, output = None, debug = False ) :
 	calibration['img_files'] = img_files
 
 	# Print calibration results
-	if debug :
-		print( "RMS : {}".format( calibration['rms'] ) )
-		print( "Camera matrix :\n{}".format( calibration['camera_matrix'] ) )
-		print( "Distortion coefficients :\n{}".format( calibration['dist_coefs'].ravel() ) )
+	print( "RMS : {}".format( calibration['rms'] ) )
+	print( "Camera matrix :\n{}".format( calibration['camera_matrix'] ) )
+	print( "Distortion coefficients :\n{}".format( calibration['dist_coefs'].ravel() ) )
 	
-	# Write calibration results in a JSON file
+	# Write calibration results with pickle
 	if output :
-		with open( output , 'w') as output_file :
-			json.dump( calibration, output_file, cls=NumpyEncoder )
+		with open( 'camera-{}.pkl'.format( output ) , 'wb') as output_file :
+			pickle.dump( calibration, output_file, pickle.HIGHEST_PROTOCOL )
 
 	return calibration
 
@@ -174,22 +155,14 @@ def CameraCalibration( image_files, output = None, debug = False ) :
 def StereoCameraCalibration( debug = False ) :
 
 	# Read camera calibration files
-	with open( 'camera-left.json' , 'r') as calibfile :
-		cam1 = json.load( calibfile )
-	with open( 'camera-right.json' , 'r') as calibfile :
-		cam2 = json.load( calibfile )
+	with open( 'camera-left.pkl' , 'rb') as calibfile :
+		cam1 = pickle.load( calibfile )
+	with open( 'camera-right.pkl' , 'rb') as calibfile :
+		cam2 = pickle.load( calibfile )
 		
-	# Convert camera calibration data into Numpy arrays
-	for key in [ 'img_points', 'obj_points', 'camera_matrix', 'dist_coefs' ] :
-		cam1[ key ] = np.asarray( cam1[ key ], dtype=np.float32 )
-		cam2[ key ] = np.asarray( cam2[ key ], dtype=np.float32 )
-	
-	# Get image size
-	img_size = tuple( cam1['img_size'] )
-	
-#	criteria = (cv2.TERM_CRITERIA_MAX_ITER + cv2.TERM_CRITERIA_EPS, 100, 1e-5)
+	criteria = (cv2.TERM_CRITERIA_MAX_ITER + cv2.TERM_CRITERIA_EPS, 100, 1e-5)
 #	criteria = ( cv2.TERM_CRITERIA_COUNT + cv2.TERM_CRITERIA_EPS, 30, 1e-6 )
-#	flags = 0
+	flags = 0
 #	flags |= cv2.CALIB_FIX_ASPECT_RATIO
 #	flags |= cv2.CALIB_ZERO_TANGENT_DIST
 #	flags |= cv2.CALIB_SAME_FOCAL_LENGTH
@@ -198,23 +171,66 @@ def StereoCameraCalibration( debug = False ) :
 #	flags |= cv2.CALIB_FIX_K4
 #	flags |= cv2.CALIB_FIX_K5
 
-	print( 'Stereo-calibration...' )
+	print( 'Stereo calibration...' )
 
 	# Stereo calibration
-	stereo_calibration = cv2.stereoCalibrate( cam1['obj_points'], cam1['img_points'], cam2['img_points'], img_size )
+	stereo_calibration = cv2.stereoCalibrate( cam1['obj_points'], cam1['img_points'], cam2['img_points'], cam1['img_size'], flags=flags, criteria=criteria )
 	parameter_names = ( 'rms_stereo', 'camera_matrix_l', 'dist_coeffs_l', 'camera_matrix_r', 'dist_coeffs_r', 'R', 'T', 'E', 'F' )
 	stereo_calibration = dict( zip( parameter_names, stereo_calibration ) )
 
 	# Print calibration results
-	if debug : print( "Stereo RMS : {}".format( stereo_calibration['rms_stereo'] ) )
+	print( "  RMS : {}".format( stereo_calibration['rms_stereo'] ) )
 
-	print( 'Stereo-rectification...' )
+	print( 'Stereo rectification...' )
 
 	# Stereo rectification
-	stereo_rectify = cv2.stereoRectify( cam1['camera_matrix'], cam1['dist_coefs'], cam2['camera_matrix'], cam2['dist_coefs'], img_size, stereo_calibration['R'], stereo_calibration['T'] )
+	stereo_rectify = cv2.stereoRectify( cam1['camera_matrix'], cam1['dist_coefs'], cam2['camera_matrix'], cam2['dist_coefs'], cam1['img_size'], stereo_calibration['R'], stereo_calibration['T'] )
 	parameter_names = ( 'R1', 'R2', 'P1', 'P2', 'Q', 'ROI1', 'ROI2' )
 	stereo_rectify = dict( zip( parameter_names, stereo_rectify ) )
 	
+	# Write results with pickle
+	with open( 'stereo-calibration.pkl' , 'wb') as output_file :
+		pickle.dump( stereo_calibration, output_file, pickle.HIGHEST_PROTOCOL )
+	with open( 'stereo-rectification.pkl' , 'wb') as output_file :
+		pickle.dump( stereo_rectify, output_file, pickle.HIGHEST_PROTOCOL )
+
+
+#
+# Undistort images
+#
+def UndistortImages() :
+
+	print( 'Undistort images...' )
+	left_image = cv2.pyrDown( cv2.imread( cam1['img_files'][0], cv2.CV_LOAD_IMAGE_GRAYSCALE ) )
+	right_image = cv2.pyrDown( cv2.imread( cam2['img_files'][0], cv2.CV_LOAD_IMAGE_GRAYSCALE ) )
+	
+	left_maps = cv2.initUndistortRectifyMap(
+		cam1['camera_matrix'],
+		cam1['dist_coefs'],
+		stereo_rectify['R1'], stereo_rectify['P1'],
+		cam1['img_size'], cv2.CV_16SC2 )
+
+	right_maps = cv2.initUndistortRectifyMap(
+		cam2['camera_matrix'],
+		cam2['dist_coefs'],
+		stereo_rectify['R2'], stereo_rectify['P2'],
+		cam2['img_size'], cv2.CV_16SC2 )
+
+	left_image = cv2.remap( left_image, left_maps[0], left_maps[1], cv2.INTER_LINEAR )
+	right_image = cv2.remap( right_image, right_maps[0], right_maps[1], cv2.INTER_LINEAR )
+	
+	left_image = cv2.rectangle( left_image, (384,0),(510,128),(0,255,0),3 )
+
+	cv2.imshow('left', left_image )
+	cv2.imshow('right', right_image )
+	cv2.waitKey()
+	cv2.destroyAllWindows()
+
+
+#
+# Stereo disparity
+#
+def Disparity() :
 
 	left_image = cv2.imread( cam1['img_files'][0], cv2.CV_LOAD_IMAGE_GRAYSCALE )
 	right_image = cv2.imread( cam2['img_files'][0], cv2.CV_LOAD_IMAGE_GRAYSCALE )
@@ -250,24 +266,6 @@ def StereoCameraCalibration( debug = False ) :
 	sgbm_disparity *= 255 / ( sgbm_disparity.min() - sgbm_disparity.max() )
 	sgbm_disparity = sgbm_disparity.astype( np.uint8 )
 
-	print( 'Undistord images...' )
-	left_maps = cv2.initUndistortRectifyMap(
-		stereo_calibration['camera_matrix_l'],
-		stereo_calibration['dist_coeffs_l'],
-		stereo_rectify['R1'], stereo_rectify['P1'],
-		img_size, cv2.CV_16SC2 )
-
-	right_maps = cv2.initUndistortRectifyMap(
-		stereo_calibration['camera_matrix_r'],
-		stereo_calibration['dist_coeffs_r'],
-		stereo_rectify['R2'], stereo_rectify['P2'],
-		img_size, cv2.CV_16SC2 )
-
-	left_image = cv2.remap( left_image, left_maps[0], left_maps[1], cv2.INTER_LINEAR )
-	right_image = cv2.remap( right_image, right_maps[0], right_maps[1], cv2.INTER_LINEAR )
-
-#	cv2.imshow('left', cv2.pyrDown(left_image))
-#	cv2.imshow('right', cv2.pyrDown(right_image))
 	cv2.imshow('BM disparity', cv2.pyrDown(bm_disparity))
 	cv2.imshow('SGBM disparity', cv2.pyrDown(sgbm_disparity))
 	cv2.waitKey()

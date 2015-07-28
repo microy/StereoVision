@@ -26,7 +26,7 @@ parser.add_argument( '-cols', action='store', default=10, help='Number of column
 parser.add_argument( '-debug', action='store_true', help='Display the chessboard on each image' )
 parser.add_argument( '-mono', action='store', help='Image files for mono camera calibration' )
 parser.add_argument( '-stereo', action='store_true', help='Stereo camera calibration' )
-parser.add_argument( '-output', action='store', help='Save results in a JSON file' )
+parser.add_argument( '-output', action='store', help='Save calibration results for the camera [left | right]' )
 args = parser.parse_args()
 
 
