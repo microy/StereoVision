@@ -160,8 +160,8 @@ def StereoCameraCalibration( debug = False ) :
 	with open( 'camera-right.pkl' , 'rb') as calibfile :
 		cam2 = pickle.load( calibfile )
 		
-	criteria = (cv2.TERM_CRITERIA_MAX_ITER + cv2.TERM_CRITERIA_EPS, 100, 1e-5)
-#	criteria = ( cv2.TERM_CRITERIA_COUNT + cv2.TERM_CRITERIA_EPS, 30, 1e-6 )
+#	criteria = (cv2.TERM_CRITERIA_MAX_ITER + cv2.TERM_CRITERIA_EPS, 100, 1e-5)
+	criteria = ( cv2.TERM_CRITERIA_COUNT + cv2.TERM_CRITERIA_EPS, 30, 1e-6 )
 	flags = 0
 #	flags |= cv2.CALIB_FIX_ASPECT_RATIO
 #	flags |= cv2.CALIB_ZERO_TANGENT_DIST
@@ -175,11 +175,15 @@ def StereoCameraCalibration( debug = False ) :
 
 	# Stereo calibration
 	stereo_calibration = cv2.stereoCalibrate( cam1['obj_points'], cam1['img_points'], cam2['img_points'], cam1['img_size'], flags=flags, criteria=criteria )
-	parameter_names = ( 'rms_stereo', 'camera_matrix_l', 'dist_coeffs_l', 'camera_matrix_r', 'dist_coeffs_r', 'R', 'T', 'E', 'F' )
+	parameter_names = ( 'rms_stereo', 'camera_matrix_l', 'dist_coefs_l', 'camera_matrix_r', 'dist_coefs_r', 'R', 'T', 'E', 'F' )
 	stereo_calibration = dict( zip( parameter_names, stereo_calibration ) )
 
 	# Print calibration results
-	print( "  RMS : {}".format( stereo_calibration['rms_stereo'] ) )
+	print( "RMS : {}".format( stereo_calibration['rms_stereo'] ) )
+	print( "Left camera matrix :\n{}".format( stereo_calibration['camera_matrix_l'] ) )
+	print( "Left distortion coefficients :\n{}".format( stereo_calibration['dist_coefs_l'].ravel() ) )
+	print( "Right camera matrix :\n{}".format( stereo_calibration['camera_matrix_r'] ) )
+	print( "Right distortion coefficients :\n{}".format( stereo_calibration['dist_coefs_r'].ravel() ) )
 
 	print( 'Stereo rectification...' )
 
