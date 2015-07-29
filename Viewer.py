@@ -11,7 +11,6 @@
 #
 import cv2
 import numpy as np
-import Calibration
 import Vimba
 
 
@@ -23,8 +22,8 @@ class VmbStereoViewer( object ) :
 	#
 	# Initialization
 	#
-	def __init__( self, scale_factor = 0.37 ) :
-
+	def __init__( self, pattern_size, scale_factor = 0.37 ) :
+		
 		# Initialize Vimba
 		Vimba.VmbStartup()
 
@@ -34,7 +33,7 @@ class VmbStereoViewer( object ) :
 		# Number of image saved
 		image_count = 0
 
-		# Active live chessboard finding and drawing on the image
+		# Live chessboard finding and drawing on the image
 		chessboard_enabled = False
 		
 		# Open the cameras
@@ -63,8 +62,8 @@ class VmbStereoViewer( object ) :
 			# Preview the calibration chessboard on the image
 			if chessboard_enabled :
 
-				image_1_displayed = Calibration.PreviewChessboard( image_1_displayed )
-				image_2_displayed = Calibration.PreviewChessboard( image_2_displayed )
+				image_1_displayed = self.PreviewChessboard( image_1_displayed, pattern_size )
+				image_2_displayed = self.PreviewChessboard( image_2_displayed, pattern_size )
 
 			# Prepare image for display
 			stereo_image = np.concatenate( (image_1_displayed, image_2_displayed), axis=1 )
@@ -119,3 +118,24 @@ class VmbStereoViewer( object ) :
 
 		# Frame ready
 		self.frames_ready = True
+
+	#
+	# Find the chessboard quickly and draw it
+	#
+	def PreviewChessboard( self, image, pattern_size ) :
+		
+		# Find the chessboard corners on the image
+		found_all, corners = cv2.findChessboardCorners( image, pattern_size, flags = cv2.CALIB_CB_FAST_CHECK )	
+	#	found_all, corners = cv2.findCirclesGridDefault( image, pattern_size, flags = cv2.CALIB_CB_ASYMMETRIC_GRID )	
+
+		# Chessboard found
+		if found_all :
+			
+			# Convert grayscale image in color
+			image = cv2.cvtColor( image, cv2.COLOR_GRAY2BGR )
+
+			# Draw the chessboard corners on the image
+			cv2.drawChessboardCorners( image, pattern_size, corners, found_all )
+			
+		# Return the image with the chessboard if found
+		return image
