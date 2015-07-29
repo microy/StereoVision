@@ -37,6 +37,7 @@ def PreviewChessboard( image ) :
 
 	# Find the chessboard corners on the image
 	found_all, corners = cv2.findChessboardCorners( image, pattern_size, flags = cv2.CALIB_CB_FAST_CHECK )	
+#	found_all, corners = cv2.findCirclesGridDefault( image, pattern_size, flags = cv2.CALIB_CB_ASYMMETRIC_GRID )	
 
 	# Chessboard found
 	if found_all :
