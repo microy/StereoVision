@@ -26,22 +26,22 @@ parser.add_argument( '-cols', action='store', default=10, help='Number of column
 parser.add_argument( '-debug', action='store_true', help='Display the chessboard on each image' )
 parser.add_argument( '-mono', action='store', help='Image files for mono camera calibration' )
 parser.add_argument( '-stereo', action='store_true', help='Stereo camera calibration' )
-parser.add_argument( '-output', action='store', help='Save calibration results for the camera [left | right]' )
+parser.add_argument( '-output', action='store_true', help='Save camera calibration results' )
+parser.add_argument( '-undistort', action='store_true', help='Image undistortion' )
 args = parser.parse_args()
 
 
 #
 # Calibration pattern setup
 #
-Calibration.pattern_size = ( int(args.rows), int(args.cols) )
-
+pattern_size = ( int(args.rows), int(args.cols) )
 
 #
 # Stereo camera live capture
 #
 if args.live :
 
-	Viewer.VmbStereoViewer()
+	Viewer.VmbStereoViewer( pattern_size )
 
 
 #
@@ -49,7 +49,7 @@ if args.live :
 #
 elif args.mono :
 	
-	calibration = Calibration.CameraCalibration( sorted( glob.glob( args.mono ) ), args.output, args.debug )
+	calibration = Calibration.CameraCalibration( sorted( glob.glob( args.mono ) ), pattern_size, args.debug )
 	
 
 #
@@ -58,4 +58,12 @@ elif args.mono :
 elif args.stereo :
 	
 	Calibration.StereoCameraCalibration( args.debug )
+
+
+#
+# Image undistortion
+#
+elif args.undistort :
+	
+	Calibration.UndistortImages( args.debug )
 

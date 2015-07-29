@@ -20,45 +20,24 @@ import numpy as np
 # Calibration parameters
 #
 
-# Pattern type
-pattern_size = ( 15, 10 )
 
 # Image scale factor for pattern detection
-image_scale = 0.35
+image_scale = 0.5
 
-
-#
-# Find the chessboard quickly and draw it
-#
-def PreviewChessboard( image ) :
-	
-	# Convert grayscale image in color
-	image = cv2.cvtColor( image, cv2.COLOR_GRAY2BGR )
-
-	# Find the chessboard corners on the image
-	found_all, corners = cv2.findChessboardCorners( image, pattern_size, flags = cv2.CALIB_CB_FAST_CHECK )	
-#	found_all, corners = cv2.findCirclesGridDefault( image, pattern_size, flags = cv2.CALIB_CB_ASYMMETRIC_GRID )	
-
-	# Chessboard found
-	if found_all :
-		
-		# Draw the chessboard corners on the image
-		cv2.drawChessboardCorners( image, pattern_size, corners, found_all )
-		
-	return image
 
 
 #
 # Camera calibration
 #
-def CameraCalibration( image_files, output = None, debug = False ) :
+def CameraCalibration( image_files, pattern_size, debug = False ) :
 	
 	# Chessboard pattern
 	pattern_points = np.zeros( (np.prod(pattern_size), 3), np.float32 )
 	pattern_points[:,:2] = np.indices(pattern_size).T.reshape(-1, 2)
 
 	# Get image size
-	img_size = tuple( cv2.pyrDown( cv2.imread( image_files[0] ), cv2.CV_LOAD_IMAGE_GRAYSCALE ).shape[:2] )
+	img_size = tuple( cv2.imread( image_files[0], cv2.CV_LOAD_IMAGE_GRAYSCALE ).shape[:2] )
+#	img_size = tuple( cv2.pyrDown( cv2.imread( image_files[0] ), cv2.CV_LOAD_IMAGE_GRAYSCALE ).shape[:2] )
 	
 	# 3D points
 	obj_points = []
@@ -77,14 +56,16 @@ def CameraCalibration( image_files, output = None, debug = False ) :
 
 		# Resize image
 	#	image_small = cv2.resize( image, None, fx=image_scale, fy=image_scale )
-		image_small = cv2.pyrDown( image )
-		image = image_small
+	#	image_small = cv2.pyrDown( image )
+	#	image = image_small
+		image_small = image
 
 		# Chessboard detection flags
 		flags = cv2.CALIB_CB_ADAPTIVE_THRESH | cv2.CALIB_CB_NORMALIZE_IMAGE
 
 		# Find the chessboard corners on the image
 		found_all, corners = cv2.findChessboardCorners( image_small, pattern_size, flags=flags )
+	#	found_all, corners = cv2.findCirclesGridDefault( image, pattern_size, flags = cv2.CALIB_CB_ASYMMETRIC_GRID )	
 
 		# Pattern not found
 		if not found_all :
@@ -103,19 +84,13 @@ def CameraCalibration( image_files, output = None, debug = False ) :
 			
 			# Display the image with the chessboard
 			cv2.imshow( filename, image_color )
-			
-			# Wait for a key
-			cv2.waitKey()
 
-			# Cleanup OpenCV window
-			cv2.destroyWindow( filename )
-		
 		# Rescale the corner position
-	#	corners /= image_scale
+	#	corners *= 1.0 / image_scale
 	#	corners *= 2.0
 
 		# Termination criteria
-		criteria = ( cv2.TERM_CRITERIA_COUNT + cv2.TERM_CRITERIA_EPS, 30, sys.float_info.epsilon )
+		criteria = ( cv2.TERM_CRITERIA_COUNT + cv2.TERM_CRITERIA_EPS, 30, 1e-5 )
 	
 		# Refine the corner positions
 		cv2.cornerSubPix( image, corners, (11, 11), (-1, -1), criteria )
@@ -124,6 +99,15 @@ def CameraCalibration( image_files, output = None, debug = False ) :
 		img_points.append( corners.reshape(-1, 2) )
 		obj_points.append( pattern_points )
 		img_files.append( filename )
+
+	# Close chessboard preview window
+	if debug :
+
+		# Wait for a key
+		cv2.waitKey()
+
+		# Close the chessboard preview windows
+		cv2.destroyAllWindows()
 
 	# Camera calibration
 	calibration = cv2.calibrateCamera( obj_points, img_points, img_size )
@@ -137,6 +121,9 @@ def CameraCalibration( image_files, output = None, debug = False ) :
 	# Backup image size and filenames
 	calibration['img_size'] = img_size
 	calibration['img_files'] = img_files
+	
+	# Backup pattern dimensions
+	calibration['pattern_size'] = pattern_size
 
 	# Print calibration results
 	print( "RMS : {}".format( calibration['rms'] ) )
@@ -144,10 +131,10 @@ def CameraCalibration( image_files, output = None, debug = False ) :
 	print( "Distortion coefficients :\n{}".format( calibration['dist_coefs'].ravel() ) )
 	
 	# Write calibration results with pickle
-	if output :
-		with open( 'camera-{}.pkl'.format( output ) , 'wb') as output_file :
-			pickle.dump( calibration, output_file, pickle.HIGHEST_PROTOCOL )
+	with open( 'camera-calibration.pkl', 'wb') as output_file :
+		pickle.dump( calibration, output_file, pickle.HIGHEST_PROTOCOL )
 
+	# Return the camera calibration results
 	return calibration
 
 #
@@ -156,11 +143,13 @@ def CameraCalibration( image_files, output = None, debug = False ) :
 def StereoCameraCalibration( debug = False ) :
 
 	# Read camera calibration files
-	with open( 'camera-left.pkl' , 'rb') as calibfile :
-		cam1 = pickle.load( calibfile )
-	with open( 'camera-right.pkl' , 'rb') as calibfile :
-		cam2 = pickle.load( calibfile )
-		
+	with open( 'camera-calibration-left.pkl' , 'rb') as input_file :
+		cam1 = pickle.load( input_file )
+	with open( 'camera-calibration-right.pkl' , 'rb') as input_file :
+		cam2 = pickle.load( input_file )
+
+	img_size = cam1['img_size']
+	
 #	criteria = (cv2.TERM_CRITERIA_MAX_ITER + cv2.TERM_CRITERIA_EPS, 100, 1e-5)
 	criteria = ( cv2.TERM_CRITERIA_COUNT + cv2.TERM_CRITERIA_EPS, 30, 1e-6 )
 	flags = 0
@@ -175,7 +164,9 @@ def StereoCameraCalibration( debug = False ) :
 	print( 'Stereo calibration...' )
 
 	# Stereo calibration
-	stereo_calibration = cv2.stereoCalibrate( cam1['obj_points'], cam1['img_points'], cam2['img_points'], cam1['img_size'], flags=flags, criteria=criteria )
+	stereo_calibration = cv2.stereoCalibrate( cam1['obj_points'], cam1['img_points'], cam2['img_points'],
+		img_size, flags=flags, criteria=criteria )
+		
 	parameter_names = ( 'rms_stereo', 'camera_matrix_l', 'dist_coefs_l', 'camera_matrix_r', 'dist_coefs_r', 'R', 'T', 'E', 'F' )
 	stereo_calibration = dict( zip( parameter_names, stereo_calibration ) )
 
@@ -189,46 +180,53 @@ def StereoCameraCalibration( debug = False ) :
 	print( 'Stereo rectification...' )
 
 	# Stereo rectification
-	stereo_rectify = cv2.stereoRectify( cam1['camera_matrix'], cam1['dist_coefs'], cam2['camera_matrix'], cam2['dist_coefs'], cam1['img_size'], stereo_calibration['R'], stereo_calibration['T'] )
+	stereo_rectification = cv2.stereoRectify(
+		stereo_calibration['camera_matrix_l'], stereo_calibration['dist_coefs_l'],
+		stereo_calibration['camera_matrix_r'], stereo_calibration['dist_coefs_r'],
+		img_size, stereo_calibration['R'], stereo_calibration['T'] )
+		
 	parameter_names = ( 'R1', 'R2', 'P1', 'P2', 'Q', 'ROI1', 'ROI2' )
-	stereo_rectify = dict( zip( parameter_names, stereo_rectify ) )
+	stereo_rectification = dict( zip( parameter_names, stereo_rectification ) )
 	
 	# Write results with pickle
 	with open( 'stereo-calibration.pkl' , 'wb') as output_file :
 		pickle.dump( stereo_calibration, output_file, pickle.HIGHEST_PROTOCOL )
 	with open( 'stereo-rectification.pkl' , 'wb') as output_file :
-		pickle.dump( stereo_rectify, output_file, pickle.HIGHEST_PROTOCOL )
+		pickle.dump( stereo_rectification, output_file, pickle.HIGHEST_PROTOCOL )
 
-
-#
-# Undistort images
-#
-def UndistortImages() :
-
-	print( 'Undistort images...' )
-	left_image = cv2.pyrDown( cv2.imread( cam1['img_files'][0], cv2.CV_LOAD_IMAGE_GRAYSCALE ) )
-	right_image = cv2.pyrDown( cv2.imread( cam2['img_files'][0], cv2.CV_LOAD_IMAGE_GRAYSCALE ) )
+	print( 'Computing undistort maps...' )
 	
 	left_maps = cv2.initUndistortRectifyMap(
-		cam1['camera_matrix'],
-		cam1['dist_coefs'],
-		stereo_rectify['R1'], stereo_rectify['P1'],
-		cam1['img_size'], cv2.CV_16SC2 )
+		stereo_calibration['camera_matrix_l'],
+		stereo_calibration['dist_coefs_l'],
+		stereo_rectification['R1'], stereo_rectification['P1'],
+		img_size, cv2.CV_16SC2 )
 
 	right_maps = cv2.initUndistortRectifyMap(
-		cam2['camera_matrix'],
-		cam2['dist_coefs'],
-		stereo_rectify['R2'], stereo_rectify['P2'],
-		cam2['img_size'], cv2.CV_16SC2 )
+		stereo_calibration['camera_matrix_r'],
+		stereo_calibration['dist_coefs_r'],
+		stereo_rectification['R2'], stereo_rectification['P2'],
+		img_size, cv2.CV_16SC2 )
 
-	left_image = cv2.remap( left_image, left_maps[0], left_maps[1], cv2.INTER_LINEAR )
-	right_image = cv2.remap( right_image, right_maps[0], right_maps[1], cv2.INTER_LINEAR )
+	print( 'Undistort images...' )
+
+	# For each image
+	for i in range( len( cam1['img_files'] ) )  :
+		
+		# Load the image
+		left_image = cv2.imread( cam1['img_files'][i], cv2.CV_LOAD_IMAGE_GRAYSCALE )
+		right_image = cv2.imread( cam2['img_files'][i], cv2.CV_LOAD_IMAGE_GRAYSCALE )
+
+		left_image = cv2.remap( left_image, left_maps[0], left_maps[1], cv2.INTER_LINEAR )
+		right_image = cv2.remap( right_image, right_maps[0], right_maps[1], cv2.INTER_LINEAR )
 	
-	left_image = cv2.rectangle( left_image, (384,0),(510,128),(0,255,0),3 )
+		# Prepare image for display
+		stereo_image = np.concatenate( (left_image, right_image), axis=1 )
+		stereo_image = cv2.resize( stereo_image, None, fx=0.3, fy=0.3 )
+		
+		cv2.imshow('Undistorted stereo images', stereo_image )
+		cv2.waitKey( 500 )
 
-	cv2.imshow('left', left_image )
-	cv2.imshow('right', right_image )
-	cv2.waitKey()
 	cv2.destroyAllWindows()
 
 
