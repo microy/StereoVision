@@ -36,8 +36,9 @@ def CameraCalibration( image_files, pattern_size, debug = False ) :
 	pattern_points[:,:2] = np.indices(pattern_size).T.reshape(-1, 2)
 
 	# Get image size
-	img_size = tuple( cv2.imread( image_files[0], cv2.CV_LOAD_IMAGE_GRAYSCALE ).shape[:2] )
+	height, width = cv2.imread( image_files[0], cv2.CV_LOAD_IMAGE_GRAYSCALE ).shape[:2]
 #	img_size = tuple( cv2.pyrDown( cv2.imread( image_files[0] ), cv2.CV_LOAD_IMAGE_GRAYSCALE ).shape[:2] )
+	img_size = ( width, height )
 	
 	# 3D points
 	obj_points = []
@@ -114,22 +115,56 @@ def CameraCalibration( image_files, pattern_size, debug = False ) :
 	parameter_names = ( 'rms', 'camera_matrix', 'dist_coefs', 'rvecs', 'tvecs' )
 	calibration = dict( zip( parameter_names, calibration ) )
 	
-	# Backup image and object points
-	calibration['img_points'] = img_points
-	calibration['obj_points'] = obj_points
-
-	# Backup image size and filenames
-	calibration['img_size'] = img_size
-	calibration['img_files'] = img_files
+	# Optimize the camera matrix
+	calibration['new_camera_matrix'], calibration['roi'] = cv2.getOptimalNewCameraMatrix(
+		calibration['camera_matrix'], calibration['dist_coefs'], img_size, 1 )
 	
-	# Backup pattern dimensions
-	calibration['pattern_size'] = pattern_size
+	# Compute distortion rectification map
+	calibration['map_x'], calibration['map_y'] = cv2.initUndistortRectifyMap( calibration['camera_matrix'],
+		calibration['dist_coefs'], None, calibration['new_camera_matrix'], img_size, cv2.CV_16SC2 )
+	
+	# Undistort images
+	if False :
+		
+		# For each image
+		for filename in image_files :
+			
+			# Load the image
+			image = cv2.imread( filename, cv2.CV_LOAD_IMAGE_GRAYSCALE )
 
+			# Undistort the image
+			undistorted_image = cv2.remap( image, calibration['map_x'], calibration['map_y'], cv2.INTER_LINEAR )
+			
+			cv2.imshow( 'Image' , image )
+			cv2.imshow( 'Undistorted image' , undistorted_image )
+			cv2.imwrite( '{}_undist.png'.format(filename), undistorted_image )
+			cv2.waitKey()
+		
+		# Close the chessboard preview windows
+		cv2.destroyAllWindows()
+	
+	# Reprojection error
+#	mean_error = 0
+#	for i in xrange( len( obj_points ) ) :
+#		imgpoints2, _ = cv2.projectPoints( obj_points[i], calibration['rvecs'][i],
+#		calibration['tvecs'][i], calibration['camera_matrix'], calibration['dist_coefs'] )
+#		error = cv2.norm( img_points[i], imgpoints2, cv2.NORM_L2 ) / len( imgpoints2 )
+#		mean_error += error
+#	print "total error: ", mean_error / len( objpoints )
+	
 	# Print calibration results
 	print( "RMS : {}".format( calibration['rms'] ) )
 	print( "Camera matrix :\n{}".format( calibration['camera_matrix'] ) )
+	print( "Optimized camera matrix :\n{}".format( calibration['new_camera_matrix'] ) )
 	print( "Distortion coefficients :\n{}".format( calibration['dist_coefs'].ravel() ) )
 	
+	# Backup calibration parameters for future use
+	calibration['img_points'] = img_points
+	calibration['obj_points'] = obj_points
+	calibration['img_size'] = img_size
+	calibration['img_files'] = img_files
+	calibration['pattern_size'] = pattern_size
+
 	# Write calibration results with pickle
 	with open( 'camera-calibration.pkl', 'wb') as output_file :
 		pickle.dump( calibration, output_file, pickle.HIGHEST_PROTOCOL )
@@ -197,14 +232,14 @@ def StereoCameraCalibration( debug = False ) :
 	print( 'Computing undistort maps...' )
 	
 	left_maps = cv2.initUndistortRectifyMap(
-		stereo_calibration['camera_matrix_l'],
-		stereo_calibration['dist_coefs_l'],
+		cam1['camera_matrix'],
+		cam1['dist_coefs'],
 		stereo_rectification['R1'], stereo_rectification['P1'],
 		img_size, cv2.CV_16SC2 )
 
 	right_maps = cv2.initUndistortRectifyMap(
-		stereo_calibration['camera_matrix_r'],
-		stereo_calibration['dist_coefs_r'],
+		cam2['camera_matrix'],
+		cam2['dist_coefs'],
 		stereo_rectification['R2'], stereo_rectification['P2'],
 		img_size, cv2.CV_16SC2 )
 
