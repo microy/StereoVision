@@ -120,24 +120,40 @@ def CameraCalibration( image_files, pattern_size, debug = False ) :
 		calibration['camera_matrix'], calibration['dist_coefs'], img_size, 1 )
 	
 	# Compute distortion rectification map
-	calibration['map_x'], calibration['map_y'] = cv2.initUndistortRectifyMap( calibration['camera_matrix'],
+	calibration['map'] = cv2.initUndistortRectifyMap( calibration['camera_matrix'],
 		calibration['dist_coefs'], None, calibration['new_camera_matrix'], img_size, cv2.CV_16SC2 )
-	
+		
 	# Undistort images
-	if False :
+	if True :
 		
 		# For each image
-		for filename in image_files :
+		for i, filename in enumerate( image_files ) :
 			
 			# Load the image
 			image = cv2.imread( filename, cv2.CV_LOAD_IMAGE_GRAYSCALE )
 
 			# Undistort the image
-			undistorted_image = cv2.remap( image, calibration['map_x'], calibration['map_y'], cv2.INTER_LINEAR )
+			undistorted_image = cv2.remap( image, calibration['map'][0], calibration['map'][1], cv2.INTER_LINEAR )
 			
-			cv2.imshow( 'Image' , image )
-			cv2.imshow( 'Undistorted image' , undistorted_image )
-			cv2.imwrite( '{}_undist.png'.format(filename), undistorted_image )
+			p1 = tuple( img_points[i][0].ravel() )
+			p2 = tuple( img_points[i][pattern_size[0]-1].ravel() )
+			p3 = tuple( img_points[i][-1].ravel() )
+			p4 = tuple( img_points[i][-pattern_size[0]].ravel() )
+
+			image = cv2.cvtColor( image, cv2.COLOR_GRAY2BGR )
+			cv2.line( image, p1, p2, (0,0,255), 2 )
+			cv2.line( image, p2, p3, (0,0,255), 2 )
+			cv2.line( image, p3, p4, (0,0,255), 2 )
+			cv2.line( image, p4, p1, (0,0,255), 2 )
+
+			undistorted_image = cv2.cvtColor( undistorted_image, cv2.COLOR_GRAY2BGR )
+			cv2.line( undistorted_image, p1, p2, (0,0,255), 2 )
+			cv2.line( undistorted_image, p2, p3, (0,0,255), 2 )
+			cv2.line( undistorted_image, p3, p4, (0,0,255), 2 )
+			cv2.line( undistorted_image, p4, p1, (0,0,255), 2 )
+			
+			preview = cv2.pyrDown( np.concatenate( (image, undistorted_image), axis=1 ) )
+			cv2.imshow( 'Image - Undistorted' , preview )
 			cv2.waitKey()
 		
 		# Close the chessboard preview windows
