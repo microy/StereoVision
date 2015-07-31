@@ -50,7 +50,7 @@ if args.live :
 elif args.mono :
 	
 	calibration = Calibration.CameraCalibration( sorted( glob.glob( args.mono ) ), pattern_size, args.debug )
-	
+	Calibration.UndistortImages( calibration )
 
 #
 # Stereo camera calibration
