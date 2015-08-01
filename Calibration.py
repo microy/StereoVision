@@ -10,19 +10,13 @@
 # External dependencies
 #
 import math
-import os
-import pickle
-import sys
 import cv2
 import numpy as np
 
 
 #
-# Calibration parameters
-#
-
-
 # Image scale factor for pattern detection
+#
 image_scale = 0.5
 
 
@@ -35,6 +29,13 @@ def CameraCalibration( image_files, pattern_size, debug = False ) :
 	# Chessboard pattern
 	pattern_points = np.zeros( (np.prod(pattern_size), 3), np.float32 )
 	pattern_points[:,:2] = np.indices(pattern_size).T.reshape(-1, 2)
+	
+	# Asymetric circles grid pattern
+#	pattern_points = []
+#	for i in xrange( pattern_size[1] ) :
+#		for j in xrange( pattern_size[0] ) :
+#			pattern_points.append( [ (2*j) + i%2 , i, 0 ] )
+#	pattern_points = np.asarray( pattern_points, dtype=np.float32 )
 
 	# Get image size
 	height, width = cv2.imread( image_files[0], cv2.CV_LOAD_IMAGE_GRAYSCALE ).shape[:2]
@@ -66,33 +67,20 @@ def CameraCalibration( image_files, pattern_size, debug = False ) :
 		flags = cv2.CALIB_CB_ADAPTIVE_THRESH | cv2.CALIB_CB_NORMALIZE_IMAGE
 
 		# Find the chessboard corners on the image
-		found_all, corners = cv2.findChessboardCorners( image_small, pattern_size, flags=flags )
-	#	found_all, corners = cv2.findCirclesGridDefault( image, pattern_size, flags = cv2.CALIB_CB_ASYMMETRIC_GRID )	
+		found, corners = cv2.findChessboardCorners( image_small, pattern_size, flags=flags )
+	#	found, corners = cv2.findCirclesGridDefault( image, pattern_size, flags = cv2.CALIB_CB_ASYMMETRIC_GRID )	
 
 		# Pattern not found
-		if not found_all :
-			
-			print( "Pattern not found on image {}...".format(filename) )
+		if not found :
+			print( 'Pattern not found on image {}...'.format( filename ) )
 			continue
 			
-		# Preview chessboard on image
-		if debug :
-			
-			# Convert grayscale image in color
-			image_color = cv2.cvtColor( image_small, cv2.COLOR_GRAY2BGR )
-			
-			# Draw the chessboard corners on the image
-			cv2.drawChessboardCorners( image_color, pattern_size, corners, found_all )
-			
-			# Display the image with the chessboard
-			cv2.imshow( filename, image_color )
-
 		# Rescale the corner position
 	#	corners *= 1.0 / image_scale
 	#	corners *= 2.0
 
 		# Termination criteria
-		criteria = ( cv2.TERM_CRITERIA_COUNT + cv2.TERM_CRITERIA_EPS, 30, 1e-5 )
+		criteria = ( cv2.TERM_CRITERIA_MAX_ITER + cv2.TERM_CRITERIA_EPS, 30, 1e-5 )
 	
 		# Refine the corner positions
 		cv2.cornerSubPix( image, corners, (11, 11), (-1, -1), criteria )
@@ -102,14 +90,19 @@ def CameraCalibration( image_files, pattern_size, debug = False ) :
 		obj_points.append( pattern_points )
 		img_files.append( filename )
 
-	# Close chessboard preview window
-	if debug :
-
-		# Wait for a key
-		cv2.waitKey()
-
-		# Close the chessboard preview windows
-		cv2.destroyAllWindows()
+		# Preview chessboard on image
+		if debug :
+			
+			# Convert grayscale image in color
+			image_color = cv2.cvtColor( image_small, cv2.COLOR_GRAY2BGR )
+			
+			# Draw the chessboard corners on the image
+			cv2.drawChessboardCorners( image_color, pattern_size, corners, found )
+			
+			# Display the image with the chessboard
+			cv2.imshow( filename, cv2.pyrDown( image_color ) )
+			cv2.waitKey( 700 )
+			cv2.destroyWindow( filename )
 
 	# Camera calibration flags
 	flags  = 0
@@ -124,34 +117,32 @@ def CameraCalibration( image_files, pattern_size, debug = False ) :
 
 	# Camera calibration
 	calibration = cv2.calibrateCamera( obj_points, img_points, img_size, flags=flags )
+	
+	# Store the calibration results in a dictionary
 	parameter_names = ( 'rms', 'camera_matrix', 'dist_coefs', 'rvecs', 'tvecs' )
 	calibration = dict( zip( parameter_names, calibration ) )
 	
-	# Optimize the camera matrix
-	calibration['new_camera_matrix'], calibration['roi'] = cv2.getOptimalNewCameraMatrix(
-		calibration['camera_matrix'], calibration['dist_coefs'], img_size, 1 )
-	
-	# Compute distortion rectification map
-	calibration['map'] = cv2.initUndistortRectifyMap( calibration['camera_matrix'],
-		calibration['dist_coefs'], None, calibration['new_camera_matrix'], img_size, cv2.CV_16SC2 )
-		
-	# Reprojection error
-	mean_error = 0
+	# Compute reprojection error
+	calibration['reproject_error'] = 0
 	for i, obj in enumerate( obj_points ) :
+		
 		# Reproject the object points using the camera parameters
 		reprojected_img_points, _ = cv2.projectPoints( obj, calibration['rvecs'][i],
 		calibration['tvecs'][i], calibration['camera_matrix'], calibration['dist_coefs'] )
+		
 		# Compute the error with the original image points
 		error = cv2.norm( img_points[i], reprojected_img_points.reshape(-1, 2), cv2.NORM_L2 )
-		mean_error += error * error
-	mean_error = math.sqrt( mean_error / (len(obj_points) * obj_points[0].shape[0]) )
+		
+		# Add to the total error
+		calibration['reproject_error'] += error * error
+		
+	calibration['reproject_error'] = math.sqrt( calibration['reproject_error'] / (len(obj_points) * np.prod(pattern_size)) )
 	
 	# Print calibration results
-	print( "Calibration error : {}".format( calibration['rms'] ) )
-	print( "Reprojection error : {}".format( mean_error ) )
-	print( "Camera matrix :\n{}".format( calibration['camera_matrix'] ) )
-	print( "Optimized camera matrix :\n{}".format( calibration['new_camera_matrix'] ) )
-	print( "Distortion coefficients :\n{}".format( calibration['dist_coefs'].ravel() ) )
+	print( 'Calibration error : {}'.format( calibration['rms'] ) )
+	print( 'Reprojection error : {}'.format( calibration['reproject_error'] ) )
+	print( 'Camera matrix :\n{}'.format( calibration['camera_matrix'] ) )
+	print( 'Distortion coefficients :\n{}'.format( calibration['dist_coefs'].ravel() ) )
 	
 	# Backup calibration parameters for future use
 	calibration['img_points'] = img_points
@@ -159,10 +150,6 @@ def CameraCalibration( image_files, pattern_size, debug = False ) :
 	calibration['img_size'] = img_size
 	calibration['img_files'] = img_files
 	calibration['pattern_size'] = pattern_size
-
-	# Write calibration results with pickle
-	with open( 'camera-calibration.pkl', 'wb') as output_file :
-		pickle.dump( calibration, output_file, pickle.HIGHEST_PROTOCOL )
 
 	# Return the camera calibration results
 	return calibration
@@ -173,61 +160,51 @@ def CameraCalibration( image_files, pattern_size, debug = False ) :
 #
 def UndistortImages( calibration ) :
 	
-	# For each image
+	# Optimize the camera matrix
+	new_camera_matrix, roi = cv2.getOptimalNewCameraMatrix(
+		calibration['camera_matrix'], calibration['dist_coefs'], calibration['img_size'], 1 )
+	
+	# Compute distortion rectification map
+	rectify_map = cv2.initUndistortRectifyMap( calibration['camera_matrix'],
+		calibration['dist_coefs'], None, new_camera_matrix, calibration['img_size'], cv2.CV_16SC2 )
+		
+	# Undistort calibration images
 	for i, filename in enumerate( calibration['img_files'] ) :
 		
 		# Load the image
 		image = cv2.imread( filename, cv2.CV_LOAD_IMAGE_GRAYSCALE )
 
 		# Undistort the image
-		undistorted_image = cv2.remap( image, calibration['map'][0], calibration['map'][1], cv2.INTER_LINEAR )
-		
-		p1 = tuple( calibration['img_points'][i][0].ravel() )
-		p2 = tuple( calibration['img_points'][i][calibration['pattern_size'][0]-1].ravel() )
-		p3 = tuple( calibration['img_points'][i][-1].ravel() )
-		p4 = tuple( calibration['img_points'][i][-calibration['pattern_size'][0]].ravel() )
+		undistorted_image = cv2.remap( image, rectify_map[0], rectify_map[1], cv2.INTER_LINEAR )
 
+		# Convert grayscale images to color
 		image = cv2.cvtColor( image, cv2.COLOR_GRAY2BGR )
-		cv2.line( image, p1, p2, (0,0,255), 2 )
-		cv2.line( image, p2, p3, (0,0,255), 2 )
-		cv2.line( image, p3, p4, (0,0,255), 2 )
-		cv2.line( image, p4, p1, (0,0,255), 2 )
-		a, b, c, d = calibration['roi']
-		cv2.rectangle( image, (a,b), (c, d), (0,0,255), 2 )
-
 		undistorted_image = cv2.cvtColor( undistorted_image, cv2.COLOR_GRAY2BGR )
-		cv2.line( undistorted_image, p1, p2, (0,0,255), 2 )
-		cv2.line( undistorted_image, p2, p3, (0,0,255), 2 )
-		cv2.line( undistorted_image, p3, p4, (0,0,255), 2 )
-		cv2.line( undistorted_image, p4, p1, (0,0,255), 2 )
+
+		# Print ROI
+		cv2.rectangle( undistorted_image, roi[:2], roi[2:], (0,0,255), 3 )
 		
+		# Display the original and the undistorted images
 		preview = cv2.pyrDown( np.concatenate( (image, undistorted_image), axis=1 ) )
-		cv2.imshow( 'Image - Undistorted' , preview )
-		cv2.waitKey()
+		cv2.imshow( 'Original - Undistorted' , preview )
+		cv2.waitKey( 700 )
 	
 	# Close the chessboard preview windows
 	cv2.destroyAllWindows()
 
 
-
 #
 # Stereo camera calibration
 #
-def StereoCameraCalibration( debug = False ) :
+def StereoCameraCalibration( cam1, cam2, debug = False ) :
 
-	# Read camera calibration files
-	with open( 'camera-calibration-left.pkl' , 'rb') as input_file :
-		cam1 = pickle.load( input_file )
-	with open( 'camera-calibration-right.pkl' , 'rb') as input_file :
-		cam2 = pickle.load( input_file )
-
-	img_size = cam1['img_size']
-	
+	# Stereo calibration termination criteria
 	criteria = (cv2.TERM_CRITERIA_MAX_ITER + cv2.TERM_CRITERIA_EPS, 100, 1e-5)
-#	criteria = ( cv2.TERM_CRITERIA_COUNT + cv2.TERM_CRITERIA_EPS, 30, 1e-6 )
+	
+	# Stereo calibration flags
 	flags  = 0
 	flags |= cv2.CALIB_USE_INTRINSIC_GUESS
-	flags |= cv2.CALIB_FIX_INTRINSIC
+#	flags |= cv2.CALIB_FIX_INTRINSIC
 #	flags |= cv2.CALIB_FIX_PRINCIPAL_POINT
 #	flags |= cv2.CALIB_FIX_FOCAL_LENGTH
 #	flags |= cv2.CALIB_FIX_ASPECT_RATIO
@@ -238,78 +215,100 @@ def StereoCameraCalibration( debug = False ) :
 	flags |= cv2.CALIB_FIX_K4
 	flags |= cv2.CALIB_FIX_K5
 
-	print( 'Stereo calibration...' )
-
 	# Stereo calibration
-	stereo_calibration = cv2.stereoCalibrate( cam1['obj_points'], cam1['img_points'], cam2['img_points'],
-		img_size, cam1['camera_matrix'], cam1['dist_coefs'], cam2['camera_matrix'], cam2['dist_coefs'],
+	calibration = cv2.stereoCalibrate( cam1['obj_points'], cam1['img_points'], cam2['img_points'],
+		cam1['img_size'], cam1['camera_matrix'], cam1['dist_coefs'], cam2['camera_matrix'], cam2['dist_coefs'],
 		flags=flags, criteria=criteria )
 		
+	# Store the stereo calibration results in a dictionary
 	parameter_names = ( 'rms_stereo', 'camera_matrix_l', 'dist_coefs_l', 'camera_matrix_r', 'dist_coefs_r', 'R', 'T', 'E', 'F' )
-	stereo_calibration = dict( zip( parameter_names, stereo_calibration ) )
+	calibration = dict( zip( parameter_names, calibration ) )
+	
+	# Stereo rectification
+	rectification = cv2.stereoRectify(
+		calibration['camera_matrix_l'], calibration['dist_coefs_l'],
+		calibration['camera_matrix_r'], calibration['dist_coefs_r'],
+		cam1['img_size'], calibration['R'], calibration['T'],
+		flags = cv2.CALIB_ZERO_DISPARITY, alpha = 1 )
+		
+	# Store the stereo rectification results in the dictionary
+	parameter_names = ( 'R1', 'R2', 'P1', 'P2', 'Q', 'ROI1', 'ROI2' )
+	calibration.update( zip( parameter_names, rectification ) )
+	print( zip( parameter_names, rectification ) )
+
+	# Compute reprojection error
+	undistorted_l = cv2.undistortPoints( np.concatenate( cam1['img_points'] ).reshape(-1, 1, 2),
+		cam1['camera_matrix'], cam1['dist_coefs'], P=cam1['camera_matrix'] )
+	undistorted_r = cv2.undistortPoints( np.concatenate( cam2['img_points'] ).reshape(-1, 1, 2),
+		cam2['camera_matrix'], cam2['dist_coefs'], P=cam2['camera_matrix'] )
+	lines_l = cv2.computeCorrespondEpilines( undistorted_l, 1, calibration['F'] )
+	lines_r = cv2.computeCorrespondEpilines( undistorted_r, 2, calibration['F'] )
+	calibration['reproject_error'] = 0
+	for i in range( len( undistorted_l ) ) :
+		calibration['reproject_error'] += abs( undistorted_l[i][0][0] * lines_r[i][0][0] +
+			undistorted_l[i][0][1] * lines_r[i][0][1] + lines_r[i][0][2] ) + abs( undistorted_r[i][0][0] * lines_l[i][0][0] +
+			undistorted_r[i][0][1] * lines_l[i][0][1] + lines_l[i][0][2] )
+	calibration['reproject_error'] /= len( undistorted_r )
 
 	# Print calibration results
-	print( "RMS : {}".format( stereo_calibration['rms_stereo'] ) )
-	print( "Left camera matrix :\n{}".format( stereo_calibration['camera_matrix_l'] ) )
-	print( "Left distortion coefficients :\n{}".format( stereo_calibration['dist_coefs_l'].ravel() ) )
-	print( "Right camera matrix :\n{}".format( stereo_calibration['camera_matrix_r'] ) )
-	print( "Right distortion coefficients :\n{}".format( stereo_calibration['dist_coefs_r'].ravel() ) )
-
-	print( 'Stereo rectification...' )
-
-	# Stereo rectification
-	stereo_rectification = cv2.stereoRectify(
-		stereo_calibration['camera_matrix_l'], stereo_calibration['dist_coefs_l'],
-		stereo_calibration['camera_matrix_r'], stereo_calibration['dist_coefs_r'],
-		img_size, stereo_calibration['R'], stereo_calibration['T'] )
-		
-	parameter_names = ( 'R1', 'R2', 'P1', 'P2', 'Q', 'ROI1', 'ROI2' )
-	stereo_rectification = dict( zip( parameter_names, stereo_rectification ) )
+	print( 'Stereo calibration error : {}'.format( calibration['rms_stereo'] ) )
+	print( 'Reprojection error : {}'.format( calibration['reproject_error'] ) )
+	print( 'Left camera matrix :\n{}'.format( calibration['camera_matrix_l'] ) )
+	print( 'Left distortion coefficients :\n{}'.format( calibration['dist_coefs_l'].ravel() ) )
+	print( 'Right camera matrix :\n{}'.format( calibration['camera_matrix_r'] ) )
+	print( 'Right distortion coefficients :\n{}'.format( calibration['dist_coefs_r'].ravel() ) )
 	
-	print( 'Computing undistort maps...' )
+	# Return the camera calibration results
+	return calibration
+
+
+
+def StereoUndistortImages( cam1, cam2, calibration ) :
 	
-	left_maps = cv2.initUndistortRectifyMap(
-		stereo_calibration['camera_matrix_l'], stereo_calibration['dist_coefs_l'],
-		stereo_rectification['R1'], stereo_rectification['P1'],
-		img_size, cv2.CV_16SC2 )
+	# Undistortion
+	left_map = cv2.initUndistortRectifyMap(
+		calibration['camera_matrix_l'], calibration['dist_coefs_l'],
+		calibration['R1'], calibration['P1'],
+		cam1['img_size'], cv2.CV_16SC2 )
+	right_map = cv2.initUndistortRectifyMap(
+		calibration['camera_matrix_r'], calibration['dist_coefs_r'],
+		calibration['R2'], calibration['P2'],
+		cam2['img_size'], cv2.CV_16SC2 )
 
-	right_maps = cv2.initUndistortRectifyMap(
-		stereo_calibration['camera_matrix_r'], stereo_calibration['dist_coefs_r'],
-		stereo_rectification['R2'], stereo_rectification['P2'],
-		img_size, cv2.CV_16SC2 )
-
-	print( 'Undistort images...' )
-
-	# For each image
+	# Display undistorted calibration images
 	for i in range( len( cam1['img_files'] ) )  :
 		
 		# Load the image
 		left_image = cv2.imread( cam1['img_files'][i], cv2.CV_LOAD_IMAGE_GRAYSCALE )
 		right_image = cv2.imread( cam2['img_files'][i], cv2.CV_LOAD_IMAGE_GRAYSCALE )
 
-		# Prepare image for display
-		stereo_image = np.concatenate( (left_image, right_image), axis=1 )
-
 		# Remap the images
-		left_image = cv2.remap( left_image, left_maps[0], left_maps[1], cv2.INTER_LINEAR )
-		right_image = cv2.remap( right_image, right_maps[0], right_maps[1], cv2.INTER_LINEAR )
+		left_image = cv2.remap( left_image, left_map[0], left_map[1], cv2.INTER_LINEAR )
+		right_image = cv2.remap( right_image, right_map[0], right_map[1], cv2.INTER_LINEAR )
 	
-		# Prepare image for display
-		stereo_image = np.concatenate( (stereo_image, np.concatenate( (left_image, right_image), axis=1 )), axis=0 )
-		stereo_image = cv2.resize( stereo_image, None, fx=0.3, fy=0.3 )
+		# Convert grayscale images to color
+		left_image = cv2.cvtColor( left_image, cv2.COLOR_GRAY2BGR )
+		right_image = cv2.cvtColor( right_image, cv2.COLOR_GRAY2BGR )
+
+		# Print ROI
+		cv2.rectangle( left_image, calibration['ROI1'][:2], calibration['ROI1'][2:], (0,0,255), 2 )
+		cv2.rectangle( right_image, calibration['ROI2'][:2], calibration['ROI2'][2:], (0,0,255), 2 )
 		
+		# Prepare image for display
+		undist_images = np.concatenate( (left_image, right_image), axis=1 )
+		
+		# Print lines
+		for i in range( 0, undist_images.shape[0], 32 ) :
+			cv2.line( undist_images, (0, i), (undist_images.shape[1], i), (0, 255, 0), 2 )
+
 		# Show the result
-		cv2.imshow('Undistorted stereo images', stereo_image )
+		cv2.imshow('Undistorted stereo images', cv2.pyrDown( undist_images ) )
 		cv2.waitKey( 700 )
 
 	# Close preview window
 	cv2.destroyAllWindows()
 
-	# Write results with pickle
-	with open( 'stereo-calibration.pkl' , 'wb') as output_file :
-		pickle.dump( stereo_calibration, output_file, pickle.HIGHEST_PROTOCOL )
-	with open( 'stereo-rectification.pkl' , 'wb') as output_file :
-		pickle.dump( stereo_rectification, output_file, pickle.HIGHEST_PROTOCOL )
+
 
 
 #
