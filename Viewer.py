@@ -35,10 +35,12 @@ class VmbStereoViewer( object ) :
 
 		# Live chessboard finding and drawing on the image
 		chessboard_enabled = False
+		cross_enabled = False
+		zoom_enabled = False
 		
 		# Open the cameras
 		stereo_camera.Open()
-
+		
 		# Start image acquisition
 		stereo_camera.StartCapture( self.FrameCallback )
 
@@ -52,24 +54,41 @@ class VmbStereoViewer( object ) :
 			while not self.frames_ready : pass
 
 			# Convert the frames to images
-			image_1 = self.frame_1.image
-			image_2 = self.frame_2.image
+			image_left = self.frame_left.image
+			image_right = self.frame_right.image
 
 			# Prepare image for display
-			image_1_displayed = cv2.resize( image_1, None, fx=scale_factor, fy=scale_factor )
-			image_2_displayed = cv2.resize( image_2, None, fx=scale_factor, fy=scale_factor )
+			image_left_displayed = cv2.resize( image_left, None, fx=scale_factor, fy=scale_factor )
+			image_right_displayed = cv2.resize( image_right, None, fx=scale_factor, fy=scale_factor )
 
 			# Preview the calibration chessboard on the image
 			if chessboard_enabled :
+				image_left_displayed = self.PreviewChessboard( image_left_displayed, pattern_size )
+				image_right_displayed = self.PreviewChessboard( image_right_displayed, pattern_size )
 
-				image_1_displayed = self.PreviewChessboard( image_1_displayed, pattern_size )
-				image_2_displayed = self.PreviewChessboard( image_2_displayed, pattern_size )
+			# Zoom in the middle of the image
+			if zoom_enabled :
+				w = image_left.shape[1] / 2
+				h = image_left.shape[0] / 2
+				wd = image_left_displayed.shape[1] / 2
+				hd = image_left_displayed.shape[0] / 2
+				image_left_displayed[ hd-350:hd+350, wd-400:wd+400 ] = image_left[ h-350:h+350, w-400:w+400 ]
+				image_right_displayed[ hd-350:hd+350, wd-400:wd+400 ] = image_right[ h-350:h+350, w-400:w+400 ]
+
+			# Display a cross in the middle of the image
+			if cross_enabled :
+				w = image_left_displayed.shape[1] / scale_factor
+				h = image_left_displayed.shape[0] / scale_factor
+				cv2.line( image_left_displayed, (w/2, 0), (w/2, h), (0, 255, 0), 2 )
+				cv2.line( image_left_displayed, (0, h/2), (w, h/2), (0, 255, 0), 2 )
+				cv2.line( image_right_displayed, (w/2, 0), (w/2, h), (0, 255, 0), 2 )
+				cv2.line( image_right_displayed, (0, h/2), (w, h/2), (0, 255, 0), 2 )
 
 			# Prepare image for display
-			stereo_image = np.concatenate( (image_1_displayed, image_2_displayed), axis=1 )
+			stereo_image = np.concatenate( (image_left_displayed, image_right_displayed), axis=1 )
 			
 			# Display the image (scaled down)
-			cv2.imshow( "{} - {}".format( stereo_camera.camera_1.id, stereo_camera.camera_2.id ), stereo_image )
+			cv2.imshow( '{} - {}'.format( stereo_camera.camera_1.id, stereo_camera.camera_2.id ), stereo_image )
 
 			# Keyboard interruption
 			key = cv2.waitKey( 1 ) & 0xFF
@@ -86,14 +105,26 @@ class VmbStereoViewer( object ) :
 				# Save images to disk 
 				image_count += 1
 				print( 'Save images {} to disk...'.format(image_count) )
-				cv2.imwrite( 'left{:0>2}.png'.format(image_count), image_1 )
-				cv2.imwrite( 'right{:0>2}.png'.format(image_count), image_2 )
+				cv2.imwrite( 'left{:0>2}.png'.format(image_count), image_left )
+				cv2.imwrite( 'right{:0>2}.png'.format(image_count), image_right )
 				
 			# C key
 			elif key == ord('c') :
 				
 				# Enable / Disable chessboard preview
 				chessboard_enabled = not chessboard_enabled		
+
+			# M key
+			elif key == ord('m') :
+				
+				# Enable / Disable display of the middle cross
+				cross_enabled = not cross_enabled		
+
+			# Z key
+			elif key == ord('z') :
+				
+				# Enable / Disable zoom in the middle
+				zoom_enabled = not zoom_enabled		
 
 		# Stop image acquisition
 		stereo_camera.StopCapture()
@@ -110,11 +141,11 @@ class VmbStereoViewer( object ) :
 	#
 	# Receive the frames from both cameras
 	#
-	def FrameCallback( self, frame_1, frame_2 ) :
+	def FrameCallback( self, frame_left, frame_right ) :
 
 		# Save current frame
-		self.frame_1 = frame_1
-		self.frame_2 = frame_2
+		self.frame_left = frame_left
+		self.frame_right = frame_right
 
 		# Frame ready
 		self.frames_ready = True

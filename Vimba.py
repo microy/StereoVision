@@ -221,14 +221,14 @@ class VmbStereoCamera( object ) :
 	#
 	# Initialize the cameras
 	#
-	def __init__( self, camera_1_id, camera_2_id ) :
+	def __init__( self, camera_left_id, camera_right_id ) :
 
 		# Camera connection
-		self.camera_1 = VmbCamera( camera_1_id )
-		self.camera_2 = VmbCamera( camera_2_id )
+		self.camera_left = VmbCamera( camera_left_id )
+		self.camera_right = VmbCamera( camera_right_id )
 		
 		# Software trigger thread
-		self.software_trigger = VmbSoftwareTrigger( self.camera_1, self.camera_2 )
+		self.software_trigger = VmbSoftwareTrigger( self.camera_left, self.camera_right )
 
 	#
 	# Open the cameras
@@ -236,12 +236,12 @@ class VmbStereoCamera( object ) :
 	def Open( self ) :
 		
 		# Open the cameras
-		self.camera_1.Open()
-		self.camera_2.Open()
+		self.camera_left.Open()
+		self.camera_right.Open()
 
 		# Configure software trigger
-		vimba.VmbFeatureEnumSet( self.camera_1.handle, "TriggerSource", "Software" )
-		vimba.VmbFeatureEnumSet( self.camera_2.handle, "TriggerSource", "Software" )
+		vimba.VmbFeatureEnumSet( self.camera_left.handle, "TriggerSource", "Software" )
+		vimba.VmbFeatureEnumSet( self.camera_right.handle, "TriggerSource", "Software" )
 
 	#
 	# Close the cameras
@@ -249,12 +249,12 @@ class VmbStereoCamera( object ) :
 	def Close( self ) :
 
 		# Restore freerun trigger
-		vimba.VmbFeatureEnumSet( self.camera_1.handle, "TriggerSource", "Freerun" )
-		vimba.VmbFeatureEnumSet( self.camera_2.handle, "TriggerSource", "Freerun" )
+		vimba.VmbFeatureEnumSet( self.camera_left.handle, "TriggerSource", "Freerun" )
+		vimba.VmbFeatureEnumSet( self.camera_right.handle, "TriggerSource", "Freerun" )
 		
 		# Close the cameras
-		self.camera_1.Close()
-		self.camera_2.Close()
+		self.camera_left.Close()
+		self.camera_right.Close()
 
 	#
 	# Start synchronous acquisition
@@ -265,12 +265,12 @@ class VmbStereoCamera( object ) :
 		self.external_frame_callback_function = frame_callback_function
 
 		# Initialize frame status
-		self.frame_1_ready = False
-		self.frame_2_ready = False
+		self.frame_left_ready = False
+		self.frame_right_ready = False
 
 		# Start acquisition
-		self.camera_1.StartCapture( self.FrameCallback_1 )
-		self.camera_2.StartCapture( self.FrameCallback_2 )
+		self.camera_left.StartCapture( self.FrameCallbackLeft )
+		self.camera_right.StartCapture( self.FrameCallbackRight )
 
 		# Start the software trigger thread
 		self.software_trigger.Start()
@@ -284,33 +284,33 @@ class VmbStereoCamera( object ) :
 		self.software_trigger.Stop()
 
 		# Stop image acquisition
-		self.camera_1.StopCapture()
-		self.camera_2.StopCapture()
+		self.camera_left.StopCapture()
+		self.camera_right.StopCapture()
 
 	#
-	# Receive a frame from camera 1
+	# Receive a frame from camera left
 	#
-	def FrameCallback_1( self, frame ) :
+	def FrameCallbackLeft( self, frame ) :
 
 		# Save the current frame
-		self.frame_1 = frame
+		self.frame_left = frame
 
 		# Frame ready
-		self.frame_1_ready = True
+		self.frame_left_ready = True
 
 		# Synchronize the frames
 		self.Synchronize()
 		
 	#
-	# Receive a frame from camera 2
+	# Receive a frame from camera right
 	#
-	def FrameCallback_2( self, frame ) :
+	def FrameCallbackRight( self, frame ) :
 
 		# Save the current frame
-		self.frame_2 = frame
+		self.frame_right = frame
 		
 		# Frame ready
-		self.frame_2_ready = True
+		self.frame_right_ready = True
 		
 		# Synchronize the frames
 		self.Synchronize()
@@ -321,14 +321,14 @@ class VmbStereoCamera( object ) :
 	def Synchronize( self ) :
 
 		# Wait for both frames
-		if self.frame_1_ready and self.frame_2_ready :
+		if self.frame_left_ready and self.frame_right_ready :
 			
 			# Send the frames to the external program
-			self.external_frame_callback_function( self.frame_1, self.frame_2 )
+			self.external_frame_callback_function( self.frame_left, self.frame_right )
 			
 			# Initialize frame status
-			self.frame_1_ready = False
-			self.frame_2_ready = False
+			self.frame_left_ready = False
+			self.frame_right_ready = False
 
 		
 #
@@ -339,14 +339,14 @@ class VmbSoftwareTrigger( threading.Thread ) :
 	#
 	# Initialisation
 	#
-	def __init__( self, camera_1, camera_2 ) :
+	def __init__( self, camera_left, camera_right ) :
 
 		# Initialise the thread
 		threading.Thread.__init__( self )
 
 		# Register the cameras
-		self.camera_1 = camera_1
-		self.camera_2 = camera_2
+		self.camera_left = camera_left
+		self.camera_right = camera_right
 
 	#
 	# Start the software trigger thread
@@ -373,8 +373,8 @@ class VmbSoftwareTrigger( threading.Thread ) :
 		while self.running :
 
 			# Send software trigger to both cameras
-			vimba.VmbFeatureCommandRun( self.camera_1.handle, "TriggerSoftware" )
-			vimba.VmbFeatureCommandRun( self.camera_2.handle, "TriggerSoftware" )
+			vimba.VmbFeatureCommandRun( self.camera_left.handle, "TriggerSoftware" )
+			vimba.VmbFeatureCommandRun( self.camera_right.handle, "TriggerSoftware" )
 			
 			# Wait 120ms between two consecutive triggers
 			time.sleep( 0.12 )
