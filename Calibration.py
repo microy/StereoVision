@@ -119,7 +119,7 @@ def CameraCalibration( image_files, pattern_size, debug = False ) :
 	calibration = cv2.calibrateCamera( obj_points, img_points, img_size, flags=flags )
 	
 	# Store the calibration results in a dictionary
-	parameter_names = ( 'rms', 'camera_matrix', 'dist_coefs', 'rvecs', 'tvecs' )
+	parameter_names = ( 'calib_error', 'camera_matrix', 'dist_coefs', 'rvecs', 'tvecs' )
 	calibration = dict( zip( parameter_names, calibration ) )
 	
 	# Compute reprojection error
@@ -139,7 +139,7 @@ def CameraCalibration( image_files, pattern_size, debug = False ) :
 	calibration['reproject_error'] = math.sqrt( calibration['reproject_error'] / (len(obj_points) * np.prod(pattern_size)) )
 	
 	# Print calibration results
-	print( 'Calibration error : {}'.format( calibration['rms'] ) )
+	print( 'Calibration error : {}'.format( calibration['calib_error'] ) )
 	print( 'Reprojection error : {}'.format( calibration['reproject_error'] ) )
 	print( 'Camera matrix :\n{}'.format( calibration['camera_matrix'] ) )
 	print( 'Distortion coefficients :\n{}'.format( calibration['dist_coefs'].ravel() ) )
@@ -166,7 +166,7 @@ def UndistortImages( calibration ) :
 	
 	# Compute distortion rectification map
 	rectify_map = cv2.initUndistortRectifyMap( calibration['camera_matrix'],
-		calibration['dist_coefs'], None, new_camera_matrix, calibration['img_size'], cv2.CV_16SC2 )
+		calibration['dist_coefs'], None, new_camera_matrix, calibration['img_size'], cv2.CV_32FC1 )
 		
 	# Undistort calibration images
 	for i, filename in enumerate( calibration['img_files'] ) :
@@ -221,7 +221,7 @@ def StereoCameraCalibration( cam1, cam2, debug = False ) :
 		flags=flags, criteria=criteria )
 		
 	# Store the stereo calibration results in a dictionary
-	parameter_names = ( 'rms_stereo', 'camera_matrix_l', 'dist_coefs_l', 'camera_matrix_r', 'dist_coefs_r', 'R', 'T', 'E', 'F' )
+	parameter_names = ( 'calib_error', 'camera_matrix_l', 'dist_coefs_l', 'camera_matrix_r', 'dist_coefs_r', 'R', 'T', 'E', 'F' )
 	calibration = dict( zip( parameter_names, calibration ) )
 	
 	# Stereo rectification
@@ -234,13 +234,12 @@ def StereoCameraCalibration( cam1, cam2, debug = False ) :
 	# Store the stereo rectification results in the dictionary
 	parameter_names = ( 'R1', 'R2', 'P1', 'P2', 'Q', 'ROI1', 'ROI2' )
 	calibration.update( zip( parameter_names, rectification ) )
-	print( zip( parameter_names, rectification ) )
 
 	# Compute reprojection error
 	undistorted_l = cv2.undistortPoints( np.concatenate( cam1['img_points'] ).reshape(-1, 1, 2),
-		cam1['camera_matrix'], cam1['dist_coefs'], P=cam1['camera_matrix'] )
+		calibration['camera_matrix_l'], calibration['dist_coefs_l'], P=calibration['camera_matrix_l'] )
 	undistorted_r = cv2.undistortPoints( np.concatenate( cam2['img_points'] ).reshape(-1, 1, 2),
-		cam2['camera_matrix'], cam2['dist_coefs'], P=cam2['camera_matrix'] )
+		calibration['camera_matrix_r'], calibration['dist_coefs_r'], P=calibration['camera_matrix_r'] )
 	lines_l = cv2.computeCorrespondEpilines( undistorted_l, 1, calibration['F'] )
 	lines_r = cv2.computeCorrespondEpilines( undistorted_r, 2, calibration['F'] )
 	calibration['reproject_error'] = 0
@@ -251,12 +250,21 @@ def StereoCameraCalibration( cam1, cam2, debug = False ) :
 	calibration['reproject_error'] /= len( undistorted_r )
 
 	# Print calibration results
-	print( 'Stereo calibration error : {}'.format( calibration['rms_stereo'] ) )
+	print( 'Stereo calibration error : {}'.format( calibration['calib_error'] ) )
 	print( 'Reprojection error : {}'.format( calibration['reproject_error'] ) )
 	print( 'Left camera matrix :\n{}'.format( calibration['camera_matrix_l'] ) )
 	print( 'Left distortion coefficients :\n{}'.format( calibration['dist_coefs_l'].ravel() ) )
 	print( 'Right camera matrix :\n{}'.format( calibration['camera_matrix_r'] ) )
 	print( 'Right distortion coefficients :\n{}'.format( calibration['dist_coefs_r'].ravel() ) )
+	print( 'Rotation matrix :\n{}'.format( calibration['R'] ) )
+	print( 'Translation vector :\n{}'.format( calibration['T'].ravel() ) )
+	print( 'Essential matrix :\n{}'.format( calibration['E'] ) )
+	print( 'Fundamental matrix :\n{}'.format( calibration['F'] ) )
+	print( 'Rotation matrix for the first camera :\n{}'.format( calibration['R1'] ) )
+	print( 'Rotation matrix for the second camera :\n{}'.format( calibration['R2'] ) )
+	print( 'Projection matrix for the first camera :\n{}'.format( calibration['P1'] ) )
+	print( 'Projection matrix for the second camera :\n{}'.format( calibration['P2'] ) )
+	print( 'Disparity-to-depth mapping matrix :\n{}'.format( calibration['Q'] ) )
 	
 	# Return the camera calibration results
 	return calibration
@@ -269,11 +277,11 @@ def StereoUndistortImages( cam1, cam2, calibration ) :
 	left_map = cv2.initUndistortRectifyMap(
 		calibration['camera_matrix_l'], calibration['dist_coefs_l'],
 		calibration['R1'], calibration['P1'],
-		cam1['img_size'], cv2.CV_16SC2 )
+		cam1['img_size'], cv2.CV_32FC1 )
 	right_map = cv2.initUndistortRectifyMap(
 		calibration['camera_matrix_r'], calibration['dist_coefs_r'],
 		calibration['R2'], calibration['P2'],
-		cam2['img_size'], cv2.CV_16SC2 )
+		cam2['img_size'], cv2.CV_32FC1 )
 
 	# Display undistorted calibration images
 	for i in range( len( cam1['img_files'] ) )  :
