@@ -64,7 +64,9 @@ def CameraCalibration( image_files, pattern_size, debug = False ) :
 		image_small = image
 
 		# Chessboard detection flags
-		flags = cv2.CALIB_CB_ADAPTIVE_THRESH | cv2.CALIB_CB_NORMALIZE_IMAGE
+		flags  = 0
+	#	flags |= cv2.CALIB_CB_ADAPTIVE_THRESH
+	#	flags |= cv2.CALIB_CB_NORMALIZE_IMAGE
 
 		# Find the chessboard corners on the image
 		found, corners = cv2.findChessboardCorners( image_small, pattern_size, flags=flags )
@@ -203,17 +205,17 @@ def StereoCameraCalibration( cam1, cam2, debug = False ) :
 	
 	# Stereo calibration flags
 	flags  = 0
-	flags |= cv2.CALIB_USE_INTRINSIC_GUESS
+#	flags |= cv2.CALIB_USE_INTRINSIC_GUESS
 #	flags |= cv2.CALIB_FIX_INTRINSIC
 #	flags |= cv2.CALIB_FIX_PRINCIPAL_POINT
 #	flags |= cv2.CALIB_FIX_FOCAL_LENGTH
-#	flags |= cv2.CALIB_FIX_ASPECT_RATIO
-#	flags |= cv2.CALIB_SAME_FOCAL_LENGTH
-#	flags |= cv2.CALIB_ZERO_TANGENT_DIST
-	flags |= cv2.CALIB_RATIONAL_MODEL
-	flags |= cv2.CALIB_FIX_K3
-	flags |= cv2.CALIB_FIX_K4
-	flags |= cv2.CALIB_FIX_K5
+	flags |= cv2.CALIB_FIX_ASPECT_RATIO
+	flags |= cv2.CALIB_SAME_FOCAL_LENGTH
+	flags |= cv2.CALIB_ZERO_TANGENT_DIST
+#	flags |= cv2.CALIB_RATIONAL_MODEL
+#	flags |= cv2.CALIB_FIX_K3
+#	flags |= cv2.CALIB_FIX_K4
+#	flags |= cv2.CALIB_FIX_K5
 
 	# Stereo calibration
 	calibration = cv2.stereoCalibrate( cam1['obj_points'], cam1['img_points'], cam2['img_points'],
@@ -228,8 +230,7 @@ def StereoCameraCalibration( cam1, cam2, debug = False ) :
 	rectification = cv2.stereoRectify(
 		calibration['camera_matrix_l'], calibration['dist_coefs_l'],
 		calibration['camera_matrix_r'], calibration['dist_coefs_r'],
-		cam1['img_size'], calibration['R'], calibration['T'],
-		flags = cv2.CALIB_ZERO_DISPARITY, alpha = 1 )
+		cam1['img_size'], calibration['R'], calibration['T'], flags=0 )
 		
 	# Store the stereo rectification results in the dictionary
 	parameter_names = ( 'R1', 'R2', 'P1', 'P2', 'Q', 'ROI1', 'ROI2' )
@@ -265,6 +266,8 @@ def StereoCameraCalibration( cam1, cam2, debug = False ) :
 	print( 'Projection matrix for the first camera :\n{}'.format( calibration['P1'] ) )
 	print( 'Projection matrix for the second camera :\n{}'.format( calibration['P2'] ) )
 	print( 'Disparity-to-depth mapping matrix :\n{}'.format( calibration['Q'] ) )
+	print( 'ROI for the left camera :\n{}'.format( calibration['ROI1'] ) )
+	print( 'ROI for the right camera :\n{}'.format( calibration['ROI2'] ) )
 	
 	# Return the camera calibration results
 	return calibration
@@ -311,7 +314,7 @@ def StereoUndistortImages( cam1, cam2, calibration ) :
 
 		# Show the result
 		cv2.imshow('Undistorted stereo images', cv2.pyrDown( undist_images ) )
-		cv2.waitKey( 700 )
+		cv2.waitKey()
 
 	# Close preview window
 	cv2.destroyAllWindows()
