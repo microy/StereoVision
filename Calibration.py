@@ -12,7 +12,6 @@
 import math
 import cv2
 import numpy as np
-import functools
 
 
 #
@@ -206,17 +205,17 @@ def StereoCameraCalibration( cam1, cam2, debug = False ) :
 	
 	# Stereo calibration flags
 	flags  = 0
-#	flags |= cv2.CALIB_USE_INTRINSIC_GUESS
+	flags |= cv2.CALIB_USE_INTRINSIC_GUESS
 #	flags |= cv2.CALIB_FIX_INTRINSIC
 #	flags |= cv2.CALIB_FIX_PRINCIPAL_POINT
 #	flags |= cv2.CALIB_FIX_FOCAL_LENGTH
 	flags |= cv2.CALIB_FIX_ASPECT_RATIO
 	flags |= cv2.CALIB_SAME_FOCAL_LENGTH
 	flags |= cv2.CALIB_ZERO_TANGENT_DIST
-#	flags |= cv2.CALIB_RATIONAL_MODEL
-#	flags |= cv2.CALIB_FIX_K3
-#	flags |= cv2.CALIB_FIX_K4
-#	flags |= cv2.CALIB_FIX_K5
+	flags |= cv2.CALIB_RATIONAL_MODEL
+	flags |= cv2.CALIB_FIX_K3
+	flags |= cv2.CALIB_FIX_K4
+	flags |= cv2.CALIB_FIX_K5
 
 	# Stereo calibration
 	calibration = cv2.stereoCalibrate( cam1['obj_points'], cam1['img_points'], cam2['img_points'],
@@ -259,6 +258,15 @@ def StereoCameraCalibration( cam1, cam2, debug = False ) :
 			undistorted_r[i][0][1] * lines_l[i][0][1] + lines_l[i][0][2] )
 	calibration['reproject_error'] /= len( undistorted_r )
 
+	# This is replaced because my results were always bad. Estimates are
+	# taken from the OpenCV samples.
+#	width, height = cam1['img_size']
+#	focal_length = 0.8 * width
+#	calibration['Q'] = np.float32( [[1, 0, 0, -0.5 * width],
+#			[0, -1, 0, 0.5 * height],
+#			[0, 0, 0, -focal_length],
+#			[0, 0, 1, 0]] )
+
 	# Print calibration results
 	print( 'Stereo calibration error : {}'.format( calibration['calib_error'] ) )
 	print( 'Reprojection error : {}'.format( calibration['reproject_error'] ) )
@@ -282,7 +290,9 @@ def StereoCameraCalibration( cam1, cam2, debug = False ) :
 	return calibration
 
 
-
+#
+# Stereo image undistortion
+#
 def StereoUndistortImages( cam1, cam2, calibration ) :
 	
 	# Display undistorted calibration images
@@ -319,16 +329,61 @@ def StereoUndistortImages( cam1, cam2, calibration ) :
 	cv2.destroyAllWindows()
 
 
+#
+# Class to export 3D point cloud
+#
+class PointCloud( object ) :
+
+	#
+    # Header for exporting point cloud to PLY file format
+    #
+    ply_header = (
+'''ply
+format ascii 1.0
+element vertex {vertex_count}
+property float x
+property float y
+property float z
+property uchar red
+property uchar green
+property uchar blue
+end_header
+''')
+
+	#
+	# Initialize the point cloud
+	#
+    def __init__( self, coordinates, colors ) :
+		self.coordinates = coordinates.reshape(-1, 3)
+		self.colors = colors.reshape(-1, 3)
+
+	#
+	# Export the point cloud to a PLY file
+	#
+    def WritePly( self, output_file ) :
+		mask = self.coordinates[:, 2] > self.coordinates[:, 2].min()
+		self.coordinates = self.coordinates[ mask ]
+		self.colors = self.colors[ mask ]
+		points = np.hstack( [ self.coordinates, self.colors ] )
+		with open( output_file, 'w' ) as outfile :
+			outfile.write( self.ply_header.format( vertex_count=len(self.coordinates) ) )
+			np.savetxt( outfile, points, '%f %f %f %d %d %d' )
 
 
 #
-# Stereo disparity
+# Stereo disparity class
 #
 class StereoBM( object ) :
 	
+	#
+	# Initialize the StereoBM, and display the disparity map
+	#
 	def __init__( self, calibration, input_folder ) :
+		
+		# Store the stereo calibration parameters
+		self.calibration = calibration
 
-		# Read images
+		# Read the images
 		self.left_image = cv2.imread( '{}left01.png'.format( input_folder ), cv2.CV_LOAD_IMAGE_GRAYSCALE )
 		self.right_image = cv2.imread( '{}right01.png'.format( input_folder ), cv2.CV_LOAD_IMAGE_GRAYSCALE )
 
@@ -344,30 +399,51 @@ class StereoBM( object ) :
 		self.ndisparities = 48
 		self.SADWindowSize = 9
 
-		# Result window
+		# Display window
 		cv2.namedWindow( 'Disparity map' )
-		cv2.createTrackbar( 'ndisparities', 'Disparity map', self.ndisparities, 200,
-			functools.partial( self.SetParameters, 'ndisparities' ) )
-		self.UpdateDisparity()
+		cv2.createTrackbar( 'ndisparities', 'Disparity map', self.ndisparities, 200, self.Setndisparities )
+		cv2.createTrackbar( 'SADWindowSize', 'Disparity map', self.SADWindowSize, 255, self.SetSADWindowSize )
+		while True :
+			self.UpdateDisparity()
+			cv2.imshow( 'Disparity map', cv2.pyrDown( self.bm_disparity_img ) )
+			key = cv2.waitKey( 1 ) & 0xFF
+			if key == 27 : break
+			elif key == ord('m') :
+				print( 'Exporting point cloud...' )
+				point_cloud = PointCloud( cv2.reprojectImageTo3D( self.bm_disparity, self.calibration['Q'] ),
+					cv2.cvtColor( self.left_image, cv2.COLOR_GRAY2RGB ) )
+				point_cloud.WritePly( 'mesh-{}-{}.ply'.format( self.ndisparities, self.SADWindowSize ) )
+				print( 'Done.' )
+		cv2.destroyAllWindows()
 	
-	def SetParameters( self, parameter, value ) :
-		if parameter == 'ndisparities' :
-			if value == 0 or value % 16 == 0 :
-				self.__setattr__( parameter, value )
-			else :
-				self.__setattr__( parameter, value - value % 16 )
-			cv2.setTrackbarPos( 'ndisparities', 'Disparity map', self.ndisparities )
+	#
+	# Set the number ot disparities (multiple of 16)
+	#
+	def Setndisparities( self, value ) :
+		if value % 16 :	value -= value % 16
+		self.ndisparities = value
+		cv2.setTrackbarPos( 'ndisparities', 'Disparity map', self.ndisparities )
 		self.UpdateDisparity()
 
-	# Stereo correspondence
+	#
+	# Set the search window size (odd, and in range [5...255])
+	#
+	def SetSADWindowSize( self, value ) :
+		if value < 5 : value = 5
+		elif not value % 2 : value += 1
+		self.SADWindowSize = value
+		cv2.setTrackbarPos( 'SADWindowSize', 'Disparity map', self.SADWindowSize )
+		self.UpdateDisparity()
+
+	#
+	# Compute the stereo correspondence
+	#
 	def UpdateDisparity( self ):
 		
 		self.bm = cv2.StereoBM( self.preset, self.ndisparities, self.SADWindowSize )
-		self.bm_disparity = self.bm.compute( self.left_image, self.right_image, disptype=cv2.CV_16S )
-		self.bm_disparity *= 255.99 / ( self.bm_disparity.min() - self.bm_disparity.max() )
-		self.bm_disparity = self.bm_disparity.astype( np.uint8 )
-		cv2.imshow( 'Disparity map', cv2.pyrDown( self.bm_disparity ) )
-		cv2.waitKey()
+		self.bm_disparity = self.bm.compute( self.left_image, self.right_image, disptype=cv2.CV_32F )
+		self.bm_disparity_img = self.bm_disparity * 255.99 / ( self.bm_disparity.min() - self.bm_disparity.max() )
+		self.bm_disparity_img = self.bm_disparity_img.astype( np.uint8 )
 
 
 	#~ print( 'Computing SGBM disparity...' )
