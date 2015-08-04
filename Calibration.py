@@ -12,6 +12,7 @@
 import math
 import cv2
 import numpy as np
+import functools
 
 
 #
@@ -236,6 +237,14 @@ def StereoCameraCalibration( cam1, cam2, debug = False ) :
 	parameter_names = ( 'R1', 'R2', 'P1', 'P2', 'Q', 'ROI1', 'ROI2' )
 	calibration.update( zip( parameter_names, rectification ) )
 
+	# Undistortion maps
+	calibration['left_map'] = cv2.initUndistortRectifyMap(
+		calibration['camera_matrix_l'], calibration['dist_coefs_l'],
+		calibration['R1'], calibration['P1'], cam1['img_size'], cv2.CV_32FC1 )
+	calibration['right_map'] = cv2.initUndistortRectifyMap(
+		calibration['camera_matrix_r'], calibration['dist_coefs_r'],
+		calibration['R2'], calibration['P2'], cam2['img_size'], cv2.CV_32FC1 )
+
 	# Compute reprojection error
 	undistorted_l = cv2.undistortPoints( np.concatenate( cam1['img_points'] ).reshape(-1, 1, 2),
 		calibration['camera_matrix_l'], calibration['dist_coefs_l'], P=calibration['camera_matrix_l'] )
@@ -276,16 +285,6 @@ def StereoCameraCalibration( cam1, cam2, debug = False ) :
 
 def StereoUndistortImages( cam1, cam2, calibration ) :
 	
-	# Undistortion
-	left_map = cv2.initUndistortRectifyMap(
-		calibration['camera_matrix_l'], calibration['dist_coefs_l'],
-		calibration['R1'], calibration['P1'],
-		cam1['img_size'], cv2.CV_32FC1 )
-	right_map = cv2.initUndistortRectifyMap(
-		calibration['camera_matrix_r'], calibration['dist_coefs_r'],
-		calibration['R2'], calibration['P2'],
-		cam2['img_size'], cv2.CV_32FC1 )
-
 	# Display undistorted calibration images
 	for i in range( len( cam1['img_files'] ) )  :
 		
@@ -294,8 +293,8 @@ def StereoUndistortImages( cam1, cam2, calibration ) :
 		right_image = cv2.imread( cam2['img_files'][i], cv2.CV_LOAD_IMAGE_GRAYSCALE )
 
 		# Remap the images
-		left_image = cv2.remap( left_image, left_map[0], left_map[1], cv2.INTER_LINEAR )
-		right_image = cv2.remap( right_image, right_map[0], right_map[1], cv2.INTER_LINEAR )
+		left_image = cv2.remap( left_image, calibration['left_map'][0], calibration['left_map'][1], cv2.INTER_LINEAR )
+		right_image = cv2.remap( right_image, calibration['right_map'][0], calibration['right_map'][1], cv2.INTER_LINEAR )
 	
 		# Convert grayscale images to color
 		left_image = cv2.cvtColor( left_image, cv2.COLOR_GRAY2BGR )
@@ -325,43 +324,75 @@ def StereoUndistortImages( cam1, cam2, calibration ) :
 #
 # Stereo disparity
 #
-def Disparity() :
-
-	left_image = cv2.imread( cam1['img_files'][0], cv2.CV_LOAD_IMAGE_GRAYSCALE )
-	right_image = cv2.imread( cam2['img_files'][0], cv2.CV_LOAD_IMAGE_GRAYSCALE )
-
-
-	print( 'Computing BM disparity...' )
-
-	bm = cv2.StereoBM( cv2.STEREO_BM_BASIC_PRESET, 48, 9)
-	bm_disparity = bm.compute( left_image, right_image, disptype=cv2.CV_16S )
-	bm_disparity *= 255 / ( bm_disparity.min() - bm_disparity.max() )
-	bm_disparity = bm_disparity.astype( np.uint8 )
-
-
-	print( 'Computing SGBM disparity...' )
-
-	# disparity range
-	min_disparity = 0
-	num_disparities = 64
-	sad_window_size = 3
-	p1 = 216
-	p2 = 864
-	disp12_max_diff = 1
-	prefilter_cap = 63
-	uniqueness_ratio = 10
-	speckle_window_size = 100
-	speckle_range = 32
-	full_dp = False
+class StereoBM( object ) :
 	
-	sgbm = cv2.StereoSGBM( min_disparity, num_disparities, sad_window_size, p1, p2, disp12_max_diff,
-		prefilter_cap, uniqueness_ratio, speckle_window_size, speckle_range, full_dp )
+	def __init__( self, calibration, input_folder ) :
 
-	sgbm_disparity = sgbm.compute( left_image, right_image )
-	sgbm_disparity *= 255 / ( sgbm_disparity.min() - sgbm_disparity.max() )
-	sgbm_disparity = sgbm_disparity.astype( np.uint8 )
+		# Read images
+		self.left_image = cv2.imread( '{}left01.png'.format( input_folder ), cv2.CV_LOAD_IMAGE_GRAYSCALE )
+		self.right_image = cv2.imread( '{}right01.png'.format( input_folder ), cv2.CV_LOAD_IMAGE_GRAYSCALE )
 
-	cv2.imshow('BM disparity', cv2.pyrDown(bm_disparity))
-	cv2.imshow('SGBM disparity', cv2.pyrDown(sgbm_disparity))
-	cv2.waitKey()
-	cv2.destroyAllWindows()
+		# Remap the images
+		self.left_image = cv2.remap( self.left_image, calibration['left_map'][0], calibration['left_map'][1], cv2.INTER_LINEAR )
+		self.right_image = cv2.remap( self.right_image, calibration['right_map'][0], calibration['right_map'][1], cv2.INTER_LINEAR )
+
+		# StereoBM parameters
+		self.preset = cv2.STEREO_BM_BASIC_PRESET
+	#	self.preset = cv2.STEREO_BM_NORMALIZED_RESPONSE_PRESET
+	#	self.preset = cv2.STEREO_BM_FISH_EYE_PRESET
+	#	self.preset = cv2.STEREO_BM_NARROW_PRESET
+		self.ndisparities = 48
+		self.SADWindowSize = 9
+
+		# Result window
+		cv2.namedWindow( 'Disparity map' )
+		cv2.createTrackbar( 'ndisparities', 'Disparity map', self.ndisparities, 200,
+			functools.partial( self.SetParameters, 'ndisparities' ) )
+		self.UpdateDisparity()
+	
+	def SetParameters( self, parameter, value ) :
+		if parameter == 'ndisparities' :
+			if value == 0 or value % 16 == 0 :
+				self.__setattr__( parameter, value )
+			else :
+				self.__setattr__( parameter, value - value % 16 )
+			cv2.setTrackbarPos( 'ndisparities', 'Disparity map', self.ndisparities )
+		self.UpdateDisparity()
+
+	# Stereo correspondence
+	def UpdateDisparity( self ):
+		
+		self.bm = cv2.StereoBM( self.preset, self.ndisparities, self.SADWindowSize )
+		self.bm_disparity = self.bm.compute( self.left_image, self.right_image, disptype=cv2.CV_16S )
+		self.bm_disparity *= 255.99 / ( self.bm_disparity.min() - self.bm_disparity.max() )
+		self.bm_disparity = self.bm_disparity.astype( np.uint8 )
+		cv2.imshow( 'Disparity map', cv2.pyrDown( self.bm_disparity ) )
+		cv2.waitKey()
+
+
+	#~ print( 'Computing SGBM disparity...' )
+#~ 
+	#~ # disparity range
+	#~ min_disparity = 0
+	#~ num_disparities = 64
+	#~ sad_window_size = 3
+	#~ p1 = 216
+	#~ p2 = 864
+	#~ disp12_max_diff = 1
+	#~ prefilter_cap = 63
+	#~ uniqueness_ratio = 10
+	#~ speckle_window_size = 100
+	#~ speckle_range = 32
+	#~ full_dp = False
+	#~ 
+	#~ sgbm = cv2.StereoSGBM( min_disparity, num_disparities, sad_window_size, p1, p2, disp12_max_diff,
+		#~ prefilter_cap, uniqueness_ratio, speckle_window_size, speckle_range, full_dp )
+#~ 
+	#~ sgbm_disparity = sgbm.compute( left_image, right_image )
+	#~ sgbm_disparity *= 255 / ( sgbm_disparity.min() - sgbm_disparity.max() )
+	#~ sgbm_disparity = sgbm_disparity.astype( np.uint8 )
+#~ 
+	#~ cv2.imshow('BM disparity', cv2.pyrDown(bm_disparity))
+	#~ cv2.imshow('SGBM disparity', cv2.pyrDown(sgbm_disparity))
+	#~ cv2.waitKey()
+	#~ cv2.destroyAllWindows()

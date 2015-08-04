@@ -31,8 +31,8 @@ parser.add_argument( '-stereo', action='store_true', help='Stereo camera calibra
 parser.add_argument( '-output', action='store_true', help='Save camera calibration results' )
 parser.add_argument( '-left', action='store_true', help='Save left camera calibration results' )
 parser.add_argument( '-right', action='store_true', help='Save right camera calibration results' )
-parser.add_argument( '-undistort', action='store_true', help='Image undistortion' )
-parser.add_argument( '-undistort_stereo', action='store_true', help='Stereo image undistortion' )
+parser.add_argument( '-undistort', action='store_true', help='Stereo image undistortion' )
+parser.add_argument( '-disparity', action='store', help='Input folder for stereo image correspondence' )
 args = parser.parse_args()
 
 
@@ -87,21 +87,9 @@ elif args.stereo :
 			pickle.dump( calibration, output_file, pickle.HIGHEST_PROTOCOL )
 
 #
-# Image undistortion
-#
-elif args.undistort :
-	
-	# Read camera calibration file
-	with open( 'camera-calibration.pkl' , 'rb') as input_file :
-		calibration = pickle.load( input_file )
-		
-	# Undistort calibration files
-	Calibration.UndistortImages( calibration )
-
-#
 # Stereo image undistortion
 #
-elif args.undistort_stereo :
+elif args.undistort :
 	
 	# Read camera calibration files
 	with open( 'camera-calibration-left.pkl' , 'rb') as input_file :
@@ -113,4 +101,15 @@ elif args.undistort_stereo :
 		
 	# Undistort calibration files
 	Calibration.StereoUndistortImages( cam1, cam2, calibration )
+
+#
+# Stereo image correspondence
+#
+elif args.disparity :
+	
+	with open( 'stereo-calibration.pkl' , 'rb') as input_file :
+		calibration = pickle.load( input_file )
+		
+	# Undistort calibration files
+	Calibration.StereoBM( calibration, args.disparity )
 
