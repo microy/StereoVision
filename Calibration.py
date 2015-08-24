@@ -65,8 +65,8 @@ def CameraCalibration( image_files, pattern_size, debug = False ) :
 
 		# Chessboard detection flags
 		flags  = 0
-	#	flags |= cv2.CALIB_CB_ADAPTIVE_THRESH
-	#	flags |= cv2.CALIB_CB_NORMALIZE_IMAGE
+		flags |= cv2.CALIB_CB_ADAPTIVE_THRESH
+		flags |= cv2.CALIB_CB_NORMALIZE_IMAGE
 
 		# Find the chessboard corners on the image
 		found, corners = cv2.findChessboardCorners( image_small, pattern_size, flags=flags )
@@ -384,8 +384,8 @@ class StereoBM( object ) :
 		self.calibration = calibration
 
 		# Read the images
-		self.left_image = cv2.imread( '{}left01.png'.format( input_folder ), cv2.CV_LOAD_IMAGE_GRAYSCALE )
-		self.right_image = cv2.imread( '{}right01.png'.format( input_folder ), cv2.CV_LOAD_IMAGE_GRAYSCALE )
+		self.left_image = cv2.imread( '{}/left08.png'.format( input_folder ), cv2.CV_LOAD_IMAGE_GRAYSCALE )
+		self.right_image = cv2.imread( '{}/right08.png'.format( input_folder ), cv2.CV_LOAD_IMAGE_GRAYSCALE )
 
 		# Remap the images
 		self.left_image = cv2.remap( self.left_image, calibration['left_map'][0], calibration['left_map'][1], cv2.INTER_LINEAR )
@@ -405,7 +405,8 @@ class StereoBM( object ) :
 		cv2.createTrackbar( 'SADWindowSize', 'Disparity map', self.SADWindowSize, 255, self.SetSADWindowSize )
 		while True :
 			self.UpdateDisparity()
-			cv2.imshow( 'Disparity map', cv2.pyrDown( self.bm_disparity_img ) )
+			image = cv2.applyColorMap( self.bm_disparity_img, cv2.COLORMAP_JET )
+			cv2.imshow( 'Disparity map', cv2.pyrDown( image ) )
 			key = cv2.waitKey( 1 ) & 0xFF
 			if key == 27 : break
 			elif key == ord('m') :
