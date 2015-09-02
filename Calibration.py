@@ -384,8 +384,8 @@ class StereoBM( object ) :
 		self.calibration = calibration
 
 		# Read the images
-		self.left_image = cv2.imread( '{}/left08.png'.format( input_folder ), cv2.CV_LOAD_IMAGE_GRAYSCALE )
-		self.right_image = cv2.imread( '{}/right08.png'.format( input_folder ), cv2.CV_LOAD_IMAGE_GRAYSCALE )
+		self.left_image = cv2.imread( '{}/left.png'.format( input_folder ), cv2.CV_LOAD_IMAGE_GRAYSCALE )
+		self.right_image = cv2.imread( '{}/right.png'.format( input_folder ), cv2.CV_LOAD_IMAGE_GRAYSCALE )
 
 		# Remap the images
 		self.left_image = cv2.remap( self.left_image, calibration['left_map'][0], calibration['left_map'][1], cv2.INTER_LINEAR )
