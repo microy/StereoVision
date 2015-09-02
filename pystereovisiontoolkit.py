@@ -82,9 +82,8 @@ elif args.stereo :
 	calibration = Calibration.StereoCameraCalibration( cam1, cam2, args.debug )
 	
 	# Write results with pickle
-	if args.output :
-		with open( 'stereo-calibration.pkl' , 'wb') as output_file :
-			pickle.dump( calibration, output_file, pickle.HIGHEST_PROTOCOL )
+	with open( 'stereo-calibration.pkl' , 'wb') as output_file :
+		pickle.dump( calibration, output_file, pickle.HIGHEST_PROTOCOL )
 
 #
 # Stereo image undistortion
