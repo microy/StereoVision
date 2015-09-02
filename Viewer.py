@@ -28,7 +28,7 @@ class VmbStereoViewer( object ) :
 		Vimba.VmbStartup()
 
 		# The cameras
-		stereo_camera = Vimba.VmbStereoCamera( '50-0503323406', '50-0503326223' )
+		stereo_camera = Vimba.VmbStereoCamera( '50-0503326223', '50-0503323406' )
 
 		# Number of image saved
 		image_count = 0
@@ -57,9 +57,13 @@ class VmbStereoViewer( object ) :
 			image_left = self.frame_left.image
 			image_right = self.frame_right.image
 
-			# Prepare image for display
+			# Resize image for display
 			image_left_displayed = cv2.resize( image_left, None, fx=scale_factor, fy=scale_factor )
 			image_right_displayed = cv2.resize( image_right, None, fx=scale_factor, fy=scale_factor )
+			
+			# Convert grayscale image in color
+			image_left_displayed = cv2.cvtColor( image_left_displayed, cv2.COLOR_GRAY2BGR )
+			image_right_displayed = cv2.cvtColor( image_right_displayed, cv2.COLOR_GRAY2BGR )
 
 			# Preview the calibration chessboard on the image
 			if chessboard_enabled :
@@ -72,23 +76,25 @@ class VmbStereoViewer( object ) :
 				h = image_left.shape[0] / 2
 				wd = image_left_displayed.shape[1] / 2
 				hd = image_left_displayed.shape[0] / 2
-				image_left_displayed[ hd-350:hd+350, wd-400:wd+400 ] = image_left[ h-350:h+350, w-400:w+400 ]
-				image_right_displayed[ hd-350:hd+350, wd-400:wd+400 ] = image_right[ h-350:h+350, w-400:w+400 ]
+				image_left_displayed[ hd-350:hd+350, wd-400:wd+400 ] = cv2.cvtColor( image_left[ h-350:h+350, w-400:w+400 ], cv2.COLOR_GRAY2BGR )
+				image_right_displayed[ hd-350:hd+350, wd-400:wd+400 ] = cv2.cvtColor( image_right[ h-350:h+350, w-400:w+400 ], cv2.COLOR_GRAY2BGR )
 
 			# Display a cross in the middle of the image
 			if cross_enabled :
-				w = image_left_displayed.shape[1] / scale_factor
-				h = image_left_displayed.shape[0] / scale_factor
-				cv2.line( image_left_displayed, (w/2, 0), (w/2, h), (0, 255, 0), 2 )
-				cv2.line( image_left_displayed, (0, h/2), (w, h/2), (0, 255, 0), 2 )
-				cv2.line( image_right_displayed, (w/2, 0), (w/2, h), (0, 255, 0), 2 )
-				cv2.line( image_right_displayed, (0, h/2), (w, h/2), (0, 255, 0), 2 )
+				w = image_left_displayed.shape[1]
+				h = image_left_displayed.shape[0]
+				w2 = int( w/2 )
+				h2 = int( h/2 )
+				cv2.line( image_left_displayed, (w2, 0), (w2, h), (0, 255, 0), 2 )
+				cv2.line( image_left_displayed, (0, h2), (w, h2), (0, 255, 0), 2 )
+				cv2.line( image_right_displayed, (w2, 0), (w2, h), (0, 255, 0), 2 )
+				cv2.line( image_right_displayed, (0, h2), (w, h2), (0, 255, 0), 2 )
 
 			# Prepare image for display
 			stereo_image = np.concatenate( (image_left_displayed, image_right_displayed), axis=1 )
 			
 			# Display the image (scaled down)
-			cv2.imshow( '{} - {}'.format( stereo_camera.camera_1.id, stereo_camera.camera_2.id ), stereo_image )
+			cv2.imshow( '{} - {}'.format( stereo_camera.camera_left.id, stereo_camera.camera_right.id ), stereo_image )
 
 			# Keyboard interruption
 			key = cv2.waitKey( 1 ) & 0xFF
@@ -162,9 +168,6 @@ class VmbStereoViewer( object ) :
 		# Chessboard found
 		if found_all :
 			
-			# Convert grayscale image in color
-			image = cv2.cvtColor( image, cv2.COLOR_GRAY2BGR )
-
 			# Draw the chessboard corners on the image
 			cv2.drawChessboardCorners( image, pattern_size, corners, found_all )
 			
