@@ -447,29 +447,103 @@ class StereoBM( object ) :
 		self.bm_disparity_img = self.bm_disparity_img.astype( np.uint8 )
 
 
-	#~ print( 'Computing SGBM disparity...' )
-#~ 
-	#~ # disparity range
-	#~ min_disparity = 0
-	#~ num_disparities = 64
-	#~ sad_window_size = 3
-	#~ p1 = 216
-	#~ p2 = 864
-	#~ disp12_max_diff = 1
-	#~ prefilter_cap = 63
-	#~ uniqueness_ratio = 10
-	#~ speckle_window_size = 100
-	#~ speckle_range = 32
-	#~ full_dp = False
-	#~ 
-	#~ sgbm = cv2.StereoSGBM( min_disparity, num_disparities, sad_window_size, p1, p2, disp12_max_diff,
-		#~ prefilter_cap, uniqueness_ratio, speckle_window_size, speckle_range, full_dp )
-#~ 
-	#~ sgbm_disparity = sgbm.compute( left_image, right_image )
-	#~ sgbm_disparity *= 255 / ( sgbm_disparity.min() - sgbm_disparity.max() )
-	#~ sgbm_disparity = sgbm_disparity.astype( np.uint8 )
-#~ 
-	#~ cv2.imshow('BM disparity', cv2.pyrDown(bm_disparity))
-	#~ cv2.imshow('SGBM disparity', cv2.pyrDown(sgbm_disparity))
-	#~ cv2.waitKey()
-	#~ cv2.destroyAllWindows()
+#
+# Stereo disparity class
+#
+class StereoSGBM( object ) :
+	
+	#
+	# Initialize the StereoSGBM, and display the disparity map
+	#
+	def __init__( self, calibration, input_folder ) :
+		
+		# Store the stereo calibration parameters
+		self.calibration = calibration
+
+		# Read the images
+		self.left_image = cv2.imread( '{}/left.png'.format( input_folder ), cv2.CV_LOAD_IMAGE_GRAYSCALE )
+		self.right_image = cv2.imread( '{}/right.png'.format( input_folder ), cv2.CV_LOAD_IMAGE_GRAYSCALE )
+
+		# Remap the images
+		self.left_image = cv2.remap( self.left_image, calibration['left_map'][0], calibration['left_map'][1], cv2.INTER_LINEAR )
+		self.right_image = cv2.remap( self.right_image, calibration['right_map'][0], calibration['right_map'][1], cv2.INTER_LINEAR )
+
+		# StereoSGBM parameters
+		self.min_disparity = 16
+		self.num_disp = 96
+		self.sad_window_size = 3
+		self.uniqueness = 10
+		self.speckle_window_size = 100
+		self.speckle_range = 32
+		self.P1 = 216
+		self.P2 = 864
+		self.max_disparity = 1
+		self.full_dp = False
+
+		# Display window
+		cv2.namedWindow( 'Disparity map' )
+		cv2.createTrackbar( 'min_disparity', 'Disparity map', self.min_disparity, 200, self.SetMinDisparity )
+		cv2.createTrackbar( 'num_disp', 'Disparity map', self.num_disp, 200, self.SetNumDisp )
+		cv2.createTrackbar( 'sad_window_size', 'Disparity map', self.sad_window_size, 200, self.SetSadWindowSize )
+		cv2.createTrackbar( 'uniqueness', 'Disparity map', self.uniqueness, 200, self.SetUniqueness )
+		cv2.createTrackbar( 'speckle_window_size', 'Disparity map', self.speckle_window_size, 200, self.SetSpeckleWindowSize )
+		cv2.createTrackbar( 'speckle_range', 'Disparity map', self.speckle_range, 200, self.SetSpeckleRange )
+		cv2.createTrackbar( 'P1', 'Disparity map', self.P1, 200, self.SetP1 )
+		cv2.createTrackbar( 'P2', 'Disparity map', self.P2, 200, self.SetP2 )
+		cv2.createTrackbar( 'max_disparity', 'Disparity map', self.max_disparity, 200, self.SetMaxDisparity )
+		
+		while True :
+			
+			self.UpdateDisparity()
+			image = cv2.applyColorMap( self.bm_disparity_img, cv2.COLORMAP_JET )
+			cv2.imshow( 'Disparity map', cv2.pyrDown( image ) )
+			key = cv2.waitKey( 1 ) & 0xFF
+			if key == 27 : break
+			elif key == ord('m') :
+				print( 'Exporting point cloud...' )
+				point_cloud = PointCloud( cv2.reprojectImageTo3D( self.bm_disparity, self.calibration['Q'] ),
+					cv2.cvtColor( self.left_image, cv2.COLOR_GRAY2RGB ) )
+				point_cloud.WritePly( 'mesh-{}-{}.ply'.format( self.ndisparities, self.SADWindowSize ) )
+				print( 'Done.' )
+				
+		cv2.destroyAllWindows()
+	
+	#
+	# Set the number ot disparities (multiple of 16)
+	#
+	def SetMinDisparity( self, value ) :
+		if value % 16 :	value -= value % 16
+		self.min_disparity = value
+		cv2.setTrackbarPos( 'min_disparity', 'Disparity map', self.min_disparity )
+		self.UpdateDisparity()
+
+	#
+	# Set the search window size (odd, and in range [5...255])
+	#
+	def SetSADWindowSize( self, value ) :
+		if value < 5 : value = 5
+		elif not value % 2 : value += 1
+		self.SADWindowSize = value
+		cv2.setTrackbarPos( 'SADWindowSize', 'Disparity map', self.SADWindowSize )
+		self.UpdateDisparity()
+
+	#
+	# Compute the stereo correspondence
+	#
+	def UpdateDisparity( self ):
+		
+		self.bm = cv2.StereoBM( self.preset, self.ndisparities, self.SADWindowSize )
+		self.bm = cv2.StereoSGBM( minDisparity=self.min_disparity,
+			numDisparities=self.num_disp,
+			SADWindowSize=self.sad_window_size,
+			uniquenessRatio=self.uniqueness,
+			speckleWindowSize=self.speckle_window_size,
+			speckleRange=self.speckle_range,
+			disp12MaxDiff=self.max_disparity,
+			P1=self.P1,
+			P2=self.P2,
+			fullDP=self.full_dp )
+
+		self.bm_disparity = self.bm.compute( self.left_image, self.right_image )
+		
+		self.bm_disparity_img = self.bm_disparity.astype( np.float32 ) / 16.0
