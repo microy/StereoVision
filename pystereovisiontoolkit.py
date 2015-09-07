@@ -110,7 +110,7 @@ elif args.disparity :
 		calibration = pickle.load( input_file )
 		
 	# Undistort calibration files
-	Calibration.StereoBM( calibration, args.disparity )
+	Calibration.StereoSGBM( calibration, args.disparity )
 
 
 #

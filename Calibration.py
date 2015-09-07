@@ -518,9 +518,17 @@ class StereoSGBM( object ) :
 		self.UpdateDisparity()
 
 	#
+	# Set 
+	#
+	def SetNumDisp( self, value ) :
+		self.num_disp = value
+		cv2.setTrackbarPos( 'num_disp', 'Disparity map', self.num_disp )
+		self.UpdateDisparity()
+
+	#
 	# Set the search window size (odd, and in range [5...255])
 	#
-	def SetSADWindowSize( self, value ) :
+	def SetSadWindowSize( self, value ) :
 		if value < 5 : value = 5
 		elif not value % 2 : value += 1
 		self.SADWindowSize = value
@@ -528,11 +536,58 @@ class StereoSGBM( object ) :
 		self.UpdateDisparity()
 
 	#
+	# Set 
+	#
+	def SetUniqueness( self, value ) :
+		self.uniqueness = value
+		cv2.setTrackbarPos( 'uniqueness', 'Disparity map', self.uniqueness )
+		self.UpdateDisparity()
+
+	#
+	# Set 
+	#
+	def SetSpeckleWindowSize( self, value ) :
+		self.speckle_window_size = value
+		cv2.setTrackbarPos( 'speckle_window_size', 'Disparity map', self.speckle_window_size )
+		self.UpdateDisparity()
+
+	#
+	# Set 
+	#
+	def SetSpeckleRange( self, value ) :
+		self.speckle_range = value
+		cv2.setTrackbarPos( 'speckle_range', 'Disparity map', self.speckle_range )
+		self.UpdateDisparity()
+
+	#
+	# Set 
+	#
+	def SetP1( self, value ) :
+		self.P1 = value
+		cv2.setTrackbarPos( 'P1', 'Disparity map', self.P1 )
+		self.UpdateDisparity()
+
+	#
+	# Set 
+	#
+	def SetP2( self, value ) :
+		self.P2 = value
+		cv2.setTrackbarPos( 'P2', 'Disparity map', self.P2 )
+		self.UpdateDisparity()
+
+	#
+	# Set 
+	#
+	def SetMaxDisparity( self, value ) :
+		self.max_disparity = value
+		cv2.setTrackbarPos( 'max_disparity', 'Disparity map', self.max_disparity )
+		self.UpdateDisparity()
+
+	#
 	# Compute the stereo correspondence
 	#
 	def UpdateDisparity( self ):
 		
-		self.bm = cv2.StereoBM( self.preset, self.ndisparities, self.SADWindowSize )
 		self.bm = cv2.StereoSGBM( minDisparity=self.min_disparity,
 			numDisparities=self.num_disp,
 			SADWindowSize=self.sad_window_size,
