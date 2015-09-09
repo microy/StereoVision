@@ -15,7 +15,8 @@ import glob
 import os
 import pickle
 import Calibration
-import Viewer
+import Camera
+import Disparity
 
 
 #
@@ -46,7 +47,7 @@ pattern_size = ( int(args.rows), int(args.cols) )
 #
 if args.live :
 
-	Viewer.VmbStereoViewer( pattern_size )
+	Camera.VmbStereoViewer( pattern_size )
 
 #
 # Mono camera calibration
@@ -110,7 +111,8 @@ elif args.disparity :
 		calibration = pickle.load( input_file )
 		
 	# Undistort calibration files
-	Calibration.StereoSGBM( calibration, args.disparity )
+#	Disparity.StereoSGBM( calibration, args.disparity )
+	Disparity.QtDisparity()
 
 
 #
