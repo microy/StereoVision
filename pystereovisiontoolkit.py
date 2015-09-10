@@ -16,7 +16,7 @@ import os
 import pickle
 import Calibration
 import Camera
-import Disparity
+import QtDisparity
 
 
 #
@@ -112,7 +112,7 @@ elif args.disparity :
 		
 	# Undistort calibration files
 #	Disparity.StereoSGBM( calibration, args.disparity )
-	Disparity.QtDisparity()
+	QtDisparity.QtDisparity()
 
 
 #
