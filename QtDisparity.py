@@ -38,6 +38,9 @@ class QtDisparity( qtgui.QApplication ) :
 		# Enter Qt main loop
 		self.exec_()
 
+		# Close OpenCV preview window
+		cv2.destroyAllWindows()
+
 
 
 #
@@ -56,15 +59,17 @@ class QtStereoBM( qtgui.QWidget ) :
 		
 		# Load stereo calibration parameter file
 		with open( 'stereo-calibration.pkl' , 'rb') as input_file :
-			calibration = pickle.load( input_file )
+			self.calibration = pickle.load( input_file )
 
 		# Read the images
 		self.left_image = cv2.imread( 'left.png', cv2.CV_LOAD_IMAGE_GRAYSCALE )
 		self.right_image = cv2.imread( 'right.png', cv2.CV_LOAD_IMAGE_GRAYSCALE )
 
 		# Remap the images
-		self.left_image = cv2.remap( self.left_image, calibration['left_map'][0], calibration['left_map'][1], cv2.INTER_LINEAR )
-		self.right_image = cv2.remap( self.right_image, calibration['right_map'][0], calibration['right_map'][1], cv2.INTER_LINEAR )
+		self.left_image = cv2.remap( self.left_image,
+			self.calibration['left_map'][0], self.calibration['left_map'][1], cv2.INTER_LINEAR )
+		self.right_image = cv2.remap( self.right_image,
+			self.calibration['right_map'][0], self.calibration['right_map'][1], cv2.INTER_LINEAR )
 
 		# StereoBM parameters
 		self.preset = cv2.STEREO_BM_BASIC_PRESET
@@ -88,7 +93,6 @@ class QtStereoBM( qtgui.QWidget ) :
 		self.slider_disparities = qtgui.QSlider( self )
 		self.slider_disparities.setOrientation( qtcore.Qt.Horizontal )
 		self.slider_disparities.setValue( self.ndisparities )
-		self.slider_disparities.setTickInterval( 16 )
 		self.slider_disparities.setMaximum( 240 )
 		self.slider_disparities.valueChanged.connect( self.Setndisparities )
 		self.label_disparities = qtgui.QLabel( self )
@@ -108,23 +112,33 @@ class QtStereoBM( qtgui.QWidget ) :
 		self.label_sad_window_value = qtgui.QLabel( self )
 		self.label_sad_window_value.setText( '{}'.format( self.SADWindowSize ) )
 
+		# Open button
+		self.button_open = qtgui.QPushButton( 'Open', self )
+		self.button_open.clicked.connect( self.LoadImages )
+
 		# Apply button
-		self.button_apply = qtgui.QDialogButtonBox( self )
-		self.button_apply.setStandardButtons( qtgui.QDialogButtonBox.Apply )
-		self.button_apply.setCenterButtons( True )
+		self.button_apply = qtgui.QPushButton( 'Apply', self )
 		self.button_apply.clicked.connect( self.UpdateDisparity )
 
+		# Save button
+		self.button_save = qtgui.QPushButton( 'Save', self )
+		self.button_save.clicked.connect( self.SavePointCloud )
+
 		# Widget layout
-		self.layout_grid = qtgui.QGridLayout()
-		self.layout_grid.addWidget( self.label_disparities, 0, 0 )
-		self.layout_grid.addWidget( self.slider_disparities, 0, 1 )
-		self.layout_grid.addWidget( self.label_disparities_value, 0, 2 )
-		self.layout_grid.addWidget( self.label_sad_window, 1, 0 )
-		self.layout_grid.addWidget( self.slider_sad_window, 1, 1 )
-		self.layout_grid.addWidget( self.label_sad_window_value, 1, 2 )
-		self.layout_vertical = qtgui.QVBoxLayout( self )
-		self.layout_vertical.addLayout( self.layout_grid )
-		self.layout_vertical.addWidget( self.button_apply )
+		self.layout_controls = qtgui.QGridLayout()
+		self.layout_controls.addWidget( self.label_disparities, 0, 0 )
+		self.layout_controls.addWidget( self.slider_disparities, 0, 1 )
+		self.layout_controls.addWidget( self.label_disparities_value, 0, 2 )
+		self.layout_controls.addWidget( self.label_sad_window, 1, 0 )
+		self.layout_controls.addWidget( self.slider_sad_window, 1, 1 )
+		self.layout_controls.addWidget( self.label_sad_window_value, 1, 2 )
+		self.layout_buttons = qtgui.QHBoxLayout()
+		self.layout_buttons.addWidget( self.button_open )
+		self.layout_buttons.addWidget( self.button_apply )
+		self.layout_buttons.addWidget( self.button_save )
+		self.layout_global = qtgui.QVBoxLayout( self )
+		self.layout_global.addLayout( self.layout_controls )
+		self.layout_global.addLayout( self.layout_buttons )
 		
 	#
 	# Set the number ot disparities (multiple of 16)
@@ -146,15 +160,27 @@ class QtStereoBM( qtgui.QWidget ) :
 		self.label_sad_window_value.setText( '{}'.format( value ) )
 
 	#
+	# Load the images
+	#
+	def LoadImages( self ) :
+		pass
+
+	#
+	# Save the resulting point cloud
+	#
+	def SavePointCloud( self ) :
+		pass
+
+	#
 	# Compute the stereo correspondence
 	#
-	def UpdateDisparity( self ):
+	def UpdateDisparity( self ) :
 		
 		self.bm = cv2.StereoBM( self.preset, self.ndisparities, self.SADWindowSize )
 		self.bm_disparity = self.bm.compute( self.left_image, self.right_image, disptype=cv2.CV_32F )
 		self.bm_disparity_img = self.bm_disparity * 255.99 / ( self.bm_disparity.min() - self.bm_disparity.max() )
 		self.bm_disparity_img = self.bm_disparity_img.astype( np.uint8 )
-	#	self.bm_disparity_img = cv2.applyColorMap( self.bm_disparity_img, cv2.COLORMAP_JET )
+		self.bm_disparity_img = cv2.applyColorMap( self.bm_disparity_img, cv2.COLORMAP_JET )
 		cv2.imshow( 'Disparity map', cv2.pyrDown( self.bm_disparity_img ) )
 		cv2.waitKey( 1 )
 
