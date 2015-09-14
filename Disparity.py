@@ -2,16 +2,19 @@
 
 
 #
-# Image disparity module
+# Qt interface for the disparity module
 #
 
 
 #
 # External dependencies
 #
+import pickle
 import sys
 import cv2
 import numpy as np
+import PySide.QtCore as qtcore
+import PySide.QtGui as qtgui
 
 
 #
@@ -56,245 +59,214 @@ end_header
 
 
 #
-# Stereo disparity class
+# Customize the Qt widget to setup the stereo BM
 #
-class StereoBM( object ) :
-	
+class StereoSGBM( qtgui.QWidget ) :
+
 	#
-	# Initialize the StereoBM, and display the disparity map
+	# Initialisation
 	#
-	def __init__( self, calibration, input_folder ) :
+	def __init__( self, parent = None ) :
 		
-		# Store the stereo calibration parameters
-		self.calibration = calibration
+		#
+		# Initialize the StereoBM
+		#
+		
+		# Load stereo calibration parameter file
+		with open( 'stereo-calibration.pkl' , 'rb') as input_file :
+			self.calibration = pickle.load( input_file )
 
 		# Read the images
-		self.left_image = cv2.imread( '{}/left.png'.format( input_folder ), cv2.CV_LOAD_IMAGE_GRAYSCALE )
-		self.right_image = cv2.imread( '{}/right.png'.format( input_folder ), cv2.CV_LOAD_IMAGE_GRAYSCALE )
+		self.left_image = cv2.imread( 'left.png', cv2.CV_LOAD_IMAGE_GRAYSCALE )
+		self.right_image = cv2.imread( 'right.png', cv2.CV_LOAD_IMAGE_GRAYSCALE )
 
 		# Remap the images
-		self.left_image = cv2.remap( self.left_image, calibration['left_map'][0], calibration['left_map'][1], cv2.INTER_LINEAR )
-		self.right_image = cv2.remap( self.right_image, calibration['right_map'][0], calibration['right_map'][1], cv2.INTER_LINEAR )
-
-		# StereoBM parameters
-		self.preset = cv2.STEREO_BM_BASIC_PRESET
-	#	self.preset = cv2.STEREO_BM_NORMALIZED_RESPONSE_PRESET
-	#	self.preset = cv2.STEREO_BM_FISH_EYE_PRESET
-	#	self.preset = cv2.STEREO_BM_NARROW_PRESET
-		self.ndisparities = 48
-		self.SADWindowSize = 9
-
-		# Display window
-		cv2.namedWindow( 'Disparity map' )
-		cv2.createTrackbar( 'ndisparities', 'Disparity map', self.ndisparities, 200, self.Setndisparities )
-		cv2.createTrackbar( 'SADWindowSize', 'Disparity map', self.SADWindowSize, 255, self.SetSADWindowSize )
-		while True :
-			self.UpdateDisparity()
-			image = cv2.applyColorMap( self.bm_disparity_img, cv2.COLORMAP_JET )
-			cv2.imshow( 'Disparity map', cv2.pyrDown( image ) )
-			key = cv2.waitKey( 1 ) & 0xFF
-			if key == 27 : break
-			elif key == ord('m') :
-				print( 'Exporting point cloud...' )
-				point_cloud = PointCloud( cv2.reprojectImageTo3D( self.bm_disparity, self.calibration['Q'] ),
-					cv2.cvtColor( self.left_image, cv2.COLOR_GRAY2RGB ) )
-				point_cloud.WritePly( 'mesh-{}-{}.ply'.format( self.ndisparities, self.SADWindowSize ) )
-				print( 'Done.' )
-		cv2.destroyAllWindows()
-	
-	#
-	# Set the number ot disparities (multiple of 16)
-	#
-	def Setndisparities( self, value ) :
-		if value % 16 :	value -= value % 16
-		self.ndisparities = value
-		cv2.setTrackbarPos( 'ndisparities', 'Disparity map', self.ndisparities )
-		self.UpdateDisparity()
-
-	#
-	# Set the search window size (odd, and in range [5...255])
-	#
-	def SetSADWindowSize( self, value ) :
-		if value < 5 : value = 5
-		elif not value % 2 : value += 1
-		self.SADWindowSize = value
-		cv2.setTrackbarPos( 'SADWindowSize', 'Disparity map', self.SADWindowSize )
-		self.UpdateDisparity()
-
-	#
-	# Compute the stereo correspondence
-	#
-	def UpdateDisparity( self ):
-		
-		self.bm = cv2.StereoBM( self.preset, self.ndisparities, self.SADWindowSize )
-		self.bm_disparity = self.bm.compute( self.left_image, self.right_image, disptype=cv2.CV_32F )
-		self.bm_disparity_img = self.bm_disparity * 255.99 / ( self.bm_disparity.min() - self.bm_disparity.max() )
-		self.bm_disparity_img = self.bm_disparity_img.astype( np.uint8 )
-
-
-#
-# Stereo disparity class
-#
-class StereoSGBM( object ) :
-	
-	#
-	# Initialize the StereoSGBM, and display the disparity map
-	#
-	def __init__( self, calibration, input_folder ) :
-		
-		# Store the stereo calibration parameters
-		self.calibration = calibration
-
-		# Read the images
-		self.left_image = cv2.imread( '{}/left.png'.format( input_folder ), cv2.CV_LOAD_IMAGE_GRAYSCALE )
-		self.right_image = cv2.imread( '{}/right.png'.format( input_folder ), cv2.CV_LOAD_IMAGE_GRAYSCALE )
-
-		# Remap the images
-		self.left_image = cv2.remap( self.left_image, calibration['left_map'][0], calibration['left_map'][1], cv2.INTER_LINEAR )
-		self.right_image = cv2.remap( self.right_image, calibration['right_map'][0], calibration['right_map'][1], cv2.INTER_LINEAR )
+		self.left_image = cv2.remap( self.left_image,
+			self.calibration['left_map'][0], self.calibration['left_map'][1], cv2.INTER_LINEAR )
+		self.right_image = cv2.remap( self.right_image,
+			self.calibration['right_map'][0], self.calibration['right_map'][1], cv2.INTER_LINEAR )
 
 		# StereoSGBM parameters
 		self.min_disparity = 16
-		self.num_disp = 96
+		self.max_disparity = 96
 		self.sad_window_size = 3
-		self.uniqueness = 10
+		self.uniqueness_ratio = 10
 		self.speckle_window_size = 100
 		self.speckle_range = 2
-		self.P1 = 216
-		self.P2 = 864
-		self.max_disparity = 1
+		self.p1 = 216
+		self.p2 = 864
+		self.max_difference = 1
 		self.full_dp = False
 
-		# Display window
-		cv2.namedWindow( 'SGBM' )
-		cv2.createTrackbar( 'min_disparity', 'SGBM', self.min_disparity, 200, self.SetMinDisparity )
-		cv2.createTrackbar( 'num_disp', 'SGBM', self.num_disp, 200, self.SetNumDisp )
-		cv2.createTrackbar( 'sad_window_size', 'SGBM', self.sad_window_size, 11, self.SetSadWindowSize )
-		cv2.createTrackbar( 'uniqueness', 'SGBM', self.uniqueness, 100, self.SetUniqueness )
-		cv2.createTrackbar( 'speckle_window_size', 'SGBM', self.speckle_window_size, 200, self.SetSpeckleWindowSize )
-		cv2.createTrackbar( 'speckle_range', 'SGBM', self.speckle_range, 50, self.SetSpeckleRange )
-		cv2.createTrackbar( 'P1', 'SGBM', self.P1, 200, self.SetP1 )
-		cv2.createTrackbar( 'P2', 'SGBM', self.P2, 200, self.SetP2 )
-		cv2.createTrackbar( 'max_disparity', 'SGBM', self.max_disparity, 200, self.SetMaxDisparity )
+
+		#
+		# Initialize the interface
+		#
+
+		# Initialise QWidget
+		super( StereoSGBM, self ).__init__( parent )
+
+		# Set the window title
+		self.setWindowTitle( 'StereoSGBM disparity controls' )
+
+		# Set the window size
+		self.setGeometry( qtcore.QRect(10, 10, 621, 251) )
+
+		# Minimum disparity
+		self.label_min_disparity = qtgui.QLabel( self )
+		self.label_min_disparity.setText( 'Minimum disparity' )
+		self.spinbox_min_disparity = qtgui.QSpinBox( self )
+		self.spinbox_min_disparity.setMaximum( 240 )
+		self.spinbox_min_disparity.setSingleStep( 16 )
+		self.spinbox_min_disparity.setValue( self.min_disparity )
+
+		# Maximum disparity
+		self.label_max_disparity = qtgui.QLabel( self )
+		self.label_max_disparity.setText( 'Maximum disparity' )
+		self.spinbox_max_disparity = qtgui.QSpinBox( self )
+		self.spinbox_max_disparity.setMaximum( 240 )
+		self.spinbox_max_disparity.setSingleStep( 16 )
+		self.spinbox_max_disparity.setValue( self.max_disparity )
+
+		# SAD window size
+		self.label_sad_window_size = qtgui.QLabel( self )
+		self.label_sad_window_size.setText( 'SAD window size' )
+		self.spinbox_sad_window_size = qtgui.QSpinBox( self )
+		self.spinbox_sad_window_size.setMinimum( 3 )
+		self.spinbox_sad_window_size.setMaximum( 11 )
+		self.spinbox_sad_window_size.setSingleStep( 2 )
+		self.spinbox_sad_window_size.setValue( self.sad_window_size )
+
+		# Uniqueness ratio
+		self.label_uniqueness_ratio = qtgui.QLabel( self )
+		self.label_uniqueness_ratio.setText( 'Uniqueness ratio' )
+		self.spinbox_uniqueness_ratio = qtgui.QSpinBox( self )
+		self.spinbox_uniqueness_ratio.setValue( self.uniqueness_ratio )
+
+		# Speckle window size
+		self.label_speckle_window_size = qtgui.QLabel( self )
+		self.label_speckle_window_size.setText( 'Speckle window size' )
+		self.spinbox_speckle_window_size = qtgui.QSpinBox( self )
+		self.spinbox_speckle_window_size.setMaximum( 240 )
+		self.spinbox_speckle_window_size.setValue( self.speckle_window_size )
+
+		# Speckle range
+		self.label_speckle_range = qtgui.QLabel( self )
+		self.label_speckle_range.setText( 'Speckle range' )
+		self.spinbox_speckle_range = qtgui.QSpinBox( self )
+		self.spinbox_speckle_range.setValue( self.speckle_range )
+
+		# P1
+		self.label_p1 = qtgui.QLabel( self )
+		self.label_p1.setText( 'P1' )
+		self.spinbox_p1 = qtgui.QSpinBox( self )
+		self.spinbox_p1.setMaximum( 2000 )
+		self.spinbox_p1.setValue( self.p1 )
+
+		# P2
+		self.label_p2 = qtgui.QLabel( self )
+		self.label_p2.setText( 'P2' )
+		self.spinbox_p2 = qtgui.QSpinBox( self )
+		self.spinbox_p2.setMaximum( 2000 )
+		self.spinbox_p2.setValue( self.p2 )
+
+		# Max difference
+		self.label_max_difference = qtgui.QLabel( self )
+		self.label_max_difference.setText( 'Max difference' )
+		self.spinbox_max_difference = qtgui.QSpinBox( self )
+		self.spinbox_max_difference.setValue( self.max_difference )
+
+		# Buttons
+		self.button_open = qtgui.QPushButton( 'Open', self )
+		self.button_open.clicked.connect( self.LoadImages )
+		self.button_apply = qtgui.QPushButton( 'Apply', self )
+		self.button_apply.clicked.connect( self.UpdateDisparity )
+		self.button_save = qtgui.QPushButton( 'Save', self )
+		self.button_save.clicked.connect( self.SavePointCloud )
+
+		# Widget layout
+		self.layout_controls = qtgui.QGridLayout()
+		self.layout_controls.addWidget( self.label_min_disparity, 0, 0 )
+		self.layout_controls.addWidget( self.spinbox_min_disparity, 0, 1 )
+		self.layout_controls.addWidget( self.label_max_disparity, 1, 0 )
+		self.layout_controls.addWidget( self.spinbox_max_disparity, 1, 1 )
+		self.layout_controls.addWidget( self.label_sad_window_size, 2, 0 )
+		self.layout_controls.addWidget( self.spinbox_sad_window_size, 2, 1 )
+		self.layout_controls.addWidget( self.label_uniqueness_ratio, 3, 0 )
+		self.layout_controls.addWidget( self.spinbox_uniqueness_ratio, 3, 1 )
+		self.layout_controls.addWidget( self.label_speckle_window_size, 4, 0 )
+		self.layout_controls.addWidget( self.spinbox_speckle_window_size, 4, 1 )
+		self.layout_controls.addWidget( self.label_speckle_range, 5, 0 )
+		self.layout_controls.addWidget( self.spinbox_speckle_range, 5, 1 )
+		self.layout_controls.addWidget( self.label_p1, 6, 0 )
+		self.layout_controls.addWidget( self.spinbox_p1, 6, 1 )
+		self.layout_controls.addWidget( self.label_p2, 7, 0 )
+		self.layout_controls.addWidget( self.spinbox_p2, 7, 1 )
+		self.layout_controls.addWidget( self.label_max_difference, 8, 0 )
+		self.layout_controls.addWidget( self.spinbox_max_difference, 8, 1 )
+		self.layout_buttons = qtgui.QHBoxLayout()
+		self.layout_buttons.addWidget( self.button_open )
+		self.layout_buttons.addWidget( self.button_apply )
+		self.layout_buttons.addWidget( self.button_save )
+		self.layout_global = qtgui.QVBoxLayout( self )
+		self.layout_global.addLayout( self.layout_controls )
+		self.layout_global.addLayout( self.layout_buttons )
 		
-		self.UpdateDisparity()
-
-		while True :
-			
-			key = cv2.waitKey( 100 ) & 0xFF
-			if key == 27 : break
-			elif key == ord('m') :
-				print( 'Exporting point cloud...' )
-				point_cloud = PointCloud( cv2.reprojectImageTo3D( self.bm_disparity, self.calibration['Q'] ),
-					cv2.cvtColor( self.left_image, cv2.COLOR_GRAY2RGB ) )
-				point_cloud.WritePly( 'mesh-{}-{}.ply'.format( self.ndisparities, self.SADWindowSize ) )
-				print( 'Done.' )
-				
-		cv2.destroyAllWindows()
-	
 	#
-	# Set the number ot disparities (multiple of 16)
+	# Load the images
 	#
-	def SetMinDisparity( self, value ) :
-		if value % 16 :	value -= value % 16
-		self.min_disparity = value
-		cv2.setTrackbarPos( 'min_disparity', 'SGBM', self.min_disparity )
-		self.UpdateDisparity()
+	def LoadImages( self ) :
+		pass
 
 	#
-	# Set 
+	# Save the resulting point cloud
 	#
-	def SetNumDisp( self, value ) :
-		if value % 16 :	value -= value % 16
-		self.num_disp = value
-		cv2.setTrackbarPos( 'num_disp', 'SGBM', self.num_disp )
-		self.UpdateDisparity()
-
-	#
-	# Set the search window size (odd, and in range [1...11])
-	#
-	def SetSadWindowSize( self, value ) :
-		if value < 1 : value = 1
-		elif not value % 2 : value += 1
-		self.SADWindowSize = value
-		cv2.setTrackbarPos( 'SADWindowSize', 'SGBM', self.SADWindowSize )
-		self.UpdateDisparity()
-
-	#
-	# Set 
-	#
-	def SetUniqueness( self, value ) :
-		self.uniqueness = value
-		cv2.setTrackbarPos( 'uniqueness', 'SGBM', self.uniqueness )
-		self.UpdateDisparity()
-
-	#
-	# Set 
-	#
-	def SetSpeckleWindowSize( self, value ) :
-		self.speckle_window_size = value
-		cv2.setTrackbarPos( 'speckle_window_size', 'SGBM', self.speckle_window_size )
-		self.UpdateDisparity()
-
-	#
-	# Set 
-	#
-	def SetSpeckleRange( self, value ) :
-		self.speckle_range = value
-		cv2.setTrackbarPos( 'speckle_range', 'SGBM', self.speckle_range )
-		self.UpdateDisparity()
-
-	#
-	# Set 
-	#
-	def SetP1( self, value ) :
-		self.P1 = value
-		cv2.setTrackbarPos( 'P1', 'SGBM', self.P1 )
-		self.UpdateDisparity()
-
-	#
-	# Set 
-	#
-	def SetP2( self, value ) :
-		self.P2 = value
-		cv2.setTrackbarPos( 'P2', 'SGBM', self.P2 )
-		self.UpdateDisparity()
-
-	#
-	# Set 
-	#
-	def SetMaxDisparity( self, value ) :
-		self.max_disparity = value
-		cv2.setTrackbarPos( 'max_disparity', 'SGBM', self.max_disparity )
-		self.UpdateDisparity()
+	def SavePointCloud( self ) :
+		print( 'Exporting point cloud...' )
+		point_cloud = PointCloud( cv2.reprojectImageTo3D( self.bm_disparity, self.calibration['Q'] ),
+			cv2.cvtColor( self.left_image, cv2.COLOR_GRAY2RGB ) )
+		point_cloud.WritePly( 'mesh-{}-{}.ply'.format( self.min_disparity, self.sad_window_size ) )
+		print( 'Done.' )
 
 	#
 	# Compute the stereo correspondence
 	#
-	def UpdateDisparity( self ):
-		
+	def UpdateDisparity( self ) :
+
+		# Get the parameters
+		self.min_disparity = self.spinbox_min_disparity.value()
+		self.max_disparity = self.spinbox_max_disparity.value()
+		self.sad_window_size = self.spinbox_sad_window_size.value()
+		self.uniqueness_ratio = self.spinbox_uniqueness_ratio.value()
+		self.speckle_window_size = self.spinbox_speckle_window_size.value()
+		self.speckle_range = self.spinbox_speckle_range.value()
+		self.max_difference = self.spinbox_max_difference.value()
+		self.p1 = self.spinbox_p1.value()
+		self.p2 = self.spinbox_p2.value()
+
+		# Create the disparity object
 		print( "Create SGBM..." )
 		self.bm = cv2.StereoSGBM( minDisparity=self.min_disparity,
-			numDisparities=self.num_disp,
+			numDisparities=self.max_disparity,
 			SADWindowSize=self.sad_window_size,
-			uniquenessRatio=self.uniqueness,
+			uniquenessRatio=self.uniqueness_ratio,
 			speckleWindowSize=self.speckle_window_size,
 			speckleRange=self.speckle_range,
-			disp12MaxDiff=self.max_disparity,
-			P1=self.P1,
-			P2=self.P2,
+			disp12MaxDiff=self.max_difference,
+			P1=self.p1,
+			P2=self.p2,
 			fullDP=self.full_dp )
-
+		
+		# Compute the disparity map
 		print( "Compute SGBM..." )
 		self.bm_disparity = self.bm.compute( self.left_image, self.right_image )
 		
+		# Create the disparity image for display
 		print( "Create disparity image..." )
 		self.bm_disparity_img = self.bm_disparity.astype( np.float32 ) / 16.0
-#		self.bm_disparity_img = ( self.bm_disparity_img - self.min_disparity ) / self.num_disp
 		cv2.normalize( self.bm_disparity_img, self.bm_disparity_img, 0, 255, cv2.NORM_MINMAX )
 		self.bm_disparity_img = self.bm_disparity_img.astype( np.uint8 )
-		print self.bm_disparity_img.min(), self.bm_disparity_img.max()
-		print( "Update disparity image.." )
-		image = cv2.applyColorMap( self.bm_disparity_img, cv2.COLORMAP_JET )
-		cv2.imshow( 'Disparity map', cv2.pyrDown( image ) )
+		self.bm_disparity_img = cv2.applyColorMap( self.bm_disparity_img, cv2.COLORMAP_JET )
+		cv2.imshow( 'Disparity map', cv2.pyrDown( self.bm_disparity_img ) )
+		cv2.waitKey( 1 )
 

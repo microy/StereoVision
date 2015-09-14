@@ -18,6 +18,7 @@ import PySide.QtCore as qtcore
 import PySide.QtGui as qtgui
 import Calibration
 import Camera
+import QtDisparity
 
 
 #
@@ -34,37 +35,52 @@ class StereoVision( qtgui.QWidget ) :
 		# Initialise QWidget
 		super( StereoVision, self ).__init__( parent )
 		
-		# Calibration pattern size
-		self.pattern_size = ( 15, 10 )
-
+		# Create the widget for the stereo reconstruction
+		self.stereosgbm = QtDisparity.StereoSGBM()
+		
 		# Set the window title
-		self.setWindowTitle( 'Stereovision' )
+		self.setWindowTitle( 'StereoVision' )
 
 		# Set the window size
 		self.setGeometry( qtcore.QRect(10, 10, 521, 151) )
 
 		# Buttons
-		self.button_live = qtgui.QPushButton( 'Live', self )
-		self.button_live.clicked.connect( self.Live )
+		self.button_acquisition = qtgui.QPushButton( 'Acquisition', self )
+		self.button_acquisition.clicked.connect( self.Acquisition )
 		self.button_calibration = qtgui.QPushButton( 'Calibration', self )
 		self.button_calibration.clicked.connect( self.Calibration )
 		self.button_reconstruction = qtgui.QPushButton( 'Reconstruction', self )
 		self.button_reconstruction.clicked.connect( self.Reconstruction )
+		
+		# Calibration pattern size
+		self.pattern_size = ( 15, 10 )
+		self.label_pattern_size = qtgui.QLabel( self )
+		self.label_pattern_size.setText( 'Calibration pattern size :' )
+		self.spinbox_pattern_rows = qtgui.QSpinBox( self )
+		self.spinbox_pattern_rows.setValue( 15 )
+		self.spinbox_pattern_rows.valueChanged.connect( self.UpdatePatternSize )
+		self.spinbox_pattern_cols = qtgui.QSpinBox( self )
+		self.spinbox_pattern_cols.setValue( 10 )
+		self.spinbox_pattern_cols.valueChanged.connect( self.UpdatePatternSize )
 
 		# Widget layout
+		self.layout_pattern_size = qtgui.QHBoxLayout()
+		self.layout_pattern_size.addWidget( self.label_pattern_size )
+		self.layout_pattern_size.addWidget( self.spinbox_pattern_rows )
+		self.layout_pattern_size.addWidget( self.spinbox_pattern_cols )
 		self.layout_global = qtgui.QVBoxLayout( self )
-		self.layout_global.addWidget( self.button_live )
+		self.layout_global.addWidget( self.button_acquisition )
 		self.layout_global.addWidget( self.button_calibration )
 		self.layout_global.addWidget( self.button_reconstruction )
-		
+		self.layout_global.addLayout( self.layout_pattern_size )
 		
 	#
 	# Live display of the camera images
 	#
-	def Live( self ) :
+	def Acquisition( self ) :
 		
+		# Launch the stereo camera viewer
 		Camera.VmbStereoViewer( self.pattern_size )
-
 
 	#
 	# Stereo camera calibration
@@ -73,39 +89,49 @@ class StereoVision( qtgui.QWidget ) :
 
 		# Select the folder containing the calibration files
 		selected_directory = qtgui.QFileDialog.getExistingDirectory()
-
+		if not selected_directory : return
+		
 		# Calibrate the left camera
 		print( '\n~~~ Left camera calibration ~~~\n' )
-		cam1 = Calibration.CameraCalibration( sorted( glob.glob( '{}/left*.png'.format( selected_directory ) ) ),
+		camera_calibration_left = Calibration.CameraCalibration( sorted( glob.glob( '{}/left*.png'.format( selected_directory ) ) ),
 			self.pattern_size )
 		
 		# Write the results
 		with open( 'camera-calibration-left.pkl', 'wb') as output_file :
-			pickle.dump( cam1, output_file, pickle.HIGHEST_PROTOCOL )
+			pickle.dump( camera_calibration_left, output_file, pickle.HIGHEST_PROTOCOL )
 			
 		# Calibrate the right camera
 		print( '\n~~~ Right camera calibration ~~~\n' )
-		cam2 = Calibration.CameraCalibration( sorted( glob.glob( '{}/right*.png'.format( selected_directory ) ) ),
+		camera_calibration_right = Calibration.CameraCalibration( sorted( glob.glob( '{}/right*.png'.format( selected_directory ) ) ),
 			self.pattern_size )
 
 		# Write the results
 		with open( 'camera-calibration-right.pkl', 'wb') as output_file :
-			pickle.dump( cam2, output_file, pickle.HIGHEST_PROTOCOL )
+			pickle.dump( camera_calibration_right, output_file, pickle.HIGHEST_PROTOCOL )
 
 		# Calibrate the stereo cameras
 		print( '\n~~~ Stereo camera calibration ~~~\n' )
-		calibration = Calibration.StereoCameraCalibration( cam1, cam2 )
+		stereo_calibration = Calibration.StereoCameraCalibration( camera_calibration_left, camera_calibration_right )
 		
 		# Write results
 		with open( 'stereo-calibration.pkl' , 'wb') as output_file :
-			pickle.dump( calibration, output_file, pickle.HIGHEST_PROTOCOL )
+			pickle.dump( stereo_calibration, output_file, pickle.HIGHEST_PROTOCOL )
 
 	#
 	# 3D reconstruction
 	#
 	def Reconstruction( self ) :
 
-		pass
+		# Show the widget used to reconstruct the 3D mesh
+		self.stereosgbm.show()
+
+	#
+	# Update the calibration pattern size
+	#
+	def UpdatePatternSize( self, _ ) :
+		
+		# Get the calibration pattern dimensions
+		self.pattern_size = ( self.spinbox_pattern_rows.value(), self.spinbox_pattern_cols.value() )
 
 
 #
