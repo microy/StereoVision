@@ -18,7 +18,7 @@ import PySide.QtCore as qtcore
 import PySide.QtGui as qtgui
 import Calibration
 import Camera
-import QtDisparity
+import Disparity
 
 
 #
@@ -36,7 +36,7 @@ class StereoVision( qtgui.QWidget ) :
 		super( StereoVision, self ).__init__( parent )
 		
 		# Create the widget for the stereo reconstruction
-		self.stereosgbm = QtDisparity.StereoSGBM()
+		self.stereosgbm = Disparity.StereoSGBM()
 		
 		# Set the window title
 		self.setWindowTitle( 'StereoVision' )
