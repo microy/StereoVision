@@ -98,7 +98,6 @@ class StereoSGBM( qtgui.QWidget ) :
 		self.max_difference = 1
 		self.full_dp = False
 
-
 		#
 		# Initialize the interface
 		#
@@ -112,67 +111,37 @@ class StereoSGBM( qtgui.QWidget ) :
 		# Set the window size
 		self.setGeometry( qtcore.QRect(10, 10, 621, 251) )
 
-		# Minimum disparity
-		self.label_min_disparity = qtgui.QLabel( self )
-		self.label_min_disparity.setText( 'Minimum disparity' )
+		# Image viewer
+		self.image_viewer = qtgui.QLabel()
+		self.image_viewer.setAlignment( qtcore.Qt.AlignCenter )
+
+		# StereoSGBM parameter controls
 		self.spinbox_min_disparity = qtgui.QSpinBox( self )
 		self.spinbox_min_disparity.setMaximum( 240 )
 		self.spinbox_min_disparity.setSingleStep( 16 )
 		self.spinbox_min_disparity.setValue( self.min_disparity )
-
-		# Maximum disparity
-		self.label_max_disparity = qtgui.QLabel( self )
-		self.label_max_disparity.setText( 'Maximum disparity' )
 		self.spinbox_max_disparity = qtgui.QSpinBox( self )
 		self.spinbox_max_disparity.setMaximum( 240 )
 		self.spinbox_max_disparity.setSingleStep( 16 )
 		self.spinbox_max_disparity.setValue( self.max_disparity )
-
-		# SAD window size
-		self.label_sad_window_size = qtgui.QLabel( self )
-		self.label_sad_window_size.setText( 'SAD window size' )
 		self.spinbox_sad_window_size = qtgui.QSpinBox( self )
 		self.spinbox_sad_window_size.setMinimum( 3 )
 		self.spinbox_sad_window_size.setMaximum( 11 )
 		self.spinbox_sad_window_size.setSingleStep( 2 )
 		self.spinbox_sad_window_size.setValue( self.sad_window_size )
-
-		# Uniqueness ratio
-		self.label_uniqueness_ratio = qtgui.QLabel( self )
-		self.label_uniqueness_ratio.setText( 'Uniqueness ratio' )
 		self.spinbox_uniqueness_ratio = qtgui.QSpinBox( self )
 		self.spinbox_uniqueness_ratio.setValue( self.uniqueness_ratio )
-
-		# Speckle window size
-		self.label_speckle_window_size = qtgui.QLabel( self )
-		self.label_speckle_window_size.setText( 'Speckle window size' )
 		self.spinbox_speckle_window_size = qtgui.QSpinBox( self )
 		self.spinbox_speckle_window_size.setMaximum( 240 )
 		self.spinbox_speckle_window_size.setValue( self.speckle_window_size )
-
-		# Speckle range
-		self.label_speckle_range = qtgui.QLabel( self )
-		self.label_speckle_range.setText( 'Speckle range' )
 		self.spinbox_speckle_range = qtgui.QSpinBox( self )
 		self.spinbox_speckle_range.setValue( self.speckle_range )
-
-		# P1
-		self.label_p1 = qtgui.QLabel( self )
-		self.label_p1.setText( 'P1' )
 		self.spinbox_p1 = qtgui.QSpinBox( self )
 		self.spinbox_p1.setMaximum( 2000 )
 		self.spinbox_p1.setValue( self.p1 )
-
-		# P2
-		self.label_p2 = qtgui.QLabel( self )
-		self.label_p2.setText( 'P2' )
 		self.spinbox_p2 = qtgui.QSpinBox( self )
 		self.spinbox_p2.setMaximum( 2000 )
 		self.spinbox_p2.setValue( self.p2 )
-
-		# Max difference
-		self.label_max_difference = qtgui.QLabel( self )
-		self.label_max_difference.setText( 'Max difference' )
 		self.spinbox_max_difference = qtgui.QSpinBox( self )
 		self.spinbox_max_difference.setValue( self.max_difference )
 
@@ -186,23 +155,23 @@ class StereoSGBM( qtgui.QWidget ) :
 
 		# Widget layout
 		self.layout_controls = qtgui.QGridLayout()
-		self.layout_controls.addWidget( self.label_min_disparity, 0, 0 )
+		self.layout_controls.addWidget( qtgui.QLabel( 'Minimum disparity', self ), 0, 0 )
 		self.layout_controls.addWidget( self.spinbox_min_disparity, 0, 1 )
-		self.layout_controls.addWidget( self.label_max_disparity, 1, 0 )
+		self.layout_controls.addWidget( qtgui.QLabel( 'Maximum disparity', self ), 1, 0 )
 		self.layout_controls.addWidget( self.spinbox_max_disparity, 1, 1 )
-		self.layout_controls.addWidget( self.label_sad_window_size, 2, 0 )
+		self.layout_controls.addWidget( qtgui.QLabel( 'SAD window size', self ), 2, 0 )
 		self.layout_controls.addWidget( self.spinbox_sad_window_size, 2, 1 )
-		self.layout_controls.addWidget( self.label_uniqueness_ratio, 3, 0 )
+		self.layout_controls.addWidget( qtgui.QLabel( 'Uniqueness ratio', self ), 3, 0 )
 		self.layout_controls.addWidget( self.spinbox_uniqueness_ratio, 3, 1 )
-		self.layout_controls.addWidget( self.label_speckle_window_size, 4, 0 )
+		self.layout_controls.addWidget( qtgui.QLabel( 'Spekle window size', self ), 4, 0 )
 		self.layout_controls.addWidget( self.spinbox_speckle_window_size, 4, 1 )
-		self.layout_controls.addWidget( self.label_speckle_range, 5, 0 )
+		self.layout_controls.addWidget( qtgui.QLabel( 'Spekle range', self ), 5, 0 )
 		self.layout_controls.addWidget( self.spinbox_speckle_range, 5, 1 )
-		self.layout_controls.addWidget( self.label_p1, 6, 0 )
+		self.layout_controls.addWidget( qtgui.QLabel( 'P1', self ), 6, 0 )
 		self.layout_controls.addWidget( self.spinbox_p1, 6, 1 )
-		self.layout_controls.addWidget( self.label_p2, 7, 0 )
+		self.layout_controls.addWidget( qtgui.QLabel( 'P2', self ), 7, 0 )
 		self.layout_controls.addWidget( self.spinbox_p2, 7, 1 )
-		self.layout_controls.addWidget( self.label_max_difference, 8, 0 )
+		self.layout_controls.addWidget( qtgui.QLabel( 'Maximum difference', self ), 8, 0 )
 		self.layout_controls.addWidget( self.spinbox_max_difference, 8, 1 )
 		self.layout_buttons = qtgui.QHBoxLayout()
 		self.layout_buttons.addWidget( self.button_open )
@@ -245,28 +214,31 @@ class StereoSGBM( qtgui.QWidget ) :
 		self.p2 = self.spinbox_p2.value()
 
 		# Create the disparity object
-		print( "Create SGBM..." )
-		self.bm = cv2.StereoSGBM( minDisparity=self.min_disparity,
-			numDisparities=self.max_disparity,
-			SADWindowSize=self.sad_window_size,
-			uniquenessRatio=self.uniqueness_ratio,
-			speckleWindowSize=self.speckle_window_size,
-			speckleRange=self.speckle_range,
-			disp12MaxDiff=self.max_difference,
-			P1=self.p1,
-			P2=self.p2,
-			fullDP=self.full_dp )
+		print( "Compute disparity..." )
+		self.bm = cv2.StereoSGBM( minDisparity = self.min_disparity,
+			numDisparities = self.max_disparity,
+			SADWindowSize = self.sad_window_size,
+			uniquenessRatio = self.uniqueness_ratio,
+			speckleWindowSize = self.speckle_window_size,
+			speckleRange = self.speckle_range,
+			disp12MaxDiff = self.max_difference,
+			P1 = self.p1,
+			P2 = self.p2,
+			fullDP = self.full_dp )
 		
 		# Compute the disparity map
-		print( "Compute SGBM..." )
 		self.bm_disparity = self.bm.compute( self.left_image, self.right_image )
 		
 		# Create the disparity image for display
-		print( "Create disparity image..." )
 		self.bm_disparity_img = self.bm_disparity.astype( np.float32 ) / 16.0
 		cv2.normalize( self.bm_disparity_img, self.bm_disparity_img, 0, 255, cv2.NORM_MINMAX )
 		self.bm_disparity_img = self.bm_disparity_img.astype( np.uint8 )
+		self.bm_disparity_img = cv2.pyrDown( self.bm_disparity_img )
 		self.bm_disparity_img = cv2.applyColorMap( self.bm_disparity_img, cv2.COLORMAP_JET )
-		cv2.imshow( 'Disparity map', cv2.pyrDown( self.bm_disparity_img ) )
-		cv2.waitKey( 1 )
-
+		self.bm_disparity_img = cv2.cvtColor( self.bm_disparity_img, cv2.COLOR_BGR2RGB )
+		
+		# Display the disparity map
+		self.image_viewer.setPixmap( qtgui.QPixmap.fromImage( qtgui.QImage( self.bm_disparity_img.data,
+			self.bm_disparity_img.shape[1], self.bm_disparity_img.shape[0],
+			3 * self.bm_disparity_img.shape[1], qtgui.QImage.Format_RGB888 ) ) )
+		self.image_viewer.show()
