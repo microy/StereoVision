@@ -76,16 +76,6 @@ class StereoSGBM( qtgui.QWidget ) :
 		with open( 'stereo-calibration.pkl' , 'rb') as input_file :
 			self.calibration = pickle.load( input_file )
 
-		# Read the images
-		self.left_image = cv2.imread( 'left.png', cv2.CV_LOAD_IMAGE_GRAYSCALE )
-		self.right_image = cv2.imread( 'right.png', cv2.CV_LOAD_IMAGE_GRAYSCALE )
-
-		# Remap the images
-		self.left_image = cv2.remap( self.left_image,
-			self.calibration['left_map'][0], self.calibration['left_map'][1], cv2.INTER_LINEAR )
-		self.right_image = cv2.remap( self.right_image,
-			self.calibration['right_map'][0], self.calibration['right_map'][1], cv2.INTER_LINEAR )
-
 		# StereoSGBM parameters
 		self.min_disparity = 16
 		self.max_disparity = 96
@@ -114,6 +104,7 @@ class StereoSGBM( qtgui.QWidget ) :
 		# Image viewer
 		self.image_viewer = qtgui.QLabel()
 		self.image_viewer.setAlignment( qtcore.Qt.AlignCenter )
+		self.image_viewer.setWindowTitle( 'Disparity map' )
 
 		# StereoSGBM parameter controls
 		self.spinbox_min_disparity = qtgui.QSpinBox( self )
@@ -149,8 +140,10 @@ class StereoSGBM( qtgui.QWidget ) :
 		self.button_open = qtgui.QPushButton( 'Open', self )
 		self.button_open.clicked.connect( self.LoadImages )
 		self.button_apply = qtgui.QPushButton( 'Apply', self )
+		self.button_apply.setEnabled( False )
 		self.button_apply.clicked.connect( self.UpdateDisparity )
 		self.button_save = qtgui.QPushButton( 'Save', self )
+		self.button_save.setEnabled( False )
 		self.button_save.clicked.connect( self.SavePointCloud )
 
 		# Widget layout
@@ -185,7 +178,23 @@ class StereoSGBM( qtgui.QWidget ) :
 	# Load the images
 	#
 	def LoadImages( self ) :
-		pass
+		
+		# Select the image for 3D reconstruction
+		selected_files, _ = qtgui.QFileDialog.getOpenFileNames()
+		if len( selected_files ) != 2 : return
+		
+		# Read the images
+		self.left_image = cv2.imread( selected_files[0], cv2.CV_LOAD_IMAGE_GRAYSCALE )
+		self.right_image = cv2.imread( selected_files[1], cv2.CV_LOAD_IMAGE_GRAYSCALE )
+
+		# Remap the images according to the camera calibration parameters
+		self.left_image = cv2.remap( self.left_image,
+			self.calibration['left_map'][0], self.calibration['left_map'][1], cv2.INTER_LINEAR )
+		self.right_image = cv2.remap( self.right_image,
+			self.calibration['right_map'][0], self.calibration['right_map'][1], cv2.INTER_LINEAR )
+
+		# Enable the button to compute the disparity
+		self.button_apply.setEnabled( True )
 
 	#
 	# Save the resulting point cloud
@@ -242,3 +251,7 @@ class StereoSGBM( qtgui.QWidget ) :
 			self.bm_disparity_img.shape[1], self.bm_disparity_img.shape[0],
 			3 * self.bm_disparity_img.shape[1], qtgui.QImage.Format_RGB888 ) ) )
 		self.image_viewer.show()
+		
+		# Enable the button to export the 3D mesh
+		self.button_save.setEnabled( True )
+
