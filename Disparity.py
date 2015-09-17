@@ -18,14 +18,11 @@ import PySide.QtGui as qtgui
 
 
 #
-# Class to export 3D point cloud
+# Export the point cloud to a PLY file
 #
-class PointCloud( object ) :
-
-	#
-    # Header for exporting point cloud to PLY file format
-    #
-    ply_header = (
+def WritePly( filename, coordinates, colors ) :
+	
+	ply_header = (
 '''ply
 format ascii 1.0
 element vertex {vertex_count}
@@ -36,26 +33,16 @@ property uchar red
 property uchar green
 property uchar blue
 end_header
-''')
-
-	#
-	# Initialize the point cloud
-	#
-    def __init__( self, coordinates, colors ) :
-		self.coordinates = coordinates.reshape(-1, 3)
-		self.colors = colors.reshape(-1, 3)
-
-	#
-	# Export the point cloud to a PLY file
-	#
-    def WritePly( self, output_file ) :
-		mask = self.coordinates[:, 2] > self.coordinates[:, 2].min()
-		self.coordinates = self.coordinates[ mask ]
-		self.colors = self.colors[ mask ]
-		points = np.hstack( [ self.coordinates, self.colors ] )
-		with open( output_file, 'w' ) as outfile :
-			outfile.write( self.ply_header.format( vertex_count=len(self.coordinates) ) )
-			np.savetxt( outfile, points, '%f %f %f %d %d %d' )
+''' )
+	coordinates = coordinates.reshape(-1, 3)
+	colors = colors.reshape(-1, 3)
+	mask = coordinates[:, 2] > coordinates[:, 2].min()
+	coordinates = coordinates[ mask ]
+	colors = colors[ mask ]
+	points = np.hstack( [ coordinates, colors ] )
+	with open( filename, 'w' ) as output_file :
+		output_file.write( ply_header.format( vertex_count=len(coordinates) ) )
+		np.savetxt( output_file, points, '%f %f %f %d %d %d' )
 
 
 #
@@ -201,9 +188,9 @@ class StereoSGBM( qtgui.QWidget ) :
 	#
 	def SavePointCloud( self ) :
 		print( 'Exporting point cloud...' )
-		point_cloud = PointCloud( cv2.reprojectImageTo3D( self.bm_disparity, self.calibration['Q'] ),
+		WritePly( 'mesh-{}-{}.ply'.format( self.min_disparity, self.sad_window_size ),
+			cv2.reprojectImageTo3D( self.bm_disparity, self.calibration['Q'] ),
 			cv2.cvtColor( self.left_image, cv2.COLOR_GRAY2RGB ) )
-		point_cloud.WritePly( 'mesh-{}-{}.ply'.format( self.min_disparity, self.sad_window_size ) )
 		print( 'Done.' )
 
 	#
@@ -244,13 +231,14 @@ class StereoSGBM( qtgui.QWidget ) :
 		self.bm_disparity_img = self.bm_disparity_img.astype( np.uint8 )
 		self.bm_disparity_img = cv2.pyrDown( self.bm_disparity_img )
 		self.bm_disparity_img = cv2.applyColorMap( self.bm_disparity_img, cv2.COLORMAP_JET )
-		self.bm_disparity_img = cv2.cvtColor( self.bm_disparity_img, cv2.COLOR_BGR2RGB )
+#		self.bm_disparity_img = cv2.cvtColor( self.bm_disparity_img, cv2.COLOR_BGR2RGB )
 		
 		# Display the disparity map
-		self.image_viewer.setPixmap( qtgui.QPixmap.fromImage( qtgui.QImage( self.bm_disparity_img.data,
-			self.bm_disparity_img.shape[1], self.bm_disparity_img.shape[0],
-			3 * self.bm_disparity_img.shape[1], qtgui.QImage.Format_RGB888 ) ) )
-		self.image_viewer.show()
+#		self.image_viewer.setPixmap( qtgui.QPixmap.fromImage( qtgui.QImage( self.bm_disparity_img.data,
+#			self.bm_disparity_img.shape[1], self.bm_disparity_img.shape[0],
+#			3 * self.bm_disparity_img.shape[1], qtgui.QImage.Format_RGB888 ) ) )
+#		self.image_viewer.show()
+		cv2.imshow( 'Disparity map', self.bm_disparity_img )
 		
 		# Enable the button to export the 3D mesh
 		self.button_save.setEnabled( True )
