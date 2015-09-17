@@ -41,9 +41,6 @@ class StereoVision( qtgui.QWidget ) :
 		# Set the window title
 		self.setWindowTitle( 'StereoVision' )
 
-		# Set the window size
-		self.setGeometry( qtcore.QRect(10, 10, 521, 151) )
-
 		# Buttons
 		self.button_acquisition = qtgui.QPushButton( 'Acquisition', self )
 		self.button_acquisition.clicked.connect( self.Acquisition )
@@ -54,8 +51,6 @@ class StereoVision( qtgui.QWidget ) :
 		
 		# Calibration pattern size
 		self.pattern_size = ( 15, 10 )
-		self.label_pattern_size = qtgui.QLabel( self )
-		self.label_pattern_size.setText( 'Calibration pattern size :' )
 		self.spinbox_pattern_rows = qtgui.QSpinBox( self )
 		self.spinbox_pattern_rows.setValue( 15 )
 		self.spinbox_pattern_rows.valueChanged.connect( self.UpdatePatternSize )
@@ -65,7 +60,7 @@ class StereoVision( qtgui.QWidget ) :
 
 		# Widget layout
 		self.layout_pattern_size = qtgui.QHBoxLayout()
-		self.layout_pattern_size.addWidget( self.label_pattern_size )
+		self.layout_pattern_size.addWidget( qtgui.QLabel( 'Calibration pattern size :' ) )
 		self.layout_pattern_size.addWidget( self.spinbox_pattern_rows )
 		self.layout_pattern_size.addWidget( self.spinbox_pattern_cols )
 		self.layout_global = qtgui.QVBoxLayout( self )
