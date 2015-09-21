@@ -9,6 +9,7 @@
 #
 # External dependencies
 #
+import time
 import cv2
 import numpy as np
 import Vimba
@@ -29,9 +30,6 @@ class VmbStereoViewer( object ) :
 
 		# The cameras
 		stereo_camera = Vimba.VmbStereoCamera( '50-0503326223', '50-0503323406' )
-
-		# Number of image saved
-		image_count = 0
 
 		# Live chessboard finding and drawing on the image
 		chessboard_enabled = False
@@ -109,10 +107,10 @@ class VmbStereoViewer( object ) :
 			elif key == 32 :
 				
 				# Save images to disk 
-				image_count += 1
-				print( 'Save images {} to disk...'.format(image_count) )
-				cv2.imwrite( 'left{:0>2}.png'.format(image_count), image_left )
-				cv2.imwrite( 'right{:0>2}.png'.format(image_count), image_right )
+				time = time.strftime( '%Y%m%d_%H%M%S' )
+				print( 'Save images {} to disk...'.format(time) )
+				cv2.imwrite( 'left-{}.png'.format(time), image_left )
+				cv2.imwrite( 'right-{}.png'.format(time), image_right )
 				
 			# C key
 			elif key == ord('c') :
