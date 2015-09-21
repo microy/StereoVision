@@ -20,6 +20,7 @@ import PySide.QtGui as qtgui
 import Calibration
 import Camera
 import Disparity
+import Rectification
 
 
 #
