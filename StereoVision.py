@@ -11,10 +11,7 @@
 #
 # External dependencies
 #
-import glob
-import pickle
 import sys
-import cv2
 import PySide.QtCore as qtcore
 import PySide.QtGui as qtgui
 import Calibration
@@ -87,42 +84,19 @@ class StereoVision( qtgui.QWidget ) :
 	#
 	def Calibration( self ) :
 
-		# Select the folder containing the calibration files
+		# Select the folder containing the calibration images
 		selected_directory = qtgui.QFileDialog.getExistingDirectory()
 		if not selected_directory : return
 		
-		# Calibrate the left camera
-		print( '\n~~~ Left camera calibration ~~~\n' )
-		camera_calibration_left = Calibration.CameraCalibration( sorted( glob.glob( '{}/left*.png'.format( selected_directory ) ) ),
-			self.pattern_size )
-		
-		# Write the results
-		with open( 'camera-calibration-left.pkl', 'wb') as output_file :
-			pickle.dump( camera_calibration_left, output_file, pickle.HIGHEST_PROTOCOL )
-			
-		# Calibrate the right camera
-		print( '\n~~~ Right camera calibration ~~~\n' )
-		camera_calibration_right = Calibration.CameraCalibration( sorted( glob.glob( '{}/right*.png'.format( selected_directory ) ) ),
-			self.pattern_size )
-
-		# Write the results
-		with open( 'camera-calibration-right.pkl', 'wb') as output_file :
-			pickle.dump( camera_calibration_right, output_file, pickle.HIGHEST_PROTOCOL )
-
 		# Calibrate the stereo cameras
-		print( '\n~~~ Stereo camera calibration ~~~\n' )
-		stereo_calibration = Calibration.StereoCameraCalibration( camera_calibration_left, camera_calibration_right )
-		
-		# Write the results
-		with open( 'stereo-calibration.pkl' , 'wb') as output_file :
-			pickle.dump( stereo_calibration, output_file, pickle.HIGHEST_PROTOCOL )
+		Calibration.StereoCameraCalibration( selected_directory, self.pattern_size )
 
 	#
 	# Stereo image rectification
 	#
 	def Rectification( self ) :
 
-		# Select the folder containing the image to rectify
+		# Select the folder containing the images to rectify
 		selected_directory = qtgui.QFileDialog.getExistingDirectory()
 		if not selected_directory : return
 		

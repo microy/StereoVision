@@ -9,7 +9,9 @@
 #
 # External dependencies
 #
+import glob
 import math
+import pickle
 import cv2
 import numpy as np
 
@@ -160,7 +162,15 @@ def CameraCalibration( image_files, pattern_size, debug = False ) :
 #
 # Stereo camera calibration
 #
-def StereoCameraCalibration( cam1, cam2, debug = False ) :
+def StereoCameraCalibration( image_directory, pattern_size ) :
+
+	# Calibrate the left camera
+	print( '\n~~~ Left camera calibration ~~~\n' )
+	cam1 = CameraCalibration( sorted( glob.glob( '{}/left*.png'.format( image_directory ) ) ), pattern_size )
+	
+	# Calibrate the right camera
+	print( '\n~~~ Right camera calibration ~~~\n' )
+	cam2 = CameraCalibration( sorted( glob.glob( '{}/right*.png'.format( image_directory ) ) ), pattern_size )
 
 	# Stereo calibration termination criteria
 	criteria = (cv2.TERM_CRITERIA_MAX_ITER + cv2.TERM_CRITERIA_EPS, 100, 1e-5)
@@ -248,5 +258,6 @@ def StereoCameraCalibration( cam1, cam2, debug = False ) :
 	print( 'ROI for the left camera :\n{}'.format( calibration['ROI1'] ) )
 	print( 'ROI for the right camera :\n{}'.format( calibration['ROI2'] ) )
 	
-	# Return the camera calibration results
-	return calibration
+	# Write the results
+	with open( 'stereo-calibration.pkl' , 'wb') as output_file :
+		pickle.dump( calibration, output_file, pickle.HIGHEST_PROTOCOL )
