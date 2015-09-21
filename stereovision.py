@@ -14,6 +14,7 @@
 import glob
 import pickle
 import sys
+import cv2
 import PySide.QtCore as qtcore
 import PySide.QtGui as qtgui
 import Calibration
@@ -46,6 +47,8 @@ class StereoVision( qtgui.QWidget ) :
 		self.button_acquisition.clicked.connect( self.Acquisition )
 		self.button_calibration = qtgui.QPushButton( 'Calibration', self )
 		self.button_calibration.clicked.connect( self.Calibration )
+		self.button_rectification = qtgui.QPushButton( 'Rectification', self )
+		self.button_rectification.clicked.connect( self.Rectification )
 		self.button_reconstruction = qtgui.QPushButton( 'Reconstruction', self )
 		self.button_reconstruction.clicked.connect( self.Reconstruction )
 		
@@ -66,6 +69,7 @@ class StereoVision( qtgui.QWidget ) :
 		self.layout_global = qtgui.QVBoxLayout( self )
 		self.layout_global.addWidget( self.button_acquisition )
 		self.layout_global.addWidget( self.button_calibration )
+		self.layout_global.addWidget( self.button_rectification )
 		self.layout_global.addWidget( self.button_reconstruction )
 		self.layout_global.addLayout( self.layout_pattern_size )
 		
@@ -111,6 +115,38 @@ class StereoVision( qtgui.QWidget ) :
 		# Write results
 		with open( 'stereo-calibration.pkl' , 'wb') as output_file :
 			pickle.dump( stereo_calibration, output_file, pickle.HIGHEST_PROTOCOL )
+
+	#
+	# Image rectification
+	#
+	def Rectification( self ) :
+
+		# Select the folder containing the image to rectify
+		selected_directory = qtgui.QFileDialog.getExistingDirectory()
+		if not selected_directory : return
+		
+		# Load stereo calibration parameter file
+		with open( 'stereo-calibration.pkl' , 'rb') as calibration_file :
+			calibration = pickle.load( calibration_file )
+		
+		# Get image list
+		left_image_files = sorted( glob.glob( '{}/left*.png'.format( selected_directory ) ) )
+		right_image_files = sorted( glob.glob( '{}/right*.png'.format( selected_directory ) ) )
+		
+		# Loop through the images
+		for i in range( len( left_image_files ) ) :
+			
+			# Read the images
+			left_image = cv2.imread( left_image_files[i] )
+			right_image = cv2.imread( right_image_files[i] )
+
+			# Remap the images according to the camera calibration parameters
+			left_image = cv2.remap( left_image, calibration['left_map'][0], calibration['left_map'][1], cv2.INTER_LINEAR )
+			right_image = cv2.remap( right_image, calibration['right_map'][0], calibration['right_map'][1], cv2.INTER_LINEAR )
+			
+			# Write the rectified images
+			cv2.imwrite( left_image_files[i].replace( '.png', '_rectified.png' ), left_image )
+			cv2.imwrite( right_image_files[i].replace( '.png', '_rectified.png' ), right_image )
 
 	#
 	# 3D reconstruction
