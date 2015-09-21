@@ -9,8 +9,40 @@
 #
 # External dependencies
 #
+import glob
+import pickle
 import cv2
 import numpy as np
+
+
+#
+# Image rectification
+#
+def StereoRectification( image_directory ) :
+
+	# Load stereo calibration parameter file
+	with open( 'stereo-calibration.pkl' , 'rb') as calibration_file :
+		calibration = pickle.load( calibration_file )
+	
+	# Get image list
+	left_image_files = sorted( glob.glob( '{}/left*.png'.format( image_directory ) ) )
+	right_image_files = sorted( glob.glob( '{}/right*.png'.format( image_directory ) ) )
+		
+	# Loop through the images
+	for i in range( len( left_image_files ) ) :
+		
+		# Read the images
+		left_image = cv2.imread( left_image_files[i] )
+		right_image = cv2.imread( right_image_files[i] )
+
+		# Remap the images according to the stereo camera calibration parameters
+		left_image = cv2.remap( left_image, calibration['left_map'][0], calibration['left_map'][1], cv2.INTER_LINEAR )
+		right_image = cv2.remap( right_image, calibration['right_map'][0], calibration['right_map'][1], cv2.INTER_LINEAR )
+		
+		# Write the rectified images
+		cv2.imwrite( left_image_files[i].replace( '.png', '_rectified.png' ), left_image )
+		cv2.imwrite( right_image_files[i].replace( '.png', '_rectified.png' ), right_image )
+
 
 
 #

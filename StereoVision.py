@@ -113,12 +113,12 @@ class StereoVision( qtgui.QWidget ) :
 		print( '\n~~~ Stereo camera calibration ~~~\n' )
 		stereo_calibration = Calibration.StereoCameraCalibration( camera_calibration_left, camera_calibration_right )
 		
-		# Write results
+		# Write the results
 		with open( 'stereo-calibration.pkl' , 'wb') as output_file :
 			pickle.dump( stereo_calibration, output_file, pickle.HIGHEST_PROTOCOL )
 
 	#
-	# Image rectification
+	# Stereo image rectification
 	#
 	def Rectification( self ) :
 
@@ -126,28 +126,8 @@ class StereoVision( qtgui.QWidget ) :
 		selected_directory = qtgui.QFileDialog.getExistingDirectory()
 		if not selected_directory : return
 		
-		# Load stereo calibration parameter file
-		with open( 'stereo-calibration.pkl' , 'rb') as calibration_file :
-			calibration = pickle.load( calibration_file )
-		
-		# Get image list
-		left_image_files = sorted( glob.glob( '{}/left*.png'.format( selected_directory ) ) )
-		right_image_files = sorted( glob.glob( '{}/right*.png'.format( selected_directory ) ) )
-		
-		# Loop through the images
-		for i in range( len( left_image_files ) ) :
-			
-			# Read the images
-			left_image = cv2.imread( left_image_files[i] )
-			right_image = cv2.imread( right_image_files[i] )
-
-			# Remap the images according to the camera calibration parameters
-			left_image = cv2.remap( left_image, calibration['left_map'][0], calibration['left_map'][1], cv2.INTER_LINEAR )
-			right_image = cv2.remap( right_image, calibration['right_map'][0], calibration['right_map'][1], cv2.INTER_LINEAR )
-			
-			# Write the rectified images
-			cv2.imwrite( left_image_files[i].replace( '.png', '_rectified.png' ), left_image )
-			cv2.imwrite( right_image_files[i].replace( '.png', '_rectified.png' ), right_image )
+		# Rectify the given images
+		Rectification.StereoRectification( selected_directory )
 
 	#
 	# 3D reconstruction
