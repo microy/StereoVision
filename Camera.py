@@ -2,7 +2,7 @@
 
 
 #
-# Module to display live images from two AVT cameras
+# Module to display live images from two cameras
 #
 
 
@@ -16,6 +16,22 @@ import Vimba
 
 
 #
+# Find the chessboard quickly, and draw it
+#
+def PreviewChessboard( image, pattern_size ) :
+	
+	# Find the chessboard corners on the image
+	found, corners = cv2.findChessboardCorners( image, pattern_size, flags = cv2.CALIB_CB_FAST_CHECK )	
+#	found, corners = cv2.findCirclesGridDefault( image, pattern_size, flags = cv2.CALIB_CB_ASYMMETRIC_GRID )	
+
+	# Draw the chessboard corners on the image
+	if found : cv2.drawChessboardCorners( image, pattern_size, corners, found )
+		
+	# Return the image with the chessboard if found
+	return image
+
+
+#
 # Vimba stereo camera viewer
 #
 class VmbStereoViewer( object ) :
@@ -25,18 +41,18 @@ class VmbStereoViewer( object ) :
 	#
 	def __init__( self, pattern_size, scale_factor = 0.37 ) :
 		
-		# Initialize Vimba
-		Vimba.VmbStartup()
-
-		# The cameras
-		stereo_camera = Vimba.VmbStereoCamera( '50-0503326223', '50-0503323406' )
-
-		# Live chessboard finding and drawing on the image
+		# Initialize the viewing parameters
 		chessboard_enabled = False
 		cross_enabled = False
 		zoom_enabled = False
 		
-		# Open the cameras
+		# Initialize the Vimba driver
+		Vimba.VmbStartup()
+
+		# Initialize the stereo cameras
+		stereo_camera = Vimba.VmbStereoCamera( '50-0503326223', '50-0503323406' )
+
+		# Connect the stereo cameras
 		stereo_camera.Open()
 		
 		# Start image acquisition
@@ -153,21 +169,3 @@ class VmbStereoViewer( object ) :
 
 		# Frame ready
 		self.frames_ready = True
-
-	#
-	# Find the chessboard quickly and draw it
-	#
-	def PreviewChessboard( self, image, pattern_size ) :
-		
-		# Find the chessboard corners on the image
-		found_all, corners = cv2.findChessboardCorners( image, pattern_size, flags = cv2.CALIB_CB_FAST_CHECK )	
-	#	found_all, corners = cv2.findCirclesGridDefault( image, pattern_size, flags = cv2.CALIB_CB_ASYMMETRIC_GRID )	
-
-		# Chessboard found
-		if found_all :
-			
-			# Draw the chessboard corners on the image
-			cv2.drawChessboardCorners( image, pattern_size, corners, found_all )
-			
-		# Return the image with the chessboard if found
-		return image
