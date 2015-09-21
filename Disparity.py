@@ -69,9 +69,9 @@ class StereoSGBM( qtgui.QWidget ) :
 		self.sad_window_size = 3
 		self.uniqueness_ratio = 10
 		self.speckle_window_size = 100
-		self.speckle_range = 2
-		self.p1 = 216
-		self.p2 = 864
+		self.speckle_range = 32
+		self.p1 = 8*3*self.sad_window_size**2
+		self.p2 = 32*3*self.sad_window_size**2
 		self.max_difference = 1
 		self.full_dp = False
 
@@ -169,16 +169,17 @@ class StereoSGBM( qtgui.QWidget ) :
 		# Select the image for 3D reconstruction
 		selected_files, _ = qtgui.QFileDialog.getOpenFileNames()
 		if len( selected_files ) != 2 : return
+		selected_files = sorted( selected_files )
 		
 		# Read the images
 		self.left_image = cv2.imread( selected_files[0], cv2.CV_LOAD_IMAGE_GRAYSCALE )
 		self.right_image = cv2.imread( selected_files[1], cv2.CV_LOAD_IMAGE_GRAYSCALE )
 
 		# Remap the images according to the camera calibration parameters
-		self.left_image = cv2.remap( self.left_image,
-			self.calibration['left_map'][0], self.calibration['left_map'][1], cv2.INTER_LINEAR )
-		self.right_image = cv2.remap( self.right_image,
-			self.calibration['right_map'][0], self.calibration['right_map'][1], cv2.INTER_LINEAR )
+#		self.left_image = cv2.remap( self.left_image,
+#			self.calibration['left_map'][0], self.calibration['left_map'][1], cv2.INTER_LINEAR )
+#		self.right_image = cv2.remap( self.right_image,
+#			self.calibration['right_map'][0], self.calibration['right_map'][1], cv2.INTER_LINEAR )
 
 		# Enable the button to compute the disparity
 		self.button_apply.setEnabled( True )
@@ -223,14 +224,15 @@ class StereoSGBM( qtgui.QWidget ) :
 			fullDP = self.full_dp )
 		
 		# Compute the disparity map
-		self.bm_disparity = self.bm.compute( self.left_image, self.right_image )
+		self.bm_disparity = self.bm.compute( self.left_image, self.right_image ).astype( np.float32 ) / 16.0
 		
 		# Create the disparity image for display
-		self.bm_disparity_img = self.bm_disparity.astype( np.float32 ) / 16.0
-		cv2.normalize( self.bm_disparity_img, self.bm_disparity_img, 0, 255, cv2.NORM_MINMAX )
-		self.bm_disparity_img = self.bm_disparity_img.astype( np.uint8 )
+#		self.bm_disparity_img = self.bm_disparity
+#		cv2.normalize( self.bm_disparity_img, self.bm_disparity_img, 0, 255, cv2.NORM_MINMAX )
+		self.bm_disparity_img = ( self.bm_disparity - self.min_disparity ) / self.max_disparity
+#		self.bm_disparity_img = self.bm_disparity_img.astype( np.uint8 )
 		self.bm_disparity_img = cv2.pyrDown( self.bm_disparity_img )
-		self.bm_disparity_img = cv2.applyColorMap( self.bm_disparity_img, cv2.COLORMAP_JET )
+#		self.bm_disparity_img = cv2.applyColorMap( self.bm_disparity_img, cv2.COLORMAP_JET )
 #		self.bm_disparity_img = cv2.cvtColor( self.bm_disparity_img, cv2.COLOR_BGR2RGB )
 		
 		# Display the disparity map
@@ -238,6 +240,7 @@ class StereoSGBM( qtgui.QWidget ) :
 #			self.bm_disparity_img.shape[1], self.bm_disparity_img.shape[0],
 #			3 * self.bm_disparity_img.shape[1], qtgui.QImage.Format_RGB888 ) ) )
 #		self.image_viewer.show()
+
 		cv2.imshow( 'Disparity map', self.bm_disparity_img )
 		
 		# Enable the button to export the 3D mesh
