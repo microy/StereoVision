@@ -59,10 +59,6 @@ class StereoSGBM( qtgui.QWidget ) :
 		# Initialize the StereoBM
 		#
 		
-		# Load stereo calibration parameter file
-		with open( 'stereo-calibration.pkl' , 'rb') as input_file :
-			self.calibration = pickle.load( input_file )
-
 		# StereoSGBM parameters
 		self.min_disparity = 16
 		self.max_disparity = 96
@@ -70,8 +66,8 @@ class StereoSGBM( qtgui.QWidget ) :
 		self.uniqueness_ratio = 10
 		self.speckle_window_size = 100
 		self.speckle_range = 32
-		self.p1 = 8*3*self.sad_window_size**2
-		self.p2 = 32*3*self.sad_window_size**2
+		self.p1 = 8 * 3 * self.sad_window_size ** 2
+		self.p2 = 32 * 3 * self.sad_window_size ** 2
 		self.max_difference = 1
 		self.full_dp = False
 
@@ -172,14 +168,8 @@ class StereoSGBM( qtgui.QWidget ) :
 		selected_files = sorted( selected_files )
 		
 		# Read the images
-		self.left_image = cv2.imread( selected_files[0], cv2.CV_LOAD_IMAGE_GRAYSCALE )
-		self.right_image = cv2.imread( selected_files[1], cv2.CV_LOAD_IMAGE_GRAYSCALE )
-
-		# Remap the images according to the camera calibration parameters
-#		self.left_image = cv2.remap( self.left_image,
-#			self.calibration['left_map'][0], self.calibration['left_map'][1], cv2.INTER_LINEAR )
-#		self.right_image = cv2.remap( self.right_image,
-#			self.calibration['right_map'][0], self.calibration['right_map'][1], cv2.INTER_LINEAR )
+		self.left_image = cv2.imread( selected_files[0] )
+		self.right_image = cv2.imread( selected_files[1] )
 
 		# Enable the button to compute the disparity
 		self.button_apply.setEnabled( True )
@@ -188,6 +178,7 @@ class StereoSGBM( qtgui.QWidget ) :
 	# Save the resulting point cloud
 	#
 	def SavePointCloud( self ) :
+		
 		print( 'Exporting point cloud...' )
 		WritePly( 'mesh-{}-{}.ply'.format( self.min_disparity, self.sad_window_size ),
 			cv2.reprojectImageTo3D( self.bm_disparity, self.calibration['Q'] ),
