@@ -32,6 +32,99 @@ def PreviewChessboard( image, pattern_size ) :
 
 
 #
+# Usb stereo camera viewer
+#
+def UsbStereoViewer( pattern_size ) :
+		
+
+	# Initialize the viewing parameters
+	chessboard_enabled = False
+	cross_enabled = False
+	
+	# Initialize the stereo cameras
+	camera_left = cv2.VideoCapture( 0 )
+	camera_right = cv2.VideoCapture( 1 )
+	
+	# Lower the camera frame rate
+	camera_left.set( cv2.cv.CV_CAP_PROP_FPS, 5 )
+	camera_right.set( cv2.cv.CV_CAP_PROP_FPS, 5 )
+
+	# Live display
+	while True :
+
+		# Capture images
+		camera_left.grab()
+		camera_right.grab()
+
+		# Get the images
+		_, image_left = camera_left.retrieve()
+		_, image_right = camera_right.retrieve()
+
+		# Copy images for display
+		image_left_displayed = np.array( image_left )
+		image_right_displayed = np.array( image_right )
+
+		# Preview the calibration chessboard on the image
+		if chessboard_enabled :
+			image_left_displayed = PreviewChessboard( image_left_displayed, pattern_size )
+			image_right_displayed = PreviewChessboard( image_right_displayed, pattern_size )
+
+		# Display a cross in the middle of the image
+		if cross_enabled :
+			w = image_left_displayed.shape[1]
+			h = image_left_displayed.shape[0]
+			w2 = int( w/2 )
+			h2 = int( h/2 )
+			cv2.line( image_left_displayed, (w2, 0), (w2, h), (0, 255, 0), 2 )
+			cv2.line( image_left_displayed, (0, h2), (w, h2), (0, 255, 0), 2 )
+			cv2.line( image_right_displayed, (w2, 0), (w2, h), (0, 255, 0), 2 )
+			cv2.line( image_right_displayed, (0, h2), (w, h2), (0, 255, 0), 2 )
+
+		# Prepare image for display
+		stereo_image = np.concatenate( (image_left_displayed, image_right_displayed), axis=1 )
+		
+		# Display the image (scaled down)
+		cv2.imshow( 'StereoVision', stereo_image )
+
+		# Keyboard interruption
+		key = cv2.waitKey( 1 ) & 0xFF
+		
+		# Escape key
+		if key == 27 :
+			
+			# Exit live display
+			break
+			
+		# Space key
+		elif key == 32 :
+			
+			# Save images to disk 
+			current_time = time.strftime( '%Y%m%d_%H%M%S' )
+			print( 'Save images {} to disk...'.format(current_time) )
+			cv2.imwrite( 'left-{}.png'.format(current_time), image_left )
+			cv2.imwrite( 'right-{}.png'.format(current_time), image_right )
+			
+		# C key
+		elif key == ord('c') :
+			
+			# Enable / Disable display of the middle cross
+			cross_enabled = not cross_enabled		
+
+		# M key
+		elif key == ord('m') :
+			
+			# Enable / Disable chessboard preview
+			chessboard_enabled = not chessboard_enabled		
+
+	# Stop image acquisition
+	camera_left.release()
+	camera_right.release()
+				
+	# Cleanup OpenCV
+	cv2.destroyAllWindows()
+
+
+#
 # Vimba stereo camera viewer
 #
 class VmbStereoViewer( object ) :
@@ -81,8 +174,8 @@ class VmbStereoViewer( object ) :
 
 			# Preview the calibration chessboard on the image
 			if chessboard_enabled :
-				image_left_displayed = self.PreviewChessboard( image_left_displayed, pattern_size )
-				image_right_displayed = self.PreviewChessboard( image_right_displayed, pattern_size )
+				image_left_displayed = PreviewChessboard( image_left_displayed, pattern_size )
+				image_right_displayed = PreviewChessboard( image_right_displayed, pattern_size )
 
 			# Zoom in the middle of the image
 			if zoom_enabled :
@@ -123,10 +216,10 @@ class VmbStereoViewer( object ) :
 			elif key == 32 :
 				
 				# Save images to disk 
-				time = time.strftime( '%Y%m%d_%H%M%S' )
-				print( 'Save images {} to disk...'.format(time) )
-				cv2.imwrite( 'left-{}.png'.format(time), image_left )
-				cv2.imwrite( 'right-{}.png'.format(time), image_right )
+				current_time = time.strftime( '%Y%m%d_%H%M%S' )
+				print( 'Save images {} to disk...'.format(current_time) )
+				cv2.imwrite( 'left-{}.png'.format(current_time), image_left )
+				cv2.imwrite( 'right-{}.png'.format(current_time), image_right )
 				
 			# C key
 			elif key == ord('c') :
