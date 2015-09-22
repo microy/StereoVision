@@ -157,6 +157,20 @@ class StereoSGBM( qtgui.QWidget ) :
 		self.layout_global.addLayout( self.layout_controls )
 		self.layout_global.addLayout( self.layout_buttons )
 		
+
+	#
+	# Show the dialog
+	#
+	def show( self ) :
+		
+		# Load stereo calibration parameter file
+		with open( 'stereo-calibration.pkl' , 'rb') as calibration_file :
+			self.calibration = pickle.load( calibration_file )
+			
+		# Show the QWidget
+		super( StereoSGBM, self ).show()
+
+
 	#
 	# Load the images
 	#
@@ -182,7 +196,7 @@ class StereoSGBM( qtgui.QWidget ) :
 		print( 'Exporting point cloud...' )
 		WritePly( 'mesh-{}-{}.ply'.format( self.min_disparity, self.sad_window_size ),
 			cv2.reprojectImageTo3D( self.bm_disparity, self.calibration['Q'] ),
-			cv2.cvtColor( self.left_image, cv2.COLOR_GRAY2RGB ) )
+			cv2.cvtColor( self.left_image, cv2.COLOR_BGR2RGB ) )
 		print( 'Done.' )
 
 	#
@@ -218,12 +232,12 @@ class StereoSGBM( qtgui.QWidget ) :
 		self.bm_disparity = self.bm.compute( self.left_image, self.right_image ).astype( np.float32 ) / 16.0
 		
 		# Create the disparity image for display
-#		self.bm_disparity_img = self.bm_disparity
-#		cv2.normalize( self.bm_disparity_img, self.bm_disparity_img, 0, 255, cv2.NORM_MINMAX )
-		self.bm_disparity_img = ( self.bm_disparity - self.min_disparity ) / self.max_disparity
-#		self.bm_disparity_img = self.bm_disparity_img.astype( np.uint8 )
-		self.bm_disparity_img = cv2.pyrDown( self.bm_disparity_img )
-#		self.bm_disparity_img = cv2.applyColorMap( self.bm_disparity_img, cv2.COLORMAP_JET )
+		self.bm_disparity_img = self.bm_disparity
+		cv2.normalize( self.bm_disparity_img, self.bm_disparity_img, 0, 255, cv2.NORM_MINMAX )
+#		self.bm_disparity_img = ( self.bm_disparity - self.min_disparity ) / self.max_disparity
+		self.bm_disparity_img = self.bm_disparity_img.astype( np.uint8 )
+#		self.bm_disparity_img = cv2.pyrDown( self.bm_disparity_img )
+		self.bm_disparity_img = cv2.applyColorMap( self.bm_disparity_img, cv2.COLORMAP_JET )
 #		self.bm_disparity_img = cv2.cvtColor( self.bm_disparity_img, cv2.COLOR_BGR2RGB )
 		
 		# Display the disparity map
