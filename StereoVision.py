@@ -77,7 +77,8 @@ class StereoVision( qtgui.QWidget ) :
 	def Acquisition( self ) :
 		
 		# Launch the stereo camera viewer
-		Camera.VmbStereoViewer( self.pattern_size )
+	#	Camera.VmbStereoViewer( self.pattern_size )
+		Camera.UsbStereoViewer( self.pattern_size )
 
 	#
 	# Stereo camera calibration
