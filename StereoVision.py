@@ -15,10 +15,6 @@ import sys
 import PySide.QtCore as qtcore
 import PySide.QtGui as qtgui
 from PyStereoVisionToolkit import *
-#import Calibration
-#import Camera
-#import Disparity
-#import Rectification
 
 
 #
@@ -50,12 +46,12 @@ class StereoVision( qtgui.QWidget ) :
 		self.button_reconstruction.clicked.connect( self.Reconstruction )
 		
 		# Calibration pattern size
-		self.pattern_size = ( 15, 10 )
+		self.pattern_size = ( 9, 6 )
 		self.spinbox_pattern_rows = qtgui.QSpinBox( self )
-		self.spinbox_pattern_rows.setValue( 15 )
+		self.spinbox_pattern_rows.setValue( self.pattern_size[0] )
 		self.spinbox_pattern_rows.valueChanged.connect( self.UpdatePatternSize )
 		self.spinbox_pattern_cols = qtgui.QSpinBox( self )
-		self.spinbox_pattern_cols.setValue( 10 )
+		self.spinbox_pattern_cols.setValue( self.pattern_size[1] )
 		self.spinbox_pattern_cols.valueChanged.connect( self.UpdatePatternSize )
 
 		# Widget layout
