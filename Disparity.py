@@ -185,6 +185,10 @@ class StereoSGBM( qtgui.QWidget ) :
 		self.left_image = cv2.imread( selected_files[0] )
 		self.right_image = cv2.imread( selected_files[1] )
 
+		# Remap the images according to the stereo camera calibration parameters
+		self.left_image = cv2.remap( self.left_image, self.calibration['left_map'][0], self.calibration['left_map'][1], cv2.INTER_LINEAR )
+		self.right_image = cv2.remap( self.right_image, self.calibration['right_map'][0], self.calibration['right_map'][1], cv2.INTER_LINEAR )
+
 		# Enable the button to compute the disparity
 		self.button_apply.setEnabled( True )
 

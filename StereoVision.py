@@ -45,8 +45,6 @@ class StereoVision( qtgui.QWidget ) :
 		self.button_acquisition.clicked.connect( self.Acquisition )
 		self.button_calibration = qtgui.QPushButton( 'Calibration', self )
 		self.button_calibration.clicked.connect( self.Calibration )
-		self.button_rectification = qtgui.QPushButton( 'Rectification', self )
-		self.button_rectification.clicked.connect( self.Rectification )
 		self.button_reconstruction = qtgui.QPushButton( 'Reconstruction', self )
 		self.button_reconstruction.clicked.connect( self.Reconstruction )
 		
@@ -67,7 +65,6 @@ class StereoVision( qtgui.QWidget ) :
 		self.layout_global = qtgui.QVBoxLayout( self )
 		self.layout_global.addWidget( self.button_acquisition )
 		self.layout_global.addWidget( self.button_calibration )
-		self.layout_global.addWidget( self.button_rectification )
 		self.layout_global.addWidget( self.button_reconstruction )
 		self.layout_global.addLayout( self.layout_pattern_size )
 		
@@ -91,18 +88,6 @@ class StereoVision( qtgui.QWidget ) :
 		
 		# Calibrate the stereo cameras
 		Calibration.StereoCameraCalibration( selected_directory, self.pattern_size )
-
-	#
-	# Stereo image rectification
-	#
-	def Rectification( self ) :
-
-		# Select the folder containing the images to rectify
-		selected_directory = qtgui.QFileDialog.getExistingDirectory()
-		if not selected_directory : return
-		
-		# Rectify the given images
-		Rectification.StereoRectification( selected_directory )
 
 	#
 	# 3D reconstruction
