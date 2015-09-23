@@ -14,10 +14,11 @@
 import sys
 import PySide.QtCore as qtcore
 import PySide.QtGui as qtgui
-import Calibration
-import Camera
-import Disparity
-import Rectification
+from PyStereoVisionToolkit import *
+#import Calibration
+#import Camera
+#import Disparity
+#import Rectification
 
 
 #
