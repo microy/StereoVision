@@ -172,6 +172,9 @@ def StereoCameraCalibration( image_directory, pattern_size ) :
 	print( '\n~~~ Right camera calibration ~~~\n' )
 	cam2 = CameraCalibration( sorted( glob.glob( '{}/right*.png'.format( image_directory ) ) ), pattern_size )
 
+	# Calibrate the stereo cameras
+	print( '\n~~~ Stereo camera calibration ~~~\n' )
+
 	# Stereo calibration termination criteria
 	criteria = (cv2.TERM_CRITERIA_MAX_ITER + cv2.TERM_CRITERIA_EPS, 100, 1e-5)
 	
@@ -255,8 +258,8 @@ def StereoCameraCalibration( image_directory, pattern_size ) :
 	print( 'Projection matrix for the first camera :\n{}'.format( calibration['P1'] ) )
 	print( 'Projection matrix for the second camera :\n{}'.format( calibration['P2'] ) )
 	print( 'Disparity-to-depth mapping matrix :\n{}'.format( calibration['Q'] ) )
-	print( 'ROI for the left camera :\n{}'.format( calibration['ROI1'] ) )
-	print( 'ROI for the right camera :\n{}'.format( calibration['ROI2'] ) )
+	print( 'ROI for the left camera :  {}'.format( calibration['ROI1'] ) )
+	print( 'ROI for the right camera : {}\n'.format( calibration['ROI2'] ) )
 	
 	# Write the results
 	with open( 'stereo-calibration.pkl' , 'wb') as output_file :
