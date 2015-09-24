@@ -26,7 +26,7 @@ image_scale = 0.5
 #
 # Camera calibration
 #
-def CameraCalibration( image_files, pattern_size, debug = False ) :
+def CameraCalibration( image_files, pattern_size ) :
 	
 	# Chessboard pattern
 	pattern_points = np.zeros( (np.prod(pattern_size), 3), np.float32 )
@@ -40,7 +40,7 @@ def CameraCalibration( image_files, pattern_size, debug = False ) :
 #	pattern_points = np.asarray( pattern_points, dtype=np.float32 )
 
 	# Get image size
-	height, width = cv2.imread( image_files[0], cv2.CV_LOAD_IMAGE_GRAYSCALE ).shape[:2]
+	height, width = cv2.imread( image_files[0] ).shape[:2]
 #	img_size = tuple( cv2.pyrDown( cv2.imread( image_files[0] ), cv2.CV_LOAD_IMAGE_GRAYSCALE ).shape[:2] )
 	img_size = ( width, height )
 	
@@ -94,30 +94,16 @@ def CameraCalibration( image_files, pattern_size, debug = False ) :
 		obj_points.append( pattern_points )
 		img_files.append( filename )
 
-		# Preview chessboard on image
-		if debug :
-			
-			# Convert grayscale image in color
-			image_color = cv2.cvtColor( image_small, cv2.COLOR_GRAY2BGR )
-			
-			# Draw the chessboard corners on the image
-			cv2.drawChessboardCorners( image_color, pattern_size, corners, found )
-			
-			# Display the image with the chessboard
-			cv2.imshow( filename, cv2.pyrDown( image_color ) )
-			cv2.waitKey( 700 )
-			cv2.destroyWindow( filename )
-
 	# Camera calibration flags
 	flags  = 0
 #	flags |= cv2.CALIB_USE_INTRINSIC_GUESS
 #	flags |= cv2.CALIB_FIX_PRINCIPAL_POINT
 #	flags |= cv2.CALIB_FIX_ASPECT_RATIO
 #	flags |= cv2.CALIB_ZERO_TANGENT_DIST
-	flags |= cv2.CALIB_RATIONAL_MODEL
+#	flags |= cv2.CALIB_RATIONAL_MODEL
 #	flags |= cv2.CALIB_FIX_K3
-	flags |= cv2.CALIB_FIX_K4
-	flags |= cv2.CALIB_FIX_K5
+#	flags |= cv2.CALIB_FIX_K4
+#	flags |= cv2.CALIB_FIX_K5
 
 	# Camera calibration
 	calibration = cv2.calibrateCamera( obj_points, img_points, img_size, flags=flags )
@@ -187,10 +173,10 @@ def StereoCameraCalibration( image_directory, pattern_size ) :
 	flags |= cv2.CALIB_FIX_ASPECT_RATIO
 	flags |= cv2.CALIB_SAME_FOCAL_LENGTH
 	flags |= cv2.CALIB_ZERO_TANGENT_DIST
-	flags |= cv2.CALIB_RATIONAL_MODEL
-	flags |= cv2.CALIB_FIX_K3
-	flags |= cv2.CALIB_FIX_K4
-	flags |= cv2.CALIB_FIX_K5
+#	flags |= cv2.CALIB_RATIONAL_MODEL
+#	flags |= cv2.CALIB_FIX_K3
+#	flags |= cv2.CALIB_FIX_K4
+#	flags |= cv2.CALIB_FIX_K5
 
 	# Stereo calibration
 	calibration = cv2.stereoCalibrate( cam1['obj_points'], cam1['img_points'], cam2['img_points'],
@@ -232,15 +218,6 @@ def StereoCameraCalibration( image_directory, pattern_size ) :
 			undistorted_l[i][0][1] * lines_r[i][0][1] + lines_r[i][0][2] ) + abs( undistorted_r[i][0][0] * lines_l[i][0][0] +
 			undistorted_r[i][0][1] * lines_l[i][0][1] + lines_l[i][0][2] )
 	calibration['reproject_error'] /= len( undistorted_r )
-
-	# This is replaced because my results were always bad. Estimates are
-	# taken from the OpenCV samples.
-#	width, height = cam1['img_size']
-#	focal_length = 0.8 * width
-#	calibration['Q'] = np.float32( [[1, 0, 0, -0.5 * width],
-#			[0, -1, 0, 0.5 * height],
-#			[0, 0, 0, -focal_length],
-#			[0, 0, 1, 0]] )
 
 	# Print calibration results
 	print( 'Stereo calibration error : {}'.format( calibration['calib_error'] ) )
