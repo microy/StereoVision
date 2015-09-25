@@ -166,24 +166,9 @@ class StereoSGBM( qtgui.QWidget ) :
 		# Load stereo calibration parameter file
 		with open( 'stereo-calibration.pkl' , 'rb') as calibration_file :
 			self.calibration = pickle.load( calibration_file )
-			
-		# Show the QWidget
-		super( StereoSGBM, self ).show()
-
-
-	#
-	# Load the images
-	#
-	def LoadImages( self ) :
 		
-		# Select the image for 3D reconstruction
-		selected_files, _ = qtgui.QFileDialog.getOpenFileNames()
-		if len( selected_files ) != 2 : return
-		selected_files = sorted( selected_files )
-		
-		# Read the images
-		self.left_image = cv2.imread( selected_files[0] )
-		self.right_image = cv2.imread( selected_files[1] )
+		self.left_image = cv2.imread( 'left.png' )
+		self.right_image = cv2.imread( 'right.png' )
 
 		# Remap the images according to the stereo camera calibration parameters
 		self.left_image = cv2.remap( self.left_image, self.calibration['left_map'][0], self.calibration['left_map'][1], cv2.INTER_LINEAR )
@@ -191,6 +176,41 @@ class StereoSGBM( qtgui.QWidget ) :
 
 		# Enable the button to compute the disparity
 		self.button_apply.setEnabled( True )
+		
+		# Show the QWidget
+		super( StereoSGBM, self ).show()
+
+		# Compute the disparity map
+		self.UpdateDisparity()
+
+		
+
+
+	#
+	# Load the images
+	#
+	def LoadImages( self, image_files ) :
+		
+		# Select the image for 3D reconstruction
+#		selected_files, _ = qtgui.QFileDialog.getOpenFileNames()
+#		if len( selected_files ) != 2 : return
+#		selected_files = sorted( selected_files )
+		
+		# Read the images
+#		self.left_image = cv2.imread( selected_files[0] )
+#		self.right_image = cv2.imread( selected_files[1] )
+		self.left_image = cv2.imread( image_files[0] )
+		self.right_image = cv2.imread( image_files[1] )
+
+		# Remap the images according to the stereo camera calibration parameters
+		self.left_image = cv2.remap( self.left_image, self.calibration['left_map'][0], self.calibration['left_map'][1], cv2.INTER_LINEAR )
+		self.right_image = cv2.remap( self.right_image, self.calibration['right_map'][0], self.calibration['right_map'][1], cv2.INTER_LINEAR )
+
+		# Enable the button to compute the disparity
+		self.button_apply.setEnabled( True )
+		
+		# Compute the disparity map
+		self.UpdateDisparity()
 
 	#
 	# Save the resulting point cloud
