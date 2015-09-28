@@ -14,16 +14,16 @@
 import os
 import sys
 import cv2
-import PySide.QtCore as qtcore
-import PySide.QtGui as qtgui
-import PyStereoVisionToolkit as psvtk
+from PySide import QtGui
+import Calibration
+import Camera
+import Disparity
 
 
 #
 # Main application of stereovision
 #
-class StereoVision( qtgui.QWidget ) :
-
+class StereoVision( QtGui.QWidget ) :
 
 	#
 	# Initialisation
@@ -45,33 +45,33 @@ class StereoVision( qtgui.QWidget ) :
 				self.calibration = pickle.load( calibration_file )
 		
 		# Create the widget for the stereo reconstruction
-		self.stereosgbm = psvtk.Disparity.StereoSGBM()
+		self.stereosgbm = Disparity.StereoSGBM()
 		
 		# Set the window title
 		self.setWindowTitle( 'StereoVision' )
 
 		# Buttons
-		self.button_acquisition = qtgui.QPushButton( 'Acquisition', self )
+		self.button_acquisition = QtGui.QPushButton( 'Acquisition', self )
 		self.button_acquisition.clicked.connect( self.Acquisition )
-		self.button_calibration = qtgui.QPushButton( 'Calibration', self )
+		self.button_calibration = QtGui.QPushButton( 'Calibration', self )
 		self.button_calibration.clicked.connect( self.Calibration )
-		self.button_reconstruction = qtgui.QPushButton( 'Reconstruction', self )
+		self.button_reconstruction = QtGui.QPushButton( 'Reconstruction', self )
 		self.button_reconstruction.clicked.connect( self.Reconstruction )
 		
 		# Calibration pattern size
-		self.spinbox_pattern_rows = qtgui.QSpinBox( self )
-		self.spinbox_pattern_rows.setValue( psvtk.Calibration.pattern_size[0] )
+		self.spinbox_pattern_rows = QtGui.QSpinBox( self )
+		self.spinbox_pattern_rows.setValue( Calibration.pattern_size[0] )
 		self.spinbox_pattern_rows.valueChanged.connect( self.UpdatePatternSize )
-		self.spinbox_pattern_cols = qtgui.QSpinBox( self )
-		self.spinbox_pattern_cols.setValue( psvtk.Calibration.pattern_size[1] )
+		self.spinbox_pattern_cols = QtGui.QSpinBox( self )
+		self.spinbox_pattern_cols.setValue( Calibration.pattern_size[1] )
 		self.spinbox_pattern_cols.valueChanged.connect( self.UpdatePatternSize )
 
 		# Widget layout
-		self.layout_pattern_size = qtgui.QHBoxLayout()
-		self.layout_pattern_size.addWidget( qtgui.QLabel( 'Calibration pattern size :' ) )
+		self.layout_pattern_size = QtGui.QHBoxLayout()
+		self.layout_pattern_size.addWidget( QtGui.QLabel( 'Calibration pattern size :' ) )
 		self.layout_pattern_size.addWidget( self.spinbox_pattern_rows )
 		self.layout_pattern_size.addWidget( self.spinbox_pattern_cols )
-		self.layout_global = qtgui.QVBoxLayout( self )
+		self.layout_global = QtGui.QVBoxLayout( self )
 		self.layout_global.addWidget( self.button_acquisition )
 		self.layout_global.addWidget( self.button_calibration )
 		self.layout_global.addWidget( self.button_reconstruction )
@@ -83,7 +83,7 @@ class StereoVision( qtgui.QWidget ) :
 	def Acquisition( self ) :
 		
 		# Launch the stereo camera viewer
-		psvtk.Camera.UsbStereoViewer( psvtk.Calibration.pattern_size )
+		Camera.UsbStereoViewer( Calibration.pattern_size )
 
 	#
 	# Stereo camera calibration
@@ -91,7 +91,7 @@ class StereoVision( qtgui.QWidget ) :
 	def Calibration( self ) :
 
 		# Calibrate the stereo cameras
-		self.calibration = psvtk.Calibration.StereoCameraCalibration()
+		self.calibration = Calibration.StereoCameraCalibration()
 
 	#
 	# 3D reconstruction
@@ -103,7 +103,7 @@ class StereoVision( qtgui.QWidget ) :
 		right_image = cv2.imread( 'right.png' )
 
 		# Undistort the images according to the stereo camera calibration parameters
-		left_image, right_image = psvtk.Calibration.StereoRectification( self.calibration, left_image, right_image )
+		left_image, right_image = Calibration.StereoRectification( self.calibration, left_image, right_image )
 		
 		# Show the widget used to reconstruct the 3D mesh
 		self.stereosgbm.LoadImages( left_image, right_image )
@@ -116,15 +116,17 @@ class StereoVision( qtgui.QWidget ) :
 	def UpdatePatternSize( self, _ ) :
 		
 		# Get the calibration pattern dimensions
-		psvtk.Calibration.pattern_size = ( self.spinbox_pattern_rows.value(), self.spinbox_pattern_cols.value() )
+		Calibration.pattern_size = ( self.spinbox_pattern_rows.value(), self.spinbox_pattern_cols.value() )
 
 
 #
 # Main application
 #
-application = qtgui.QApplication( sys.argv )
-widget = StereoVision()
-widget.show()
-sys.exit( application.exec_() )
+if __name__ == "__main__" :
+	
+	application = QtGui.QApplication( sys.argv )
+	widget = StereoVision()
+	widget.show()
+	sys.exit( application.exec_() )
 
 

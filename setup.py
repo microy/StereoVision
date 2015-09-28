@@ -5,20 +5,23 @@
 # Setup for the PyStereoVisionToolkit package
 #
 
-# External dependencies
-from setuptools import setup, find_packages
+# Setup module
+try :
+	from setuptools import setup
+except ImportError :
+	from distutils.core import setup
 
 # Setup configuration
 setup(
 
     name = "PyStereoVisionToolkit",
-    version = "0.1dev",
-    packages = find_packages(),
-    scripts = ['StereoVision.py'],
+    version = "0.1",
+    packages = ['PyStereoVisionToolkit'],
+    scripts = ['StereoVision'],
     author = "Michaël Roy",
     author_email = "microygh@gmail.com",
     description = "Python StereoVision Toolkit",
     license = "MIT",
-    url = "https://github.com/microy/PyStereoVisionToolkit",
-
+    url = "https://github.com/microy/PyStereoVisionToolkit"
+    
 )
