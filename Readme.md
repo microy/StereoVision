@@ -2,15 +2,18 @@
 
 Implement a stereovision acquisition and processing library in Python for research purpose.
 
-- Capture images from two Manta GigabitEthernet cameras using the AVT Vimba SDK
-- Calibrate the cameras
+- Capture live images from two cameras
+- Calibrate the stereo cameras
+- Reconstruct the 3D scene
 
 Requirements :
 
-- `AVT Vimba SDK`
-- `NumPy`, `OpenCV`
+- `NumPy`
+- `OpenCV`
+- `PySide`
+- `AVT Vimba SDK` (only for AlliedVision GigabitEthernet cameras)
 
 
-Copyright (c) 2014 Michaël Roy (microygh@gmail.com)
+Copyright (c) 2014-2015 Michaël Roy (microygh@gmail.com)
 
 All rights reserved in accordance with the MIT License.
