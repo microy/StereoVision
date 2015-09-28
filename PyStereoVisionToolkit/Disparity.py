@@ -79,15 +79,10 @@ class StereoSGBM( qtgui.QWidget ) :
 		super( StereoSGBM, self ).__init__( parent )
 
 		# Set the window title
-		self.setWindowTitle( 'StereoSGBM disparity controls' )
+		self.setWindowTitle( 'StereoSGBM' )
 
 		# Set the window size
 		self.setGeometry( qtcore.QRect(10, 10, 621, 251) )
-
-		# Image viewer
-		self.image_viewer = qtgui.QLabel()
-		self.image_viewer.setAlignment( qtcore.Qt.AlignCenter )
-		self.image_viewer.setWindowTitle( 'Disparity map' )
 
 		# StereoSGBM parameter controls
 		self.spinbox_min_disparity = qtgui.QSpinBox( self )
@@ -214,11 +209,6 @@ class StereoSGBM( qtgui.QWidget ) :
 #		self.bm_disparity_img = cv2.cvtColor( self.bm_disparity_img, cv2.COLOR_BGR2RGB )
 		
 		# Display the disparity map
-#		self.image_viewer.setPixmap( qtgui.QPixmap.fromImage( qtgui.QImage( self.bm_disparity_img.data,
-#			self.bm_disparity_img.shape[1], self.bm_disparity_img.shape[0],
-#			3 * self.bm_disparity_img.shape[1], qtgui.QImage.Format_RGB888 ) ) )
-#		self.image_viewer.show()
-
 		cv2.imshow( 'Disparity map', self.bm_disparity_img )
 		
 		# Enable the button to export the 3D mesh
