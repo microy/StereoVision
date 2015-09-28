@@ -34,10 +34,11 @@ def PreviewChessboard( image, pattern_size ) :
 #
 # Usb stereo camera viewer
 #
-def UsbStereoViewer( pattern_size, chessboard_enabled = False  ) :
+def UsbStereoViewer( pattern_size ) :
 		
 
 	# Initialize the viewing parameters
+	chessboard_enabled = False
 	cross_enabled = False
 	
 	# Initialize the stereo cameras
@@ -106,7 +107,6 @@ def UsbStereoViewer( pattern_size, chessboard_enabled = False  ) :
 			else :
 				cv2.imwrite( 'left.png', image_left )
 				cv2.imwrite( 'right.png', image_right )
-				break
 			
 		# C key
 		elif key == ord('c') :

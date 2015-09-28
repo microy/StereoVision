@@ -17,6 +17,11 @@ import numpy as np
 
 
 #
+# Calibration pattern size
+#
+pattern_size = ( 9, 6 )
+
+#
 # Image scale factor for pattern detection
 #
 image_scale = 0.5
@@ -26,7 +31,7 @@ image_scale = 0.5
 #
 # Camera calibration
 #
-def CameraCalibration( image_files, pattern_size ) :
+def CameraCalibration( image_files ) :
 	
 	# Chessboard pattern
 	pattern_points = np.zeros( (np.prod(pattern_size), 3), np.float32 )
@@ -148,15 +153,15 @@ def CameraCalibration( image_files, pattern_size ) :
 #
 # Stereo camera calibration
 #
-def StereoCameraCalibration( image_directory, pattern_size ) :
+def StereoCameraCalibration() :
 
 	# Calibrate the left camera
 	print( '\n~~~ Left camera calibration ~~~\n' )
-	cam1 = CameraCalibration( sorted( glob.glob( '{}/left*.png'.format( image_directory ) ) ), pattern_size )
+	cam1 = CameraCalibration( sorted( glob.glob( 'Calibration/left*.png' ) ) )
 	
 	# Calibrate the right camera
 	print( '\n~~~ Right camera calibration ~~~\n' )
-	cam2 = CameraCalibration( sorted( glob.glob( '{}/right*.png'.format( image_directory ) ) ), pattern_size )
+	cam2 = CameraCalibration( sorted( glob.glob( 'Calibration/right*.png' ) ) )
 
 	# Calibrate the stereo cameras
 	print( '\n~~~ Stereo camera calibration ~~~\n' )
@@ -239,5 +244,7 @@ def StereoCameraCalibration( image_directory, pattern_size ) :
 	print( 'ROI for the right camera : {}\n'.format( calibration['ROI2'] ) )
 	
 	# Write the results
-	with open( 'stereo-calibration.pkl' , 'wb') as output_file :
+	with open( 'Calibration/calibration.pkl' , 'wb') as output_file :
 		pickle.dump( calibration, output_file, pickle.HIGHEST_PROTOCOL )
+		
+	return calibration

@@ -120,10 +120,7 @@ class StereoSGBM( qtgui.QWidget ) :
 		self.spinbox_max_difference.setValue( self.max_difference )
 
 		# Buttons
-		self.button_open = qtgui.QPushButton( 'Open', self )
-		self.button_open.clicked.connect( self.LoadImages )
 		self.button_apply = qtgui.QPushButton( 'Apply', self )
-		self.button_apply.setEnabled( False )
 		self.button_apply.clicked.connect( self.UpdateDisparity )
 		self.button_save = qtgui.QPushButton( 'Save', self )
 		self.button_save.setEnabled( False )
@@ -150,67 +147,19 @@ class StereoSGBM( qtgui.QWidget ) :
 		self.layout_controls.addWidget( qtgui.QLabel( 'Maximum difference', self ), 8, 0 )
 		self.layout_controls.addWidget( self.spinbox_max_difference, 8, 1 )
 		self.layout_buttons = qtgui.QHBoxLayout()
-		self.layout_buttons.addWidget( self.button_open )
 		self.layout_buttons.addWidget( self.button_apply )
 		self.layout_buttons.addWidget( self.button_save )
 		self.layout_global = qtgui.QVBoxLayout( self )
 		self.layout_global.addLayout( self.layout_controls )
 		self.layout_global.addLayout( self.layout_buttons )
 		
-
-	#
-	# Show the dialog
-	#
-	def show( self ) :
-		
-		# Load stereo calibration parameter file
-		with open( 'stereo-calibration.pkl' , 'rb') as calibration_file :
-			self.calibration = pickle.load( calibration_file )
-		
-		self.left_image = cv2.imread( 'left.png' )
-		self.right_image = cv2.imread( 'right.png' )
-
-		# Remap the images according to the stereo camera calibration parameters
-		self.left_image = cv2.remap( self.left_image, self.calibration['left_map'][0], self.calibration['left_map'][1], cv2.INTER_LINEAR )
-		self.right_image = cv2.remap( self.right_image, self.calibration['right_map'][0], self.calibration['right_map'][1], cv2.INTER_LINEAR )
-
-		# Enable the button to compute the disparity
-		self.button_apply.setEnabled( True )
-		
-		# Show the QWidget
-		super( StereoSGBM, self ).show()
-
-		# Compute the disparity map
-		self.UpdateDisparity()
-
-		
-
-
 	#
 	# Load the images
 	#
-	def LoadImages( self, image_files ) :
-		
-		# Select the image for 3D reconstruction
-#		selected_files, _ = qtgui.QFileDialog.getOpenFileNames()
-#		if len( selected_files ) != 2 : return
-#		selected_files = sorted( selected_files )
-		
-		# Read the images
-#		self.left_image = cv2.imread( selected_files[0] )
-#		self.right_image = cv2.imread( selected_files[1] )
-		self.left_image = cv2.imread( image_files[0] )
-		self.right_image = cv2.imread( image_files[1] )
+	def LoadImages( self, left_image, right_image ) :
 
-		# Remap the images according to the stereo camera calibration parameters
-		self.left_image = cv2.remap( self.left_image, self.calibration['left_map'][0], self.calibration['left_map'][1], cv2.INTER_LINEAR )
-		self.right_image = cv2.remap( self.right_image, self.calibration['right_map'][0], self.calibration['right_map'][1], cv2.INTER_LINEAR )
-
-		# Enable the button to compute the disparity
-		self.button_apply.setEnabled( True )
-		
-		# Compute the disparity map
-		self.UpdateDisparity()
+			self.left_image = left_image
+			self.right_image = right_image
 
 	#
 	# Save the resulting point cloud
