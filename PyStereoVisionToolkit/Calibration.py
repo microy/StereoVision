@@ -120,7 +120,7 @@ def CameraCalibration( image_files ) :
 	# Compute reprojection error
 	calibration['reproject_error'] = 0
 	for i, obj in enumerate( obj_points ) :
-		
+	
 		# Reproject the object points using the camera parameters
 		reprojected_img_points, _ = cv2.projectPoints( obj, calibration['rvecs'][i],
 		calibration['tvecs'][i], calibration['camera_matrix'], calibration['dist_coefs'] )
@@ -132,12 +132,6 @@ def CameraCalibration( image_files ) :
 		calibration['reproject_error'] += error * error
 		
 	calibration['reproject_error'] = math.sqrt( calibration['reproject_error'] / (len(obj_points) * np.prod(pattern_size)) )
-	
-	# Print calibration results
-	print( 'Calibration error : {}'.format( calibration['calib_error'] ) )
-	print( 'Reprojection error : {}'.format( calibration['reproject_error'] ) )
-	print( 'Camera matrix :\n{}'.format( calibration['camera_matrix'] ) )
-	print( 'Distortion coefficients :\n{}'.format( calibration['dist_coefs'].ravel() ) )
 	
 	# Backup calibration parameters for future use
 	calibration['img_points'] = img_points
@@ -156,15 +150,10 @@ def CameraCalibration( image_files ) :
 def StereoCameraCalibration() :
 
 	# Calibrate the left camera
-	print( '\n~~~ Left camera calibration ~~~\n' )
 	cam1 = CameraCalibration( sorted( glob.glob( 'Calibration/left*.png' ) ) )
 	
 	# Calibrate the right camera
-	print( '\n~~~ Right camera calibration ~~~\n' )
 	cam2 = CameraCalibration( sorted( glob.glob( 'Calibration/right*.png' ) ) )
-
-	# Calibrate the stereo cameras
-	print( '\n~~~ Stereo camera calibration ~~~\n' )
 
 	# Stereo calibration termination criteria
 	criteria = (cv2.TERM_CRITERIA_MAX_ITER + cv2.TERM_CRITERIA_EPS, 100, 1e-5)
@@ -224,27 +213,40 @@ def StereoCameraCalibration() :
 			undistorted_r[i][0][1] * lines_l[i][0][1] + lines_l[i][0][2] )
 	calibration['reproject_error'] /= len( undistorted_r )
 
-	# Print calibration results
-	print( 'Stereo calibration error : {}'.format( calibration['calib_error'] ) )
-	print( 'Reprojection error : {}'.format( calibration['reproject_error'] ) )
-	print( 'Left camera matrix :\n{}'.format( calibration['camera_matrix_l'] ) )
-	print( 'Left distortion coefficients :\n{}'.format( calibration['dist_coefs_l'].ravel() ) )
-	print( 'Right camera matrix :\n{}'.format( calibration['camera_matrix_r'] ) )
-	print( 'Right distortion coefficients :\n{}'.format( calibration['dist_coefs_r'].ravel() ) )
-	print( 'Rotation matrix :\n{}'.format( calibration['R'] ) )
-	print( 'Translation vector :\n{}'.format( calibration['T'].ravel() ) )
-	print( 'Essential matrix :\n{}'.format( calibration['E'] ) )
-	print( 'Fundamental matrix :\n{}'.format( calibration['F'] ) )
-	print( 'Rotation matrix for the first camera :\n{}'.format( calibration['R1'] ) )
-	print( 'Rotation matrix for the second camera :\n{}'.format( calibration['R2'] ) )
-	print( 'Projection matrix for the first camera :\n{}'.format( calibration['P1'] ) )
-	print( 'Projection matrix for the second camera :\n{}'.format( calibration['P2'] ) )
-	print( 'Disparity-to-depth mapping matrix :\n{}'.format( calibration['Q'] ) )
-	print( 'ROI for the left camera :  {}'.format( calibration['ROI1'] ) )
-	print( 'ROI for the right camera : {}\n'.format( calibration['ROI2'] ) )
+	# Write calibration results
+	with open( 'Calibration/calibration.log' , 'w') as output_file :
+		output_file.write( '\n~~~ Left camera calibration ~~~\n' )
+		output_file.write( 'Calibration error : {}'.format( cam1['calib_error'] ) )
+		output_file.write( 'Reprojection error : {}'.format( cam1['reproject_error'] ) )
+		output_file.write( 'Camera matrix :\n{}'.format( cam1['camera_matrix'] ) )
+		output_file.write( 'Distortion coefficients :\n{}'.format( cam1['dist_coefs'].ravel() ) )
+		output_file.write( '\n~~~ Right camera calibration ~~~\n' )
+		output_file.write( 'Calibration error : {}'.format( cam2['calib_error'] ) )
+		output_file.write( 'Reprojection error : {}'.format( cam2['reproject_error'] ) )
+		output_file.write( 'Camera matrix :\n{}'.format( cam2['camera_matrix'] ) )
+		output_file.write( 'Distortion coefficients :\n{}'.format( cam2['dist_coefs'].ravel() ) )
+		output_file.write( '\n~~~ Stereo camera calibration ~~~\n' )
+		output_file.write( 'Stereo calibration error : {}'.format( calibration['calib_error'] ) )
+		output_file.write( 'Reprojection error : {}'.format( calibration['reproject_error'] ) )
+		output_file.write( 'Left camera matrix :\n{}'.format( calibration['camera_matrix_l'] ) )
+		output_file.write( 'Left distortion coefficients :\n{}'.format( calibration['dist_coefs_l'].ravel() ) )
+		output_file.write( 'Right camera matrix :\n{}'.format( calibration['camera_matrix_r'] ) )
+		output_file.write( 'Right distortion coefficients :\n{}'.format( calibration['dist_coefs_r'].ravel() ) )
+		output_file.write( 'Rotation matrix :\n{}'.format( calibration['R'] ) )
+		output_file.write( 'Translation vector :\n{}'.format( calibration['T'].ravel() ) )
+		output_file.write( 'Essential matrix :\n{}'.format( calibration['E'] ) )
+		output_file.write( 'Fundamental matrix :\n{}'.format( calibration['F'] ) )
+		output_file.write( 'Rotation matrix for the first camera :\n{}'.format( calibration['R1'] ) )
+		output_file.write( 'Rotation matrix for the second camera :\n{}'.format( calibration['R2'] ) )
+		output_file.write( 'Projection matrix for the first camera :\n{}'.format( calibration['P1'] ) )
+		output_file.write( 'Projection matrix for the second camera :\n{}'.format( calibration['P2'] ) )
+		output_file.write( 'Disparity-to-depth mapping matrix :\n{}'.format( calibration['Q'] ) )
+		output_file.write( 'ROI for the left camera :  {}'.format( calibration['ROI1'] ) )
+		output_file.write( 'ROI for the right camera : {}\n'.format( calibration['ROI2'] ) )
 	
-	# Write the results
+	# Write the calibration object with all the parameters
 	with open( 'Calibration/calibration.pkl' , 'wb') as output_file :
 		pickle.dump( calibration, output_file, pickle.HIGHEST_PROTOCOL )
 		
+	# Return the calibration
 	return calibration
