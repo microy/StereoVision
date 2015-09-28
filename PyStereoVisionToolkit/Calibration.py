@@ -250,3 +250,31 @@ def StereoCameraCalibration() :
 		
 	# Return the calibration
 	return calibration
+
+
+#
+# Stereo image undistortion
+#
+def StereoRectification( calibration, left_image, right_image ) :
+	
+	# Remap the images
+	left_image = cv2.remap( left_image, calibration['left_map'][0], calibration['left_map'][1], cv2.INTER_LINEAR )
+	right_image = cv2.remap( right_image, calibration['right_map'][0], calibration['right_map'][1], cv2.INTER_LINEAR )
+
+	# Prepare image for display
+	rectified_images = np.concatenate( (left_image, right_image), axis=1 )
+	
+	# Print ROI
+	cv2.rectangle( rectified_images, calibration['ROI1'][:2], calibration['ROI1'][2:], (0,0,255), 2 )
+	cv2.rectangle( rectified_images, calibration['ROI2'][:2]+left_image.shape[0], calibration['ROI2'][2:]+left_image.shape[1], (0,0,255), 2 )
+	
+	# Print lines
+	for i in range( 0, rectified_images.shape[0], 32 ) :
+		cv2.line( rectified_images, (0, i), (rectified_images.shape[1], i), (0, 255, 0), 2 )
+
+	# Show the result
+	cv2.imshow( 'Rectified stereo images', rectified_images )
+	cv2.waitKey( 1 )
+
+	# Return the rectified images
+	return left_image, right_image

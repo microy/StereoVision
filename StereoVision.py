@@ -102,9 +102,8 @@ class StereoVision( qtgui.QWidget ) :
 		left_image = cv2.imread( 'left.png' )
 		right_image = cv2.imread( 'right.png' )
 
-		# Remap the images according to the stereo camera calibration parameters
-		left_image = cv2.remap( left_image, self.calibration['left_map'][0], self.calibration['left_map'][1], cv2.INTER_LINEAR )
-		right_image = cv2.remap( right_image, self.calibration['right_map'][0], self.calibration['right_map'][1], cv2.INTER_LINEAR )
+		# Undistort the images according to the stereo camera calibration parameters
+		left_image, right_image = psvtk.Calibration.StereoRectification( self.calibration, left_image, right_image )
 		
 		# Show the widget used to reconstruct the 3D mesh
 		self.stereosgbm.LoadImages( left_image, right_image )
