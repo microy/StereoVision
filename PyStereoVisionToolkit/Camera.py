@@ -9,6 +9,7 @@
 #
 # External dependencies
 #
+import os
 import time
 import cv2
 import numpy as np
@@ -105,8 +106,10 @@ def UsbStereoViewer( pattern_size ) :
 				cv2.imwrite( 'Calibration/left-{}.png'.format(current_time), image_left )
 				cv2.imwrite( 'Calibration/right-{}.png'.format(current_time), image_right )
 			else :
-				cv2.imwrite( 'left.png', image_left )
-				cv2.imwrite( 'right.png', image_right )
+				cv2.imwrite( 'left-{}.png'.format(current_time), image_left )
+				cv2.imwrite( 'right-{}.png'.format(current_time), image_right )
+				os.link( 'left-{}.png'.format(current_time), 'left.png' )
+				os.link( 'right-{}.png'.format(current_time), 'right.png' )
 			
 		# C key
 		elif key == ord('c') :
