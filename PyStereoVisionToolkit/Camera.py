@@ -9,47 +9,41 @@
 #
 # External dependencies
 #
-import os
 import time
 import cv2
 import numpy as np
+import Calibration
 import Vimba
 
-
-#
-# Find the chessboard quickly, and draw it
-#
-def PreviewChessboard( image, pattern_size ) :
-	
-	# Find the chessboard corners on the image
-	found, corners = cv2.findChessboardCorners( image, pattern_size, flags = cv2.CALIB_CB_FAST_CHECK )	
-#	found, corners = cv2.findCirclesGridDefault( image, pattern_size, flags = cv2.CALIB_CB_ASYMMETRIC_GRID )	
-
-	# Draw the chessboard corners on the image
-	if found : cv2.drawChessboardCorners( image, pattern_size, corners, found )
-		
-	# Return the image with the chessboard if found
-	return image
 
 
 #
 # Usb stereo camera viewer
 #
-def UsbStereoViewer( pattern_size ) :
-		
+def UsbStereoViewer() :
+	
+	# Load the calibration parameter file, if it exists
+	import os, pickle
+	calibration = None
+	if os.path.isfile( '{}/calibration.pkl'.format(Calibration.calibration_directory) ) :
+		with open( '{}/calibration.pkl'.format(Calibration.calibration_directory) , 'rb') as calibration_file :
+			calibration = pickle.load( calibration_file )
+
+	# StereoBM parameters
+	bm = cv2.StereoSGBM( 16, 96, 5 )
 
 	# Initialize the viewing parameters
 	chessboard_enabled = False
 	cross_enabled = False
-	
+
 	# Initialize the stereo cameras
 	camera_left = cv2.VideoCapture( 0 )
 	camera_right = cv2.VideoCapture( 1 )
-	
+
 	# Lower the camera frame rate
 	camera_left.set( cv2.cv.CV_CAP_PROP_FPS, 5 )
 	camera_right.set( cv2.cv.CV_CAP_PROP_FPS, 5 )
-
+	
 	# Live display
 	while True :
 
@@ -67,8 +61,8 @@ def UsbStereoViewer( pattern_size ) :
 
 		# Preview the calibration chessboard on the image
 		if chessboard_enabled :
-			image_left_displayed = PreviewChessboard( image_left_displayed, pattern_size )
-			image_right_displayed = PreviewChessboard( image_right_displayed, pattern_size )
+			image_left_displayed = Calibration.PreviewChessboard( image_left_displayed )
+			image_right_displayed = Calibration.PreviewChessboard( image_right_displayed )
 
 		# Display a cross in the middle of the image
 		if cross_enabled :
@@ -87,6 +81,17 @@ def UsbStereoViewer( pattern_size ) :
 		# Display the image (scaled down)
 		cv2.imshow( 'StereoVision', stereo_image )
 
+
+		# Undistort the images according to the stereo camera calibration parameters
+		rectified_images = Calibration.StereoRectification( calibration, image_left, image_right )
+		rectified_images = cv2.pyrDown( rectified_images[0] ), cv2.pyrDown( rectified_images[1] )
+		pr_bm_disparity = bm.compute( *rectified_images )
+		pr_bm_disparity_img = pr_bm_disparity.astype( np.float32 ) / 16.0
+		cv2.normalize( pr_bm_disparity_img, pr_bm_disparity_img, 0, 255, cv2.NORM_MINMAX )
+		pr_bm_disparity_img = pr_bm_disparity_img.astype( np.uint8 )
+		pr_bm_disparity_img = cv2.applyColorMap( pr_bm_disparity_img, cv2.COLORMAP_JET )
+		cv2.imshow( 'Disparity preview', pr_bm_disparity_img )
+
 		# Keyboard interruption
 		key = cv2.waitKey( 1 ) & 0xFF
 		
@@ -103,13 +108,11 @@ def UsbStereoViewer( pattern_size ) :
 			current_time = time.strftime( '%Y%m%d_%H%M%S' )
 			print( 'Save images {} to disk...'.format(current_time) )
 			if chessboard_enabled :
-				cv2.imwrite( 'Calibration/left-{}.png'.format(current_time), image_left )
-				cv2.imwrite( 'Calibration/right-{}.png'.format(current_time), image_right )
+				cv2.imwrite( '{}/left-{}.png'.format(Calibration.calibration_directory, current_time), image_left )
+				cv2.imwrite( '{}/right-{}.png'.format(Calibration.calibration_directory, current_time), image_right )
 			else :
 				cv2.imwrite( 'left-{}.png'.format(current_time), image_left )
 				cv2.imwrite( 'right-{}.png'.format(current_time), image_right )
-				os.link( 'left-{}.png'.format(current_time), 'left.png' )
-				os.link( 'right-{}.png'.format(current_time), 'right.png' )
 			
 		# C key
 		elif key == ord('c') :
@@ -121,7 +124,26 @@ def UsbStereoViewer( pattern_size ) :
 		elif key == ord('m') :
 			
 			# Enable / Disable chessboard preview
-			chessboard_enabled = not chessboard_enabled		
+			chessboard_enabled = not chessboard_enabled
+			
+		# P key
+		elif key == ord('p') :
+			
+			# Calibrate the stereo cameras
+			calibration = Calibration.StereoCameraCalibration()
+
+		# R key
+		elif key == ord('r') :
+			
+			# Undistort the images according to the stereo camera calibration parameters
+			rectified_images = Calibration.StereoRectification( calibration, image_left, image_right )
+			bm_disparity = bm.compute( *rectified_images )
+			bm_disparity_img = bm_disparity.astype( np.float32 ) / 16.0
+			cv2.normalize( bm_disparity_img, bm_disparity_img, 0, 255, cv2.NORM_MINMAX )
+			bm_disparity_img = bm_disparity_img.astype( np.uint8 )
+			bm_disparity_img = cv2.applyColorMap( bm_disparity_img, cv2.COLORMAP_JET )
+			cv2.imshow( 'Disparity', bm_disparity_img )
+
 
 	# Stop image acquisition
 	camera_left.release()
