@@ -12,6 +12,7 @@
 # External dependencies
 #
 import os
+import pickle
 import sys
 import cv2
 from PySide import QtGui
@@ -33,15 +34,10 @@ class StereoVision( QtGui.QWidget ) :
 		# Initialise QWidget
 		super( StereoVision, self ).__init__( parent )
 		
-		# Create calibration directory, if necessary
-		try : os.makedirs( 'Calibration' )
-		except OSError :
-			if not os.path.isdir( 'Calibration' ) : raise
-
 		# Load the calibration parameter file, if it exists
 		self.calibration = None
-		if os.path.isfile( 'Calibration/calibration.pkl' ) :
-			with open( 'Calibration/calibration.pkl' , 'rb') as calibration_file :
+		if os.path.isfile( '{}/calibration.pkl'.format(Calibration.calibration_directory) ) :
+			with open( '{}/calibration.pkl'.format(Calibration.calibration_directory) , 'rb') as calibration_file :
 				self.calibration = pickle.load( calibration_file )
 		
 		# Create the widget for the stereo reconstruction
@@ -82,8 +78,7 @@ class StereoVision( QtGui.QWidget ) :
 	#
 	def Acquisition( self ) :
 		
-		# Launch the stereo camera viewer
-		Camera.UsbStereoViewer( Calibration.pattern_size )
+		Camera.UsbStereoViewer()
 
 	#
 	# Stereo camera calibration
@@ -92,6 +87,9 @@ class StereoVision( QtGui.QWidget ) :
 
 		# Calibrate the stereo cameras
 		self.calibration = Calibration.StereoCameraCalibration()
+		msgBox = QtGui.QMessageBox()
+		msgBox.setText( 'Calibration done !' )
+		msgBox.exec_()
 
 	#
 	# 3D reconstruction
@@ -99,8 +97,17 @@ class StereoVision( QtGui.QWidget ) :
 	def Reconstruction( self ) :
 
 		# Read images for the 3D reconstruction
-		left_image = cv2.imread( 'left.png' )
-		right_image = cv2.imread( 'right.png' )
+#		left_image = cv2.imread( 'left.png' )
+#		right_image = cv2.imread( 'right.png' )
+
+		# Select the image for 3D reconstruction
+		selected_files, _ = QtGui.QFileDialog.getOpenFileNames()
+		if len( selected_files ) != 2 : return
+		selected_files = sorted( selected_files )
+		
+		# Read the images
+		left_image = cv2.imread( selected_files[0] )
+		right_image = cv2.imread( selected_files[1] )
 
 		# Undistort the images according to the stereo camera calibration parameters
 		left_image, right_image = Calibration.StereoRectification( self.calibration, left_image, right_image )
@@ -124,9 +131,9 @@ class StereoVision( QtGui.QWidget ) :
 #
 if __name__ == "__main__" :
 	
-	application = QtGui.QApplication( sys.argv )
-	widget = StereoVision()
-	widget.show()
-	sys.exit( application.exec_() )
-
+#	application = QtGui.QApplication( sys.argv )
+#	widget = StereoVision()
+#	widget.show()
+#	sys.exit( application.exec_() )
+	Camera.UsbStereoViewer()
 
