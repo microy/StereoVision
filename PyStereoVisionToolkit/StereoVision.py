@@ -15,6 +15,7 @@ import os
 import pickle
 import sys
 import cv2
+from PySide import QtCore
 from PySide import QtGui
 import Calibration
 import Camera
@@ -32,7 +33,7 @@ class StereoVision( QtGui.QWidget ) :
 	def __init__( self, parent = None ) :
 		
 		# Initialise QWidget
-		super( StereoVision, self ).__init__( parent )
+		super( StereoVision, self ).__init__( parent, QtCore.Qt.WindowMinimizeButtonHint | QtCore.Qt.WindowCloseButtonHint )
 		
 		# Load the calibration parameter file, if it exists
 		self.calibration = None
@@ -45,10 +46,13 @@ class StereoVision( QtGui.QWidget ) :
 		
 		# Set the window title
 		self.setWindowTitle( 'StereoVision' )
+		
+		# Camera viewer
+		self.camera = Camera.QtCameraViewer( self, self.calibration )
 
 		# Buttons
-		self.button_acquisition = QtGui.QPushButton( 'Acquisition', self )
-		self.button_acquisition.clicked.connect( self.Acquisition )
+		self.button_chessboard = QtGui.QPushButton( 'Chessboard', self )
+		self.button_chessboard.clicked.connect( self.Chessboard )
 		self.button_calibration = QtGui.QPushButton( 'Calibration', self )
 		self.button_calibration.clicked.connect( self.Calibration )
 		self.button_reconstruction = QtGui.QPushButton( 'Reconstruction', self )
@@ -67,18 +71,21 @@ class StereoVision( QtGui.QWidget ) :
 		self.layout_pattern_size.addWidget( QtGui.QLabel( 'Calibration pattern size :' ) )
 		self.layout_pattern_size.addWidget( self.spinbox_pattern_rows )
 		self.layout_pattern_size.addWidget( self.spinbox_pattern_cols )
+		self.layout_controls = QtGui.QHBoxLayout()
+		self.layout_controls.addWidget( self.button_chessboard )
+		self.layout_controls.addWidget( self.button_calibration )
+		self.layout_controls.addWidget( self.button_reconstruction )
+		self.layout_controls.addLayout( self.layout_pattern_size )
 		self.layout_global = QtGui.QVBoxLayout( self )
-		self.layout_global.addWidget( self.button_acquisition )
-		self.layout_global.addWidget( self.button_calibration )
-		self.layout_global.addWidget( self.button_reconstruction )
-		self.layout_global.addLayout( self.layout_pattern_size )
-		
+		self.layout_global.addWidget( self.camera )
+		self.layout_global.addLayout( self.layout_controls )
+
 	#
-	# Live display of the camera images
+	# Chessboard finder
 	#
-	def Acquisition( self ) :
-		
-		Camera.UsbStereoViewer()
+	def Chessboard( self ) :
+
+		self.camera.chessboard_enabled = not self.camera.chessboard_enabled
 
 	#
 	# Stereo camera calibration
@@ -87,6 +94,7 @@ class StereoVision( QtGui.QWidget ) :
 
 		# Calibrate the stereo cameras
 		self.calibration = Calibration.StereoCameraCalibration()
+		self.camera.calibration = self.calibration
 		msgBox = QtGui.QMessageBox()
 		msgBox.setText( 'Calibration done !' )
 		msgBox.exec_()
@@ -96,26 +104,28 @@ class StereoVision( QtGui.QWidget ) :
 	#
 	def Reconstruction( self ) :
 
+		self.camera.disparity_enabled = not self.camera.disparity_enabled
+
 		# Read images for the 3D reconstruction
 #		left_image = cv2.imread( 'left.png' )
 #		right_image = cv2.imread( 'right.png' )
 
 		# Select the image for 3D reconstruction
-		selected_files, _ = QtGui.QFileDialog.getOpenFileNames()
-		if len( selected_files ) != 2 : return
-		selected_files = sorted( selected_files )
+#		selected_files, _ = QtGui.QFileDialog.getOpenFileNames()
+#		if len( selected_files ) != 2 : return
+#		selected_files = sorted( selected_files )
 		
 		# Read the images
-		left_image = cv2.imread( selected_files[0] )
-		right_image = cv2.imread( selected_files[1] )
+#		left_image = cv2.imread( selected_files[0] )
+#		right_image = cv2.imread( selected_files[1] )
 
 		# Undistort the images according to the stereo camera calibration parameters
-		left_image, right_image = Calibration.StereoRectification( self.calibration, left_image, right_image )
+#		left_image, right_image = Calibration.StereoRectification( self.calibration, left_image, right_image )
 		
 		# Show the widget used to reconstruct the 3D mesh
-		self.stereosgbm.LoadImages( left_image, right_image )
-		self.stereosgbm.show()
-		self.stereosgbm.UpdateDisparity()
+#		self.stereosgbm.LoadImages( left_image, right_image )
+#		self.stereosgbm.show()
+#		self.stereosgbm.UpdateDisparity()
 
 	#
 	# Update the calibration pattern size
@@ -131,9 +141,8 @@ class StereoVision( QtGui.QWidget ) :
 #
 if __name__ == "__main__" :
 	
-#	application = QtGui.QApplication( sys.argv )
-#	widget = StereoVision()
-#	widget.show()
-#	sys.exit( application.exec_() )
-	Camera.UsbStereoViewer()
+	application = QtGui.QApplication( sys.argv )
+	widget = StereoVision()
+	widget.show()
+	sys.exit( application.exec_() )
 

@@ -15,23 +15,34 @@ import numpy as np
 import Calibration
 import Vimba
 
-from pyside import QtCore
-from pyside import QtGui
+from PySide import QtCore
+from PySide import QtGui
 
 
-class MyViewer( QtQui.QLabel ) :
+class QtCameraViewer( QtGui.QLabel ) :
 
 	#
 	# Initialisation
 	#
-	def __init__( self, parent = None ) :
-		
+	def __init__( self, parent = None, calibration = None ) :
+
 		# Initialise QLabel
-		super( MyViewer, self ).__init__( parent )
-		
-		# Window setup
+		super( QtCameraViewer, self ).__init__( parent )
+
+		# Store the calibration parameters
+		self.calibration = calibration
+
+		# Initialize the widget parameters
 		self.setAlignment( QtCore.Qt.AlignCenter )
--		self.setWindowTitle( 'StereoVision' )
+		self.setFixedSize( 1280, 480 )
+
+		# Initialize the viewing parameters
+		self.chessboard_enabled = False
+		self.cross_enabled = False
+		self.disparity_enabled = False
+
+		# StereoBM parameters
+		self.bm = cv2.StereoSGBM( 16, 96, 5 )
 		
 		# Initialize the stereo cameras
 		self.camera_left = cv2.VideoCapture( 0 )
@@ -40,12 +51,12 @@ class MyViewer( QtQui.QLabel ) :
 		# Lower the camera frame rate
 		self.camera_left.set( cv2.cv.CV_CAP_PROP_FPS, 5 )
 		self.camera_right.set( cv2.cv.CV_CAP_PROP_FPS, 5 )
-	
+
 		# Timer for capture
 		self.timer = QtCore.QTimer( self )
 		self.timer.timeout.connect( self.QueryFrame )
 		self.timer.start( 1000 / 5 )
-        
+
 	def QueryFrame( self ) :
 		
 		# Capture images
@@ -53,19 +64,55 @@ class MyViewer( QtQui.QLabel ) :
 		self.camera_right.grab()
 
 		# Get the images
-		_, image_left = self.camera_left.retrieve()
-		_, image_right = self.camera_right.retrieve()
+		_, self.image_left = self.camera_left.retrieve()
+		_, self.image_right = self.camera_right.retrieve()
 
-		# Prepare image for display
-		stereo_image = np.concatenate( (image_left, image_right), axis=1 )
-		stereo_image = cv2.cvtColor( stereo_image, cv2.COLOR_BGR2RGB )
+		# Copy images for display
+		image_left_displayed = np.array( self.image_left )
+		image_right_displayed = np.array( self.image_right )
+
+		# Preview the calibration chessboard on the image
+		if self.chessboard_enabled :
+			image_left_displayed = Calibration.PreviewChessboard( image_left_displayed )
+			image_right_displayed = Calibration.PreviewChessboard( image_right_displayed )
+
+		# Display a cross in the middle of the image
+		if self.cross_enabled :
+			w = image_left_displayed.shape[1]
+			h = image_left_displayed.shape[0]
+			w2 = int( w/2 )
+			h2 = int( h/2 )
+			cv2.line( image_left_displayed, (w2, 0), (w2, h), (0, 255, 0), 2 )
+			cv2.line( image_left_displayed, (0, h2), (w, h2), (0, 255, 0), 2 )
+			cv2.line( image_right_displayed, (w2, 0), (w2, h), (0, 255, 0), 2 )
+			cv2.line( image_right_displayed, (0, h2), (w, h2), (0, 255, 0), 2 )
+
+		# Display the disparity image
+		if self.disparity_enabled and self.calibration :
+			
+			# Undistort the images according to the stereo camera calibration parameters
+			rectified_images = Calibration.StereoRectification( self.calibration, self.image_left, self.image_right, False )
+			rectified_images = cv2.pyrDown( rectified_images[0] ), cv2.pyrDown( rectified_images[1] )
+			disparity = self.bm.compute( *rectified_images )
+			disparity_image = disparity.astype( np.float32 ) / 16.0
+			cv2.normalize( disparity_image, disparity_image, 0, 255, cv2.NORM_MINMAX )
+			disparity_image = disparity_image.astype( np.uint8 )
+#			disparity_image = cv2.applyColorMap( disparity_image, cv2.COLORMAP_JET )
+			disparity_image = cv2.cvtColor( disparity_image, cv2.COLOR_GRAY2RGB )
+			disparity_image = cv2.pyrUp( disparity_image )
+			stereo_image = disparity_image
+		
+		else :
+			
+			# Prepare image for display
+			stereo_image = np.concatenate( (image_left_displayed, image_right_displayed), axis=1 )
+			stereo_image = cv2.cvtColor( stereo_image, cv2.COLOR_BGR2RGB )
 		
 		# Set the image
-		self.setPixmap( QtGui.QPixmap.fromImage( QtGui.QImage( stereo_image.data,
-			stereo_image.shape[1], stereo_image.shape[0], 3 * stereo_image.shape[1],
-			QtGui.QImage.Format_RGB888 ) ) )
+		self.setPixmap( QtGui.QPixmap.fromImage( QtGui.QImage( stereo_image,
+			stereo_image.shape[1], stereo_image.shape[0], QtGui.QImage.Format_RGB888 ) ) )
 			
-		self.setScaledContents( True )
+		# Update the widget
 		self.update()
 		
 	def closeEvent( self, event ) :
