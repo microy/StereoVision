@@ -15,6 +15,66 @@ import numpy as np
 import Calibration
 import Vimba
 
+from pyside import QtCore
+from pyside import QtGui
+
+
+class MyViewer( QtQui.QLabel ) :
+
+	#
+	# Initialisation
+	#
+	def __init__( self, parent = None ) :
+		
+		# Initialise QLabel
+		super( MyViewer, self ).__init__( parent )
+		
+		# Window setup
+		self.setAlignment( QtCore.Qt.AlignCenter )
+-		self.setWindowTitle( 'StereoVision' )
+		
+		# Initialize the stereo cameras
+		self.camera_left = cv2.VideoCapture( 0 )
+		self.camera_right = cv2.VideoCapture( 1 )
+
+		# Lower the camera frame rate
+		self.camera_left.set( cv2.cv.CV_CAP_PROP_FPS, 5 )
+		self.camera_right.set( cv2.cv.CV_CAP_PROP_FPS, 5 )
+	
+		# Timer for capture
+		self.timer = QtCore.QTimer( self )
+		self.timer.timeout.connect( self.QueryFrame )
+		self.timer.start( 1000 / 5 )
+        
+	def QueryFrame( self ) :
+		
+		# Capture images
+		self.camera_left.grab()
+		self.camera_right.grab()
+
+		# Get the images
+		_, image_left = self.camera_left.retrieve()
+		_, image_right = self.camera_right.retrieve()
+
+		# Prepare image for display
+		stereo_image = np.concatenate( (image_left, image_right), axis=1 )
+		stereo_image = cv2.cvtColor( stereo_image, cv2.COLOR_BGR2RGB )
+		
+		# Set the image
+		self.setPixmap( QtGui.QPixmap.fromImage( QtGui.QImage( stereo_image.data,
+			stereo_image.shape[1], stereo_image.shape[0], 3 * stereo_image.shape[1],
+			QtGui.QImage.Format_RGB888 ) ) )
+			
+		self.setScaledContents( True )
+		self.update()
+		
+	def closeEvent( self, event ) :
+		
+		# Stop image acquisition
+		self.timer.stop()
+		self.camera_left.release()
+		self.camera_right.release()
+		event.accept()
 
 
 #
