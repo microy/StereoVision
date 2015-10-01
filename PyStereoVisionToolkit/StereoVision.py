@@ -14,6 +14,7 @@
 import os
 import pickle
 import sys
+import time
 import cv2
 from PySide import QtCore
 from PySide import QtGui
@@ -51,10 +52,14 @@ class StereoVision( QtGui.QWidget ) :
 		self.camera = Camera.QtCameraViewer( self, self.calibration )
 
 		# Buttons
+		self.button_cross = QtGui.QPushButton( 'Cross', self )
+		self.button_cross.clicked.connect( self.Cross )
 		self.button_chessboard = QtGui.QPushButton( 'Chessboard', self )
 		self.button_chessboard.clicked.connect( self.Chessboard )
 		self.button_calibration = QtGui.QPushButton( 'Calibration', self )
 		self.button_calibration.clicked.connect( self.Calibration )
+		self.button_disparity = QtGui.QPushButton( 'Disparity', self )
+		self.button_disparity.clicked.connect( self.Disparity )
 		self.button_reconstruction = QtGui.QPushButton( 'Reconstruction', self )
 		self.button_reconstruction.clicked.connect( self.Reconstruction )
 		
@@ -72,13 +77,22 @@ class StereoVision( QtGui.QWidget ) :
 		self.layout_pattern_size.addWidget( self.spinbox_pattern_rows )
 		self.layout_pattern_size.addWidget( self.spinbox_pattern_cols )
 		self.layout_controls = QtGui.QHBoxLayout()
+		self.layout_controls.addWidget( self.button_cross )
 		self.layout_controls.addWidget( self.button_chessboard )
 		self.layout_controls.addWidget( self.button_calibration )
+		self.layout_controls.addWidget( self.button_disparity )
 		self.layout_controls.addWidget( self.button_reconstruction )
 		self.layout_controls.addLayout( self.layout_pattern_size )
 		self.layout_global = QtGui.QVBoxLayout( self )
 		self.layout_global.addWidget( self.camera )
 		self.layout_global.addLayout( self.layout_controls )
+
+	#
+	# Chessboard finder
+	#
+	def Cross( self ) :
+
+		self.camera.cross_enabled = not self.camera.cross_enabled
 
 	#
 	# Chessboard finder
@@ -100,32 +114,20 @@ class StereoVision( QtGui.QWidget ) :
 		msgBox.exec_()
 
 	#
+	# Disparity map
+	#
+	def Disparity( self ) :
+
+		self.camera.disparity_enabled = not self.camera.disparity_enabled
+
+	#
 	# 3D reconstruction
 	#
 	def Reconstruction( self ) :
 
-		self.camera.disparity_enabled = not self.camera.disparity_enabled
-
-		# Read images for the 3D reconstruction
-#		left_image = cv2.imread( 'left.png' )
-#		right_image = cv2.imread( 'right.png' )
-
-		# Select the image for 3D reconstruction
-#		selected_files, _ = QtGui.QFileDialog.getOpenFileNames()
-#		if len( selected_files ) != 2 : return
-#		selected_files = sorted( selected_files )
-		
-		# Read the images
-#		left_image = cv2.imread( selected_files[0] )
-#		right_image = cv2.imread( selected_files[1] )
-
-		# Undistort the images according to the stereo camera calibration parameters
-#		left_image, right_image = Calibration.StereoRectification( self.calibration, left_image, right_image )
-		
-		# Show the widget used to reconstruct the 3D mesh
-#		self.stereosgbm.LoadImages( left_image, right_image )
-#		self.stereosgbm.show()
-#		self.stereosgbm.UpdateDisparity()
+		Disparity.WritePly( 'mesh-{}.ply'.format( time.strftime( '%Y%m%d_%H%M%S' ) ),
+			cv2.reprojectImageTo3D( self.camera.disparity, self.calibration['Q'] ),
+			cv2.cvtColor( self.camera.image_left, cv2.COLOR_BGR2RGB ) )
 
 	#
 	# Update the calibration pattern size
