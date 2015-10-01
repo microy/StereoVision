@@ -42,7 +42,8 @@ class QtCameraViewer( QtGui.QLabel ) :
 		self.disparity_enabled = False
 
 		# StereoBM parameters
-		self.bm = cv2.StereoSGBM( 16, 96, 5 )
+		self.bm = cv2.StereoBM( cv2.STEREO_BM_BASIC_PRESET, 64, 5 )
+	#	self.bm = cv2.StereoSGBM( 16, 96, 5 )
 		
 		# Initialize the stereo cameras
 		self.camera_left = cv2.VideoCapture( 0 )
@@ -57,6 +58,9 @@ class QtCameraViewer( QtGui.QLabel ) :
 		self.timer.timeout.connect( self.QueryFrame )
 		self.timer.start( 1000 / 5 )
 
+	#
+	# Capture frames and display them
+	#
 	def QueryFrame( self ) :
 		
 		# Capture images
@@ -91,17 +95,24 @@ class QtCameraViewer( QtGui.QLabel ) :
 		if self.disparity_enabled and self.calibration :
 			
 			# Undistort the images according to the stereo camera calibration parameters
-			rectified_images = Calibration.StereoRectification( self.calibration, self.image_left, self.image_right, False )
-			rectified_images = cv2.pyrDown( rectified_images[0] ), cv2.pyrDown( rectified_images[1] )
-			disparity = self.bm.compute( *rectified_images )
-			disparity_image = disparity.astype( np.float32 ) / 16.0
-			cv2.normalize( disparity_image, disparity_image, 0, 255, cv2.NORM_MINMAX )
+			rectified_images = Calibration.StereoRectification( self.calibration, self.image_left, self.image_right )
+	#		rectified_images = cv2.pyrDown( rectified_images[0] ), cv2.pyrDown( rectified_images[1] )
+		
+		#	self.disparity = self.bm.compute( *rectified_images )
+		#	disparity_image = self.disparity.astype( np.float32 ) / 16.0
+		#	cv2.normalize( disparity_image, disparity_image, 0, 255, cv2.NORM_MINMAX )
+		
+			rectified_images = cv2.cvtColor( rectified_images[0], cv2.COLOR_BGR2GRAY ), cv2.cvtColor( rectified_images[1], cv2.COLOR_BGR2GRAY )
+			self.disparity = self.bm.compute( *rectified_images, disptype=cv2.CV_32F )
+			disparity_image = self.disparity * 255.99 / ( self.disparity.max() - self.disparity.min() )
+
 			disparity_image = disparity_image.astype( np.uint8 )
 #			disparity_image = cv2.applyColorMap( disparity_image, cv2.COLORMAP_JET )
 			disparity_image = cv2.cvtColor( disparity_image, cv2.COLOR_GRAY2RGB )
-			disparity_image = cv2.pyrUp( disparity_image )
+		#	disparity_image = cv2.pyrUp( disparity_image )
 			stereo_image = disparity_image
 		
+		# Or display the stereo images
 		else :
 			
 			# Prepare image for display
@@ -115,6 +126,9 @@ class QtCameraViewer( QtGui.QLabel ) :
 		# Update the widget
 		self.update()
 		
+	#
+	# Close the camera viewer
+	#
 	def closeEvent( self, event ) :
 		
 		# Stop image acquisition
