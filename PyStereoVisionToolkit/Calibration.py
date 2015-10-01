@@ -280,7 +280,7 @@ def StereoCameraCalibration() :
 #
 # Stereo image undistortion
 #
-def StereoRectification( calibration, left_image, right_image, display = True ) :
+def StereoRectification( calibration, left_image, right_image, display = False ) :
 	
 	# Remap the images
 	left_image = cv2.remap( left_image, calibration['left_map'][0], calibration['left_map'][1], cv2.INTER_LINEAR )
