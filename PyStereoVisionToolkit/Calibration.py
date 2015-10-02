@@ -303,6 +303,7 @@ def StereoRectification( calibration, left_image, right_image, display = False )
 
 		# Show the result
 		cv2.imshow( 'Rectified stereo images', rectified_images )
+		cv2.waitKey( 1 )
 
 	# Return the rectified images
 	return left_image, right_image
