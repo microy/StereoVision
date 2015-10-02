@@ -56,6 +56,8 @@ class StereoVision( QtGui.QWidget ) :
 		self.button_cross.clicked.connect( self.Cross )
 		self.button_chessboard = QtGui.QPushButton( 'Chessboard', self )
 		self.button_chessboard.clicked.connect( self.Chessboard )
+		self.button_save = QtGui.QPushButton( 'Save', self )
+		self.button_save.clicked.connect( self.Save )
 		self.button_calibration = QtGui.QPushButton( 'Calibration', self )
 		self.button_calibration.clicked.connect( self.Calibration )
 		self.button_disparity = QtGui.QPushButton( 'Disparity', self )
@@ -79,6 +81,7 @@ class StereoVision( QtGui.QWidget ) :
 		self.layout_controls = QtGui.QHBoxLayout()
 		self.layout_controls.addWidget( self.button_cross )
 		self.layout_controls.addWidget( self.button_chessboard )
+		self.layout_controls.addWidget( self.button_save )
 		self.layout_controls.addWidget( self.button_calibration )
 		self.layout_controls.addWidget( self.button_disparity )
 		self.layout_controls.addWidget( self.button_reconstruction )
@@ -100,6 +103,21 @@ class StereoVision( QtGui.QWidget ) :
 	def Chessboard( self ) :
 
 		self.camera.chessboard_enabled = not self.camera.chessboard_enabled
+
+
+
+	def Save( self ) :
+		
+		# Save images to disk 
+		current_time = time.strftime( '%Y%m%d_%H%M%S' )
+		print( 'Save images {} to disk...'.format(current_time) )
+		if self.camera.chessboard_enabled :
+			cv2.imwrite( '{}/left-{}.png'.format(Calibration.calibration_directory, current_time), self.camera.image_left )
+			cv2.imwrite( '{}/right-{}.png'.format(Calibration.calibration_directory, current_time), self.camera.image_right )
+		else :
+			cv2.imwrite( 'left-{}.png'.format(current_time), self.camera.image_left )
+			cv2.imwrite( 'right-{}.png'.format(current_time), self.camera.image_right )
+
 
 	#
 	# Stereo camera calibration
