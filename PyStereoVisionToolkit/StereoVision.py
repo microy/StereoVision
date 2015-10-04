@@ -18,9 +18,9 @@ import time
 import cv2
 from PySide import QtCore
 from PySide import QtGui
-import Calibration
-import Camera
-import Disparity
+from PyStereoVisionToolkit import Calibration
+from PyStereoVisionToolkit import Camera
+from PyStereoVisionToolkit import Disparity
 
 
 #

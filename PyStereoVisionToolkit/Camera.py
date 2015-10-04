@@ -12,10 +12,10 @@
 import time
 import cv2
 import numpy as np
-import Calibration
-import Vimba
 from PySide import QtCore
 from PySide import QtGui
+from PyStereoVisionToolkit import Calibration
+from PyStereoVisionToolkit import Vimba
 
 
 class QtCameraViewer( QtGui.QLabel ) :
