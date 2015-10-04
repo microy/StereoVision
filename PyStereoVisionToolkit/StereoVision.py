@@ -16,8 +16,8 @@ import pickle
 import sys
 import time
 import cv2
-from PySide import QtCore
-from PySide import QtGui
+from PyQt4 import QtCore
+from PyQt4 import QtGui
 from PyStereoVisionToolkit import Calibration
 from PyStereoVisionToolkit import Camera
 from PyStereoVisionToolkit import Disparity
