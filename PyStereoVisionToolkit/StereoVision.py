@@ -34,7 +34,7 @@ class StereoVision( QtGui.QWidget ) :
 	def __init__( self, parent = None ) :
 		
 		# Initialise QWidget
-		super( StereoVision, self ).__init__( parent, QtCore.Qt.WindowMinimizeButtonHint | QtCore.Qt.WindowCloseButtonHint )
+		super( StereoVision, self ).__init__( parent )
 		
 		# Load the calibration parameter file, if it exists
 		self.calibration = None
@@ -98,6 +98,7 @@ class StereoVision( QtGui.QWidget ) :
 		self.layout_global = QtGui.QVBoxLayout( self )
 		self.layout_global.addWidget( self.camera )
 		self.layout_global.addLayout( self.layout_controls )
+		self.layout_global.setSizeConstraint( QtGui.QLayout.SetFixedSize )
 		
 		# Set the Escape key to close the application
 		QtGui.QShortcut( QtGui.QKeySequence( QtCore.Qt.Key_Escape ), self ).activated.connect( self.close )
