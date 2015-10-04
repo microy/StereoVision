@@ -24,17 +24,38 @@ from PyStereoVisionToolkit import Disparity
 
 
 #
-# Main application of stereovision
+# Main stereovision application
 #
-class StereoVision( QtGui.QWidget ) :
+class StereoVision( QtGui.QApplication ) :
 
 	#
-	# Initialisation
+	# Initialization
+	#
+	def __init__( self ) :
+
+		# Initialize parent class
+		super( StereoVision, self ).__init__( sys.argv )
+		
+		# Show the stereovision widget
+		widget = StereoVisionWidget()
+		widget.show()
+		
+		# Enter Qt main loop
+		sys.exit( self.exec_() )
+
+
+#
+# Stereovision user interface
+#
+class StereoVisionWidget( QtGui.QWidget ) :
+
+	#
+	# Initialization
 	#
 	def __init__( self, parent = None ) :
 		
 		# Initialise QWidget
-		super( StereoVision, self ).__init__( parent )
+		super( StereoVisionWidget, self ).__init__( parent )
 		
 		# Load the calibration parameter file, if it exists
 		self.calibration = None
@@ -173,14 +194,3 @@ class StereoVision( QtGui.QWidget ) :
 		# Stop image acquisition, and close the widgets
 		self.camera_widget.close()
 		event.accept()
-
-#
-# Main application
-#
-if __name__ == "__main__" :
-	
-	application = QtGui.QApplication( sys.argv )
-	widget = StereoVision()
-	widget.show()
-	sys.exit( application.exec_() )
-
