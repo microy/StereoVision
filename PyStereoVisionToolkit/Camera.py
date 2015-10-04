@@ -20,7 +20,7 @@ from PyStereoVisionToolkit import Calibration
 #
 # Qt Widget to display the images from stereo cameras
 #
-class CameraViewer( QtGui.QLabel ) :
+class StereoCameraWidget( QtGui.QLabel ) :
 
 	#
 	# Initialisation
@@ -28,7 +28,7 @@ class CameraViewer( QtGui.QLabel ) :
 	def __init__( self, parent = None, calibration = None ) :
 
 		# Initialise QLabel
-		super( QtCameraViewer, self ).__init__( parent )
+		super( StereoCameraWidget, self ).__init__( parent )
 
 		# Store the calibration parameters
 		self.calibration = calibration
