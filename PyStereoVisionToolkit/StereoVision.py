@@ -42,14 +42,11 @@ class StereoVision( QtGui.QWidget ) :
 			with open( '{}/calibration.pkl'.format(Calibration.calibration_directory) , 'rb') as calibration_file :
 				self.calibration = pickle.load( calibration_file )
 		
-		# Create the widget for the stereo reconstruction
-		self.stereosgbm = Disparity.StereoSGBM()
-		
 		# Set the window title
 		self.setWindowTitle( 'StereoVision' )
 		
-		# Camera viewer
-		self.camera = Camera.CameraViewer( self, self.calibration )
+		# Stereo camera widget
+		self.camera_widget = Camera.StereoCameraWidget( self, self.calibration )
 
 		# Widget elements
 		self.button_cross = QtGui.QPushButton( 'Cross', self )
@@ -96,7 +93,7 @@ class StereoVision( QtGui.QWidget ) :
 		self.layout_controls.addLayout( self.layout_pattern_size )
 		self.layout_controls.addWidget( self.button_save )
 		self.layout_global = QtGui.QVBoxLayout( self )
-		self.layout_global.addWidget( self.camera )
+		self.layout_global.addWidget( self.camera_widget )
 		self.layout_global.addLayout( self.layout_controls )
 		self.layout_global.setSizeConstraint( QtGui.QLayout.SetFixedSize )
 		
@@ -108,14 +105,14 @@ class StereoVision( QtGui.QWidget ) :
 	#
 	def Cross( self ) :
 
-		self.camera.cross_enabled = not self.camera.cross_enabled
+		self.camera_widget.cross_enabled = not self.camera_widget.cross_enabled
 
 	#
 	# Chessboard finder
 	#
 	def Chessboard( self ) :
 
-		self.camera.chessboard_enabled = not self.camera.chessboard_enabled
+		self.camera_widget.chessboard_enabled = not self.camera_widget.chessboard_enabled
 
 	#
 	# Stereo camera calibration
@@ -124,7 +121,7 @@ class StereoVision( QtGui.QWidget ) :
 
 		# Calibrate the stereo cameras
 		self.calibration = Calibration.StereoCameraCalibration()
-		self.camera.calibration = self.calibration
+		self.camera_widget.calibration = self.calibration
 		self.button_calibration.setIcon( self.style().standardIcon( QtGui.QStyle.SP_DialogYesButton ) )
 
 	#
@@ -132,7 +129,7 @@ class StereoVision( QtGui.QWidget ) :
 	#
 	def Disparity( self ) :
 
-		self.camera.disparity_enabled = not self.camera.disparity_enabled
+		self.camera_widget.disparity_enabled = not self.camera_widget.disparity_enabled
 
 	#
 	# 3D reconstruction
@@ -140,8 +137,8 @@ class StereoVision( QtGui.QWidget ) :
 	def Reconstruction( self ) :
 
 		Disparity.WritePly( 'mesh-{}.ply'.format( time.strftime( '%Y%m%d_%H%M%S' ) ),
-			cv2.reprojectImageTo3D( self.camera.disparity, self.calibration['Q'] ),
-			cv2.cvtColor( self.camera.image_left, cv2.COLOR_BGR2RGB ) )
+			cv2.reprojectImageTo3D( self.camera_widget.disparity, self.calibration['Q'] ),
+			cv2.cvtColor( self.camera_widget.image_left, cv2.COLOR_BGR2RGB ) )
 
 	#
 	# Update the calibration pattern size
@@ -159,12 +156,12 @@ class StereoVision( QtGui.QWidget ) :
 		# Save images to disk 
 		current_time = time.strftime( '%Y%m%d_%H%M%S' )
 		print( 'Save images {} to disk...'.format(current_time) )
-		if self.camera.chessboard_enabled :
-			cv2.imwrite( '{}/left-{}.png'.format(Calibration.calibration_directory, current_time), self.camera.image_left )
-			cv2.imwrite( '{}/right-{}.png'.format(Calibration.calibration_directory, current_time), self.camera.image_right )
+		if self.camera_widget.chessboard_enabled :
+			cv2.imwrite( '{}/left-{}.png'.format(Calibration.calibration_directory, current_time), self.camera_widget.image_left )
+			cv2.imwrite( '{}/right-{}.png'.format(Calibration.calibration_directory, current_time), self.camera_widget.image_right )
 		else :
-			cv2.imwrite( 'left-{}.png'.format(current_time), self.camera.image_left )
-			cv2.imwrite( 'right-{}.png'.format(current_time), self.camera.image_right )
+			cv2.imwrite( 'left-{}.png'.format(current_time), self.camera_widget.image_left )
+			cv2.imwrite( 'right-{}.png'.format(current_time), self.camera_widget.image_right )
 
 
 #
