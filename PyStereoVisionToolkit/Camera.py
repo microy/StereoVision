@@ -14,7 +14,6 @@ import cv2
 import numpy as np
 import Calibration
 import Vimba
-
 from PySide import QtCore
 from PySide import QtGui
 
@@ -50,6 +49,10 @@ class QtCameraViewer( QtGui.QLabel ) :
 		self.camera_right = cv2.VideoCapture( 1 )
 
 		# Lower the camera frame rate
+		self.camera_left.set( cv2.cv.CV_CAP_PROP_FRAME_WIDTH, 640 )
+		self.camera_left.set( cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, 480 )
+		self.camera_right.set( cv2.cv.CV_CAP_PROP_FRAME_WIDTH, 640 )
+		self.camera_right.set( cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, 480 )
 		self.camera_left.set( cv2.cv.CV_CAP_PROP_FPS, 5 )
 		self.camera_right.set( cv2.cv.CV_CAP_PROP_FPS, 5 )
 
