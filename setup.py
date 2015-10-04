@@ -12,7 +12,7 @@ from setuptools import setup
 setup(
 
     name = "PyStereoVisionToolkit",
-    version = "0.2",
+    version = "0.3",
     packages = ['PyStereoVisionToolkit'],
     scripts = ['StereoVision'],
     author = "Michaël Roy",
