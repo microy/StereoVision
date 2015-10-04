@@ -85,14 +85,12 @@ class QtCameraViewer( QtGui.QLabel ) :
 
 		# Display a cross in the middle of the image
 		if self.cross_enabled :
-			w = image_left_displayed.shape[1]
-			h = image_left_displayed.shape[0]
-			w2 = int( w/2 )
-			h2 = int( h/2 )
-			cv2.line( image_left_displayed, (w2, 0), (w2, h), (0, 255, 0), 2 )
-			cv2.line( image_left_displayed, (0, h2), (w, h2), (0, 255, 0), 2 )
-			cv2.line( image_right_displayed, (w2, 0), (w2, h), (0, 255, 0), 2 )
-			cv2.line( image_right_displayed, (0, h2), (w, h2), (0, 255, 0), 2 )
+			cv2.rectangle( image_left_displayed, (220, 100), (420, 380), (0, 255, 0), 2 )
+			cv2.rectangle( image_right_displayed, (220, 100), (420, 380), (0, 255, 0), 2 )
+			cv2.line( image_left_displayed, (320, 0), (320, 480), (0, 0, 255), 2 )
+			cv2.line( image_left_displayed, (0, 240), (640, 240), (0, 0, 255), 2 )
+			cv2.line( image_right_displayed, (320, 0), (320, 480), (0, 0, 255), 2 )
+			cv2.line( image_right_displayed, (0, 240), (640, 240), (0, 0, 255), 2 )
 
 		# Display the disparity image
 		if self.disparity_enabled and self.calibration :
