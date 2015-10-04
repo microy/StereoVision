@@ -13,8 +13,8 @@ import pickle
 import sys
 import cv2
 import numpy as np
-import PySide.QtCore as qtcore
-import PySide.QtGui as qtgui
+from PySide import QtCore
+from PySide import QtGui
 
 
 #
@@ -48,7 +48,7 @@ end_header
 #
 # Customize the Qt widget to setup the stereo BM
 #
-class StereoSGBM( qtgui.QWidget ) :
+class StereoSGBM( QtGui.QWidget ) :
 
 	#
 	# Initialisation
@@ -82,69 +82,69 @@ class StereoSGBM( qtgui.QWidget ) :
 		self.setWindowTitle( 'StereoSGBM' )
 
 		# Set the window size
-		self.setGeometry( qtcore.QRect(10, 10, 621, 251) )
+		self.setGeometry( QtCore.QRect(10, 10, 621, 251) )
 
 		# StereoSGBM parameter controls
-		self.spinbox_min_disparity = qtgui.QSpinBox( self )
+		self.spinbox_min_disparity = QtGui.QSpinBox( self )
 		self.spinbox_min_disparity.setMaximum( 240 )
 		self.spinbox_min_disparity.setSingleStep( 16 )
 		self.spinbox_min_disparity.setValue( self.min_disparity )
-		self.spinbox_max_disparity = qtgui.QSpinBox( self )
+		self.spinbox_max_disparity = QtGui.QSpinBox( self )
 		self.spinbox_max_disparity.setMaximum( 240 )
 		self.spinbox_max_disparity.setSingleStep( 16 )
 		self.spinbox_max_disparity.setValue( self.max_disparity )
-		self.spinbox_sad_window_size = qtgui.QSpinBox( self )
+		self.spinbox_sad_window_size = QtGui.QSpinBox( self )
 		self.spinbox_sad_window_size.setMinimum( 3 )
 		self.spinbox_sad_window_size.setMaximum( 11 )
 		self.spinbox_sad_window_size.setSingleStep( 2 )
 		self.spinbox_sad_window_size.setValue( self.sad_window_size )
-		self.spinbox_uniqueness_ratio = qtgui.QSpinBox( self )
+		self.spinbox_uniqueness_ratio = QtGui.QSpinBox( self )
 		self.spinbox_uniqueness_ratio.setValue( self.uniqueness_ratio )
-		self.spinbox_speckle_window_size = qtgui.QSpinBox( self )
+		self.spinbox_speckle_window_size = QtGui.QSpinBox( self )
 		self.spinbox_speckle_window_size.setMaximum( 240 )
 		self.spinbox_speckle_window_size.setValue( self.speckle_window_size )
-		self.spinbox_speckle_range = qtgui.QSpinBox( self )
+		self.spinbox_speckle_range = QtGui.QSpinBox( self )
 		self.spinbox_speckle_range.setValue( self.speckle_range )
-		self.spinbox_p1 = qtgui.QSpinBox( self )
+		self.spinbox_p1 = QtGui.QSpinBox( self )
 		self.spinbox_p1.setMaximum( 2000 )
 		self.spinbox_p1.setValue( self.p1 )
-		self.spinbox_p2 = qtgui.QSpinBox( self )
+		self.spinbox_p2 = QtGui.QSpinBox( self )
 		self.spinbox_p2.setMaximum( 2000 )
 		self.spinbox_p2.setValue( self.p2 )
-		self.spinbox_max_difference = qtgui.QSpinBox( self )
+		self.spinbox_max_difference = QtGui.QSpinBox( self )
 		self.spinbox_max_difference.setValue( self.max_difference )
 
 		# Buttons
-		self.button_apply = qtgui.QPushButton( 'Apply', self )
+		self.button_apply = QtGui.QPushButton( 'Apply', self )
 		self.button_apply.clicked.connect( self.UpdateDisparity )
-		self.button_save = qtgui.QPushButton( 'Save', self )
+		self.button_save = QtGui.QPushButton( 'Save', self )
 		self.button_save.setEnabled( False )
 		self.button_save.clicked.connect( self.SavePointCloud )
 
 		# Widget layout
-		self.layout_controls = qtgui.QGridLayout()
-		self.layout_controls.addWidget( qtgui.QLabel( 'Minimum disparity', self ), 0, 0 )
+		self.layout_controls = QtGui.QGridLayout()
+		self.layout_controls.addWidget( QtGui.QLabel( 'Minimum disparity', self ), 0, 0 )
 		self.layout_controls.addWidget( self.spinbox_min_disparity, 0, 1 )
-		self.layout_controls.addWidget( qtgui.QLabel( 'Maximum disparity', self ), 1, 0 )
+		self.layout_controls.addWidget( QtGui.QLabel( 'Maximum disparity', self ), 1, 0 )
 		self.layout_controls.addWidget( self.spinbox_max_disparity, 1, 1 )
-		self.layout_controls.addWidget( qtgui.QLabel( 'SAD window size', self ), 2, 0 )
+		self.layout_controls.addWidget( QtGui.QLabel( 'SAD window size', self ), 2, 0 )
 		self.layout_controls.addWidget( self.spinbox_sad_window_size, 2, 1 )
-		self.layout_controls.addWidget( qtgui.QLabel( 'Uniqueness ratio', self ), 3, 0 )
+		self.layout_controls.addWidget( QtGui.QLabel( 'Uniqueness ratio', self ), 3, 0 )
 		self.layout_controls.addWidget( self.spinbox_uniqueness_ratio, 3, 1 )
-		self.layout_controls.addWidget( qtgui.QLabel( 'Spekle window size', self ), 4, 0 )
+		self.layout_controls.addWidget( QtGui.QLabel( 'Spekle window size', self ), 4, 0 )
 		self.layout_controls.addWidget( self.spinbox_speckle_window_size, 4, 1 )
-		self.layout_controls.addWidget( qtgui.QLabel( 'Spekle range', self ), 5, 0 )
+		self.layout_controls.addWidget( QtGui.QLabel( 'Spekle range', self ), 5, 0 )
 		self.layout_controls.addWidget( self.spinbox_speckle_range, 5, 1 )
-		self.layout_controls.addWidget( qtgui.QLabel( 'P1', self ), 6, 0 )
+		self.layout_controls.addWidget( QtGui.QLabel( 'P1', self ), 6, 0 )
 		self.layout_controls.addWidget( self.spinbox_p1, 6, 1 )
-		self.layout_controls.addWidget( qtgui.QLabel( 'P2', self ), 7, 0 )
+		self.layout_controls.addWidget( QtGui.QLabel( 'P2', self ), 7, 0 )
 		self.layout_controls.addWidget( self.spinbox_p2, 7, 1 )
-		self.layout_controls.addWidget( qtgui.QLabel( 'Maximum difference', self ), 8, 0 )
+		self.layout_controls.addWidget( QtGui.QLabel( 'Maximum difference', self ), 8, 0 )
 		self.layout_controls.addWidget( self.spinbox_max_difference, 8, 1 )
-		self.layout_buttons = qtgui.QHBoxLayout()
+		self.layout_buttons = QtGui.QHBoxLayout()
 		self.layout_buttons.addWidget( self.button_apply )
 		self.layout_buttons.addWidget( self.button_save )
-		self.layout_global = qtgui.QVBoxLayout( self )
+		self.layout_global = QtGui.QVBoxLayout( self )
 		self.layout_global.addLayout( self.layout_controls )
 		self.layout_global.addLayout( self.layout_buttons )
 		
