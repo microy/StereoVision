@@ -6,16 +6,13 @@
 #
 
 # Setup module
-try :
-	from setuptools import setup
-except ImportError :
-	from distutils.core import setup
+from setuptools import setup
 
 # Setup configuration
 setup(
 
     name = "PyStereoVisionToolkit",
-    version = "0.1",
+    version = "0.2",
     packages = ['PyStereoVisionToolkit'],
     scripts = ['StereoVision'],
     author = "Michaël Roy",
