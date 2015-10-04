@@ -9,8 +9,6 @@
 #
 # External dependencies
 #
-import pickle
-import sys
 import cv2
 import numpy as np
 from PySide import QtCore
@@ -55,14 +53,10 @@ class StereoSGBM( QtGui.QWidget ) :
 	#
 	def __init__( self, parent = None ) :
 		
-		#
-		# Initialize the StereoBM
-		#
-		
-		# StereoSGBM parameters
+		# Initialize the StereoSGBM
 		self.min_disparity = 16
 		self.max_disparity = 96
-		self.sad_window_size = 3
+		self.sad_window_size = 5
 		self.uniqueness_ratio = 10
 		self.speckle_window_size = 100
 		self.speckle_range = 32
@@ -71,20 +65,13 @@ class StereoSGBM( QtGui.QWidget ) :
 		self.max_difference = 1
 		self.full_dp = False
 
-		#
-		# Initialize the interface
-		#
-
 		# Initialise QWidget
 		super( StereoSGBM, self ).__init__( parent )
 
 		# Set the window title
 		self.setWindowTitle( 'StereoSGBM' )
 
-		# Set the window size
-		self.setGeometry( QtCore.QRect(10, 10, 621, 251) )
-
-		# StereoSGBM parameter controls
+		# Widget elements
 		self.spinbox_min_disparity = QtGui.QSpinBox( self )
 		self.spinbox_min_disparity.setMaximum( 240 )
 		self.spinbox_min_disparity.setSingleStep( 16 )
@@ -113,59 +100,30 @@ class StereoSGBM( QtGui.QWidget ) :
 		self.spinbox_p2.setValue( self.p2 )
 		self.spinbox_max_difference = QtGui.QSpinBox( self )
 		self.spinbox_max_difference.setValue( self.max_difference )
-
-		# Buttons
 		self.button_apply = QtGui.QPushButton( 'Apply', self )
 		self.button_apply.clicked.connect( self.UpdateDisparity )
-		self.button_save = QtGui.QPushButton( 'Save', self )
-		self.button_save.setEnabled( False )
-		self.button_save.clicked.connect( self.SavePointCloud )
 
 		# Widget layout
-		self.layout_controls = QtGui.QGridLayout()
-		self.layout_controls.addWidget( QtGui.QLabel( 'Minimum disparity', self ), 0, 0 )
-		self.layout_controls.addWidget( self.spinbox_min_disparity, 0, 1 )
-		self.layout_controls.addWidget( QtGui.QLabel( 'Maximum disparity', self ), 1, 0 )
-		self.layout_controls.addWidget( self.spinbox_max_disparity, 1, 1 )
-		self.layout_controls.addWidget( QtGui.QLabel( 'SAD window size', self ), 2, 0 )
-		self.layout_controls.addWidget( self.spinbox_sad_window_size, 2, 1 )
-		self.layout_controls.addWidget( QtGui.QLabel( 'Uniqueness ratio', self ), 3, 0 )
-		self.layout_controls.addWidget( self.spinbox_uniqueness_ratio, 3, 1 )
-		self.layout_controls.addWidget( QtGui.QLabel( 'Spekle window size', self ), 4, 0 )
-		self.layout_controls.addWidget( self.spinbox_speckle_window_size, 4, 1 )
-		self.layout_controls.addWidget( QtGui.QLabel( 'Spekle range', self ), 5, 0 )
-		self.layout_controls.addWidget( self.spinbox_speckle_range, 5, 1 )
-		self.layout_controls.addWidget( QtGui.QLabel( 'P1', self ), 6, 0 )
-		self.layout_controls.addWidget( self.spinbox_p1, 6, 1 )
-		self.layout_controls.addWidget( QtGui.QLabel( 'P2', self ), 7, 0 )
-		self.layout_controls.addWidget( self.spinbox_p2, 7, 1 )
-		self.layout_controls.addWidget( QtGui.QLabel( 'Maximum difference', self ), 8, 0 )
-		self.layout_controls.addWidget( self.spinbox_max_difference, 8, 1 )
-		self.layout_buttons = QtGui.QHBoxLayout()
-		self.layout_buttons.addWidget( self.button_apply )
-		self.layout_buttons.addWidget( self.button_save )
+		self.layout_controls = QtGui.QFormLayout()
+		self.layout_controls.addRow( 'Minimum disparity', self.spinbox_min_disparity )
+		self.layout_controls.addRow( 'Maximum disparity', self.spinbox_max_disparity )
+		self.layout_controls.addRow( 'SAD window size', self.spinbox_sad_window_size )
+		self.layout_controls.addRow( 'Uniqueness ratio', self.spinbox_uniqueness_ratio )
+		self.layout_controls.addRow( 'Spekle window size', self.spinbox_speckle_window_size )
+		self.layout_controls.addRow( 'Spekle range', self.spinbox_speckle_range )
+		self.layout_controls.addRow( 'P1', self.spinbox_p1 )
+		self.layout_controls.addRow( 'P2', self.spinbox_p2 )
+		self.layout_controls.addRow( 'Maximum difference', self.spinbox_max_difference )
 		self.layout_global = QtGui.QVBoxLayout( self )
 		self.layout_global.addLayout( self.layout_controls )
-		self.layout_global.addLayout( self.layout_buttons )
-		
-	#
-	# Load the images
-	#
-	def LoadImages( self, left_image, right_image ) :
+		self.layout_global.addWidget( self.button_apply )
+		self.layout_global.setSizeConstraint( QtGui.QLayout.SetFixedSize )
 
-			self.left_image = left_image
-			self.right_image = right_image
+		# Set the Escape key to close the application
+		QtGui.QShortcut( QtGui.QKeySequence( QtCore.Qt.Key_Escape ), self ).activated.connect( self.close )
 
-	#
-	# Save the resulting point cloud
-	#
-	def SavePointCloud( self ) :
-		
-		print( 'Exporting point cloud...' )
-		WritePly( 'mesh-{}-{}.ply'.format( self.min_disparity, self.sad_window_size ),
-			cv2.reprojectImageTo3D( self.bm_disparity, self.calibration['Q'] ),
-			cv2.cvtColor( self.left_image, cv2.COLOR_BGR2RGB ) )
-		print( 'Done.' )
+		# Initialize the disparity object
+		self.UpdateDisparity()
 
 	#
 	# Compute the stereo correspondence
@@ -184,8 +142,7 @@ class StereoSGBM( QtGui.QWidget ) :
 		self.p2 = self.spinbox_p2.value()
 
 		# Create the disparity object
-		print( "Compute disparity..." )
-		self.bm = cv2.StereoSGBM( minDisparity = self.min_disparity,
+		self.sgbm = cv2.StereoSGBM( minDisparity = self.min_disparity,
 			numDisparities = self.max_disparity,
 			SADWindowSize = self.sad_window_size,
 			uniquenessRatio = self.uniqueness_ratio,
@@ -196,21 +153,19 @@ class StereoSGBM( QtGui.QWidget ) :
 			P2 = self.p2,
 			fullDP = self.full_dp )
 		
+	#
+	# Compute the stereo correspondence
+	#
+	def ComputeDisparity( self, left_image, right_image ) :
+
 		# Compute the disparity map
-		self.bm_disparity = self.bm.compute( self.left_image, self.right_image ).astype( np.float32 ) / 16.0
+		self.disparity = self.sgbm.compute( left_image, right_image )
 		
 		# Create the disparity image for display
-		self.bm_disparity_img = self.bm_disparity
-		cv2.normalize( self.bm_disparity_img, self.bm_disparity_img, 0, 255, cv2.NORM_MINMAX )
-#		self.bm_disparity_img = ( self.bm_disparity - self.min_disparity ) / self.max_disparity
-		self.bm_disparity_img = self.bm_disparity_img.astype( np.uint8 )
-#		self.bm_disparity_img = cv2.pyrDown( self.bm_disparity_img )
-		self.bm_disparity_img = cv2.applyColorMap( self.bm_disparity_img, cv2.COLORMAP_JET )
-#		self.bm_disparity_img = cv2.cvtColor( self.bm_disparity_img, cv2.COLOR_BGR2RGB )
-		
-		# Display the disparity map
-		cv2.imshow( 'Disparity map', self.bm_disparity_img )
-		
-		# Enable the button to export the 3D mesh
-		self.button_save.setEnabled( True )
-
+		self.disparity_image = self.disparity.astype( np.float32 ) / 16.0
+		cv2.normalize( self.disparity_image, self.disparity_image, 0, 255, cv2.NORM_MINMAX )
+#		self.disparity_image = ( self.disparity_image - self.disparity_image.min() ) / ( self.disparity_image.max() - self.disparity_image.min() )
+		self.disparity_image = self.disparity_image.astype( np.uint8 )
+		self.disparity_image = cv2.cvtColor( self.disparity_image, cv2.COLOR_GRAY2RGB )
+#		self.disparity_image = cv2.applyColorMap( self.disparity_image, cv2.COLORMAP_JET )
+#		self.disparity_image = cv2.cvtColor( self.disparity_image, cv2.COLOR_BGR2RGB )

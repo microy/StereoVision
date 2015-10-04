@@ -9,12 +9,12 @@
 #
 # External dependencies
 #
-import time
 import cv2
 import numpy as np
 from PySide import QtCore
 from PySide import QtGui
 from PyStereoVisionToolkit import Calibration
+from PyStereoVisionToolkit import Disparity
 
 
 #
@@ -42,9 +42,8 @@ class StereoCameraWidget( QtGui.QLabel ) :
 		self.cross_enabled = False
 		self.disparity_enabled = False
 
-		# StereoBM parameters
-	#	self.bm = cv2.StereoBM( cv2.STEREO_BM_BASIC_PRESET, 64, 5 )
-		self.bm = cv2.StereoSGBM( 16, 96, 5 )
+		# StereoSGBM
+		self.disparity = Disparity.StereoSGBM()
 		
 		# Initialize the stereo cameras
 		self.camera_left = cv2.VideoCapture( 0 )
@@ -101,19 +100,11 @@ class StereoCameraWidget( QtGui.QLabel ) :
 			rectified_images = Calibration.StereoRectification( self.calibration, self.image_left, self.image_right, True )
 			rectified_images = cv2.pyrDown( rectified_images[0] ), cv2.pyrDown( rectified_images[1] )
 		
-			self.disparity = self.bm.compute( *rectified_images )
-			disparity_image = self.disparity.astype( np.float32 ) / 16.0
-			cv2.normalize( disparity_image, disparity_image, 0, 255, cv2.NORM_MINMAX )
-		
-		#	rectified_images = cv2.cvtColor( rectified_images[0], cv2.COLOR_BGR2GRAY ), cv2.cvtColor( rectified_images[1], cv2.COLOR_BGR2GRAY )
-		#	self.disparity = self.bm.compute( *rectified_images, disptype=cv2.CV_32F )
-		#	disparity_image = self.disparity * 255.99 / ( self.disparity.max() - self.disparity.min() )
-
-			disparity_image = disparity_image.astype( np.uint8 )
-#			disparity_image = cv2.applyColorMap( disparity_image, cv2.COLORMAP_JET )
-			disparity_image = cv2.cvtColor( disparity_image, cv2.COLOR_GRAY2RGB )
-		#	disparity_image = cv2.pyrUp( disparity_image )
-			stereo_image = disparity_image
+			# Compute the disparity
+			self.disparity.ComputeDisparity( *rectified_images )
+			
+			# Display the dispariy image
+			stereo_image = self.disparity.disparity_image
 		
 		# Or display the stereo images
 		else :
@@ -138,4 +129,7 @@ class StereoCameraWidget( QtGui.QLabel ) :
 		self.timer.stop()
 		self.camera_left.release()
 		self.camera_right.release()
+		
+		# Close the widgets
+		self.disparity.close()
 		event.accept()

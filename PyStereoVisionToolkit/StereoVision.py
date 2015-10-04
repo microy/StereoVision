@@ -130,6 +130,8 @@ class StereoVision( QtGui.QWidget ) :
 	def Disparity( self ) :
 
 		self.camera_widget.disparity_enabled = not self.camera_widget.disparity_enabled
+		if self.camera_widget.disparity_enabled : self.camera_widget.disparity.show()
+		else : self.camera_widget.disparity.hide()
 
 	#
 	# 3D reconstruction
@@ -163,6 +165,14 @@ class StereoVision( QtGui.QWidget ) :
 			cv2.imwrite( 'left-{}.png'.format(current_time), self.camera_widget.image_left )
 			cv2.imwrite( 'right-{}.png'.format(current_time), self.camera_widget.image_right )
 
+	#
+	# Close the camera widget
+	#
+	def closeEvent( self, event ) :
+		
+		# Stop image acquisition, and close the widgets
+		self.camera_widget.close()
+		event.accept()
 
 #
 # Main application
