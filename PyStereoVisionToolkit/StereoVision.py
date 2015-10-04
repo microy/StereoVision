@@ -49,7 +49,7 @@ class StereoVision( QtGui.QWidget ) :
 		self.setWindowTitle( 'StereoVision' )
 		
 		# Camera viewer
-		self.camera = Camera.QtCameraViewer( self, self.calibration )
+		self.camera = Camera.CameraViewer( self, self.calibration )
 
 		# Widget elements
 		self.button_cross = QtGui.QPushButton( 'Cross', self )

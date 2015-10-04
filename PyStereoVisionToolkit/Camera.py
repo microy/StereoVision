@@ -17,7 +17,10 @@ from PySide import QtGui
 from PyStereoVisionToolkit import Calibration
 
 
-class QtCameraViewer( QtGui.QLabel ) :
+#
+# Qt Widget to display the images from stereo cameras
+#
+class CameraViewer( QtGui.QLabel ) :
 
 	#
 	# Initialisation
