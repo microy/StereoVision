@@ -15,7 +15,6 @@ import numpy as np
 from PySide import QtCore
 from PySide import QtGui
 from PyStereoVisionToolkit import Calibration
-from PyStereoVisionToolkit import Vimba
 
 
 class QtCameraViewer( QtGui.QLabel ) :
