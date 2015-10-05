@@ -289,21 +289,14 @@ def StereoRectification( calibration, left_image, right_image, display = False )
 	# Display the rectified images
 	if display :
 		
-		# Prepare image for display
-		rectified_images = np.concatenate( (left_image, right_image), axis=1 )
-
 		# Print ROI
-		cv2.rectangle( rectified_images, calibration['ROI1'][:2], calibration['ROI1'][2:], (0,0,255), 2 )
-		cv2.rectangle( rectified_images, (calibration['ROI2'][0]+left_image.shape[1], calibration['ROI2'][1]),
-			(calibration['ROI2'][2]+left_image.shape[1], calibration['ROI2'][3]), (0,0,255), 2 )
+		cv2.rectangle( left_image, calibration['ROI1'][:2], calibration['ROI1'][2:], (0,0,255), 2 )
+		cv2.rectangle( right_image, calibration['ROI2'][:2], calibration['ROI2'][2:], (0,0,255), 2 )
 
 		# Print lines
-		for i in range( 0, rectified_images.shape[0], 32 ) :
-			cv2.line( rectified_images, (0, i), (rectified_images.shape[1], i), (0, 255, 0), 2 )
-
-		# Show the result
-		cv2.imshow( 'Rectified stereo images', rectified_images )
-		cv2.waitKey( 1 )
+		for i in range( 0, left_image.shape[0], 32 ) :
+			cv2.line( left_image, (0, i), (left_image.shape[1], i), (0, 255, 0), 2 )
+			cv2.line( right_image, (0, i), (right_image.shape[1], i), (0, 255, 0), 2 )
 
 	# Return the rectified images
 	return left_image, right_image
