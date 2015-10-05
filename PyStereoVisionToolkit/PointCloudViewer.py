@@ -106,10 +106,6 @@ class PointCloudViewer( qtgl.QGLWidget ) :
 		# Close previous mesh
 		self.Close()
 
-	#	import cv2
-	#	cv2.imshow( 'colors', np.array( colors, dtype=np.float32 ) / 255 )
-	#	cv2.waitKey( 1 )
-
 		coordinates = coordinates.reshape(-1, 3)
 		colors = colors.reshape(-1, 3)
 	#	mask = coordinates[:, 2] > coordinates[:, 2].min()+10
@@ -217,8 +213,8 @@ class PointCloudViewer( qtgl.QGLWidget ) :
 			1, gl.GL_FALSE, np.dot( modelview_matrix, self.projection_matrix ) )
 
 		# Draw the mesh
-		gl.glDrawElements( gl.GL_POINTS, 76800, gl.GL_UNSIGNED_INT, None )
-	#	gl.glDrawArrays( gl.GL_POINTS, 0, 153600 )
+	#	gl.glDrawElements( gl.GL_POINTS, 76800, gl.GL_UNSIGNED_INT, None )
+		gl.glDrawArrays( gl.GL_POINTS, 0, 153600 )
 
 	#
 	# resizeGL

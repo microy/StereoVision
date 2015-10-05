@@ -184,7 +184,7 @@ class StereoVisionWidget( QtGui.QWidget ) :
 		X, Y = np.meshgrid( np.arange( 320 ), np.arange( 240 ) )
 		coordinates = np.array( (X.flatten(), Y.flatten(),
 			self.camera_widget.disparity.disparity.flatten() * 0.5) ).T
-		colors = cv2.cvtColor( self.camera_widget.image_left, cv2.COLOR_BGR2RGB )
+		colors = cv2.cvtColor( cv2.pyrDown( self.camera_widget.image_left ), cv2.COLOR_BGR2RGB )
 		self.pointcloud_viewer.LoadPointCloud( coordinates, colors )
 	#	Disparity.WritePly( 'mesh-{}.ply'.format( time.strftime( '%Y%m%d_%H%M%S' ) ), coordinates, colors )
 
