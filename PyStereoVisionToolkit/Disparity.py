@@ -54,9 +54,9 @@ class StereoSGBM( QtGui.QWidget ) :
 	def __init__( self, parent = None ) :
 		
 		# Initialize the StereoSGBM
-		self.min_disparity = 16
-		self.max_disparity = 96
-		self.sad_window_size = 5
+		self.min_disparity = 0
+		self.max_disparity = 16
+		self.sad_window_size = 3
 		self.uniqueness_ratio = 10
 		self.speckle_window_size = 100
 		self.speckle_range = 32
@@ -163,12 +163,12 @@ class StereoSGBM( QtGui.QWidget ) :
 	def ComputeDisparity( self, left_image, right_image ) :
 
 		# Compute the disparity map
-		self.disparity = self.sgbm.compute( left_image, right_image )
+		self.disparity = self.sgbm.compute( left_image, right_image ).astype( np.float32 ) / 16.0
 		
 		# Create the disparity image for display
-		self.disparity_image = self.disparity.astype( np.float32 ) / 16.0
+		self.disparity_image = self.disparity
 		cv2.normalize( self.disparity_image, self.disparity_image, 0, 255, cv2.NORM_MINMAX )
-#		self.disparity_image = ( self.disparity_image - self.disparity_image.min() ) / ( self.disparity_image.max() - self.disparity_image.min() )
+#		self.disparity_image = ( self.disparity - self.disparity.min() ) / ( self.disparity.max() - self.disparity.min() )
 		self.disparity_image = self.disparity_image.astype( np.uint8 )
 		self.disparity_image = cv2.cvtColor( self.disparity_image, cv2.COLOR_GRAY2RGB )
 #		self.disparity_image = cv2.applyColorMap( self.disparity_image, cv2.COLORMAP_JET )

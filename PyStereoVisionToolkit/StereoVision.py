@@ -175,7 +175,7 @@ class StereoVisionWidget( QtGui.QWidget ) :
 	def Reconstruction( self ) :
 
 		Disparity.WritePly( 'mesh-{}.ply'.format( time.strftime( '%Y%m%d_%H%M%S' ) ),
-			cv2.reprojectImageTo3D( self.camera_widget.disparity, self.calibration['Q'] ),
+			cv2.reprojectImageTo3D( self.camera_widget.disparity.disparity, self.calibration['Q'] ),
 			cv2.cvtColor( self.camera_widget.image_left, cv2.COLOR_BGR2RGB ) )
 
 	#
