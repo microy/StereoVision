@@ -15,11 +15,13 @@ import pickle
 import sys
 import time
 import cv2
+import numpy as np
 from PyQt4 import QtCore
 from PyQt4 import QtGui
 from PyStereoVisionToolkit import Calibration
 from PyStereoVisionToolkit import Camera
 from PyStereoVisionToolkit import Disparity
+from PyStereoVisionToolkit import PointCloudViewer
 
 
 #
@@ -64,6 +66,9 @@ class StereoVisionWidget( QtGui.QWidget ) :
 		
 		# Set the window title
 		self.setWindowTitle( 'StereoVision' )
+		
+		# Point cloud viewer
+		self.pointcloud_viewer = PointCloudViewer.PointCloudViewer()
 		
 		# Stereo camera widget
 		self.camera_widget = Camera.StereoCameraWidget( self, self.calibration )
@@ -174,9 +179,14 @@ class StereoVisionWidget( QtGui.QWidget ) :
 	#
 	def Reconstruction( self ) :
 
-		Disparity.WritePly( 'mesh-{}.ply'.format( time.strftime( '%Y%m%d_%H%M%S' ) ),
-			cv2.reprojectImageTo3D( self.camera_widget.disparity.disparity, self.calibration['Q'] ),
-			cv2.cvtColor( self.camera_widget.image_left, cv2.COLOR_BGR2RGB ) )
+		self.pointcloud_viewer.show()
+	#	coordinates = cv2.reprojectImageTo3D( self.camera_widget.disparity.disparity, self.calibration['Q'] )
+		X, Y = np.meshgrid( np.arange( 320 ), np.arange( 240 ) )
+		coordinates = np.array( (X.flatten(), Y.flatten(),
+			self.camera_widget.disparity.disparity.flatten() * 0.5) ).T
+		colors = cv2.cvtColor( self.camera_widget.image_left, cv2.COLOR_BGR2RGB )
+		self.pointcloud_viewer.LoadPointCloud( coordinates, colors )
+	#	Disparity.WritePly( 'mesh-{}.ply'.format( time.strftime( '%Y%m%d_%H%M%S' ) ), coordinates, colors )
 
 	#
 	# Update the calibration pattern size
