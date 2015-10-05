@@ -34,7 +34,10 @@ end_header
 ''' )
 	coordinates = coordinates.reshape(-1, 3)
 	colors = colors.reshape(-1, 3)
-	mask = coordinates[:, 2] > coordinates[:, 2].min()
+	mask = coordinates[:, 2] > coordinates[:, 2].min()+10
+	coordinates = coordinates[ mask ]
+	colors = colors[ mask ]
+	mask = coordinates[:, 2] < coordinates[:, 2].max()-10
 	coordinates = coordinates[ mask ]
 	colors = colors[ mask ]
 	points = np.hstack( [ coordinates, colors ] )
