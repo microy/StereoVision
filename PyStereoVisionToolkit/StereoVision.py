@@ -82,12 +82,16 @@ class StereoVisionWidget( QtGui.QWidget ) :
 		if self.calibration : self.button_calibration.setIcon( self.style().standardIcon( QtGui.QStyle.SP_DialogYesButton ) )
 		else : self.button_calibration.setIcon( self.style().standardIcon( QtGui.QStyle.SP_DialogNoButton ) )
 		self.button_calibration.clicked.connect( self.Calibration )
+		self.button_rectification = QtGui.QPushButton( 'Rectification', self )
+		self.button_rectification.setCheckable( True )
+		self.button_rectification.setShortcut( 'F4' )
+		self.button_rectification.clicked.connect( self.Rectification )
 		self.button_disparity = QtGui.QPushButton( 'Disparity', self )
 		self.button_disparity.setCheckable( True )
-		self.button_disparity.setShortcut( 'F4' )
+		self.button_disparity.setShortcut( 'F5' )
 		self.button_disparity.clicked.connect( self.Disparity )
 		self.button_reconstruction = QtGui.QPushButton( 'Reconstruction', self )
-		self.button_reconstruction.setShortcut( 'F5' )
+		self.button_reconstruction.setShortcut( 'F6' )
 		self.button_reconstruction.clicked.connect( self.Reconstruction )
 		self.spinbox_pattern_rows = QtGui.QSpinBox( self )
 		self.spinbox_pattern_rows.setValue( Calibration.pattern_size[0] )
@@ -108,6 +112,7 @@ class StereoVisionWidget( QtGui.QWidget ) :
 		self.layout_controls.addWidget( self.button_cross )
 		self.layout_controls.addWidget( self.button_chessboard )
 		self.layout_controls.addWidget( self.button_calibration )
+		self.layout_controls.addWidget( self.button_rectification )
 		self.layout_controls.addWidget( self.button_disparity )
 		self.layout_controls.addWidget( self.button_reconstruction )
 		self.layout_controls.addLayout( self.layout_pattern_size )
@@ -145,11 +150,22 @@ class StereoVisionWidget( QtGui.QWidget ) :
 		self.button_calibration.setIcon( self.style().standardIcon( QtGui.QStyle.SP_DialogYesButton ) )
 
 	#
+	# Image rectification
+	#
+	def Rectification( self ) :
+
+		self.camera_widget.rectification_enabled = not self.camera_widget.rectification_enabled
+		if self.camera_widget.rectification_enabled and self.button_disparity.isChecked() :
+			self.button_disparity.click()
+
+	#
 	# Disparity map
 	#
 	def Disparity( self ) :
 
 		self.camera_widget.disparity_enabled = not self.camera_widget.disparity_enabled
+		if self.camera_widget.disparity_enabled and self.button_rectification.isChecked() :
+			self.button_rectification.click()
 		if self.camera_widget.disparity_enabled : self.camera_widget.disparity.show()
 		else : self.camera_widget.disparity.hide()
 

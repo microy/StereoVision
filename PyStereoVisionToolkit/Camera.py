@@ -40,6 +40,7 @@ class StereoCameraWidget( QtGui.QLabel ) :
 		# Initialize the viewing parameters
 		self.chessboard_enabled = False
 		self.cross_enabled = False
+		self.rectification_enabled = False
 		self.disparity_enabled = False
 
 		# StereoSGBM
@@ -93,18 +94,28 @@ class StereoCameraWidget( QtGui.QLabel ) :
 			cv2.line( image_right_displayed, (320, 0), (320, 480), (0, 0, 255), 2 )
 			cv2.line( image_right_displayed, (0, 240), (640, 240), (0, 0, 255), 2 )
 
-		# Display the disparity image
-		if self.disparity_enabled and self.calibration :
+		# Display the rectifed images
+		if self.rectification_enabled and self.calibration :
 			
 			# Undistort the images according to the stereo camera calibration parameters
 			rectified_images = Calibration.StereoRectification( self.calibration, self.image_left, self.image_right, True )
+			
+			# Prepare image for display
+			stereo_image = np.concatenate( rectified_images, axis=1 )
+			stereo_image = cv2.cvtColor( stereo_image, cv2.COLOR_BGR2RGB )
+
+		# Display the disparity image
+		elif self.disparity_enabled and self.calibration :
+			
+			# Undistort the images according to the stereo camera calibration parameters
+			rectified_images = Calibration.StereoRectification( self.calibration, self.image_left, self.image_right )
 			rectified_images = cv2.pyrDown( rectified_images[0] ), cv2.pyrDown( rectified_images[1] )
 		
 			# Compute the disparity
 			self.disparity.ComputeDisparity( *rectified_images )
 			
 			# Display the dispariy image
-			stereo_image = self.disparity.disparity_image
+			stereo_image = cv2.pyrUp( self.disparity.disparity_image )
 		
 		# Or display the stereo images
 		else :
