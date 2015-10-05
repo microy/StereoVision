@@ -117,6 +117,7 @@ class PointCloudViewer( qtgl.QGLWidget ) :
 
 		# Cast input data (required for OpenGL)
 		vertices = np.array( coordinates, dtype=np.float32 )
+		vertices[:,1] = -vertices[:,1]
 		colors = np.array( colors, dtype=np.float32 ) / 255
 		
 		# Normalize the model
