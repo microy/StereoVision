@@ -74,21 +74,21 @@ class StereoSGBM( QtGui.QWidget ) :
 		# Widget elements
 		self.spinbox_min_disparity = QtGui.QSpinBox( self )
 		self.spinbox_min_disparity.setMaximum( 240 )
-		self.spinbox_min_disparity.setSingleStep( 16 )
 		self.spinbox_min_disparity.setValue( self.min_disparity )
 		self.spinbox_max_disparity = QtGui.QSpinBox( self )
-		self.spinbox_max_disparity.setMaximum( 240 )
+		self.spinbox_max_disparity.setMaximum( 320 )
 		self.spinbox_max_disparity.setSingleStep( 16 )
 		self.spinbox_max_disparity.setValue( self.max_disparity )
 		self.spinbox_sad_window_size = QtGui.QSpinBox( self )
-		self.spinbox_sad_window_size.setMinimum( 3 )
-		self.spinbox_sad_window_size.setMaximum( 11 )
+		self.spinbox_sad_window_size.setMinimum( 1 )
+		self.spinbox_sad_window_size.setMaximum( 19 )
 		self.spinbox_sad_window_size.setSingleStep( 2 )
 		self.spinbox_sad_window_size.setValue( self.sad_window_size )
 		self.spinbox_uniqueness_ratio = QtGui.QSpinBox( self )
+		self.spinbox_uniqueness_ratio.setMaximum( 100 )
 		self.spinbox_uniqueness_ratio.setValue( self.uniqueness_ratio )
 		self.spinbox_speckle_window_size = QtGui.QSpinBox( self )
-		self.spinbox_speckle_window_size.setMaximum( 240 )
+		self.spinbox_speckle_window_size.setMaximum( 320 )
 		self.spinbox_speckle_window_size.setValue( self.speckle_window_size )
 		self.spinbox_speckle_range = QtGui.QSpinBox( self )
 		self.spinbox_speckle_range.setValue( self.speckle_range )
@@ -100,6 +100,8 @@ class StereoSGBM( QtGui.QWidget ) :
 		self.spinbox_p2.setValue( self.p2 )
 		self.spinbox_max_difference = QtGui.QSpinBox( self )
 		self.spinbox_max_difference.setValue( self.max_difference )
+		self.checkbox_full_dp = QtGui.QCheckBox( self )
+		if self.full_dp : self.checkbox_full_dp.setCheckState( True )
 		self.button_apply = QtGui.QPushButton( 'Apply', self )
 		self.button_apply.clicked.connect( self.UpdateDisparity )
 
@@ -114,6 +116,7 @@ class StereoSGBM( QtGui.QWidget ) :
 		self.layout_controls.addRow( 'P1', self.spinbox_p1 )
 		self.layout_controls.addRow( 'P2', self.spinbox_p2 )
 		self.layout_controls.addRow( 'Maximum difference', self.spinbox_max_difference )
+		self.layout_controls.addRow( 'Full scale DP', self.checkbox_full_dp )
 		self.layout_global = QtGui.QVBoxLayout( self )
 		self.layout_global.addLayout( self.layout_controls )
 		self.layout_global.addWidget( self.button_apply )
@@ -129,7 +132,7 @@ class StereoSGBM( QtGui.QWidget ) :
 	# Compute the stereo correspondence
 	#
 	def UpdateDisparity( self ) :
-
+		
 		# Get the parameters
 		self.min_disparity = self.spinbox_min_disparity.value()
 		self.max_disparity = self.spinbox_max_disparity.value()
@@ -140,6 +143,7 @@ class StereoSGBM( QtGui.QWidget ) :
 		self.max_difference = self.spinbox_max_difference.value()
 		self.p1 = self.spinbox_p1.value()
 		self.p2 = self.spinbox_p2.value()
+		self.full_dp = self.checkbox_full_dp.checkState()
 
 		# Create the disparity object
 		self.sgbm = cv2.StereoSGBM( minDisparity = self.min_disparity,
