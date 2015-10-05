@@ -130,10 +130,10 @@ def CameraCalibration( image_files ) :
 #	flags |= cv2.CALIB_FIX_PRINCIPAL_POINT
 #	flags |= cv2.CALIB_FIX_ASPECT_RATIO
 #	flags |= cv2.CALIB_ZERO_TANGENT_DIST
-#	flags |= cv2.CALIB_RATIONAL_MODEL
+	flags |= cv2.CALIB_RATIONAL_MODEL
 #	flags |= cv2.CALIB_FIX_K3
-#	flags |= cv2.CALIB_FIX_K4
-#	flags |= cv2.CALIB_FIX_K5
+	flags |= cv2.CALIB_FIX_K4
+	flags |= cv2.CALIB_FIX_K5
 
 	# Camera calibration
 	calibration = cv2.calibrateCamera( obj_points, img_points, img_size, flags=flags )
@@ -190,12 +190,12 @@ def StereoCameraCalibration() :
 #	flags |= cv2.CALIB_FIX_PRINCIPAL_POINT
 #	flags |= cv2.CALIB_FIX_FOCAL_LENGTH
 	flags |= cv2.CALIB_FIX_ASPECT_RATIO
-	flags |= cv2.CALIB_SAME_FOCAL_LENGTH
-	flags |= cv2.CALIB_ZERO_TANGENT_DIST
-#	flags |= cv2.CALIB_RATIONAL_MODEL
-#	flags |= cv2.CALIB_FIX_K3
-#	flags |= cv2.CALIB_FIX_K4
-#	flags |= cv2.CALIB_FIX_K5
+#	flags |= cv2.CALIB_SAME_FOCAL_LENGTH
+#	flags |= cv2.CALIB_ZERO_TANGENT_DIST
+	flags |= cv2.CALIB_RATIONAL_MODEL
+	flags |= cv2.CALIB_FIX_K3
+	flags |= cv2.CALIB_FIX_K4
+	flags |= cv2.CALIB_FIX_K5
 
 	# Stereo calibration
 	calibration = cv2.stereoCalibrate( cam1['obj_points'], cam1['img_points'], cam2['img_points'],
