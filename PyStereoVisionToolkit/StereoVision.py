@@ -22,6 +22,7 @@ from PyStereoVisionToolkit import Calibration
 from PyStereoVisionToolkit import Camera
 from PyStereoVisionToolkit import Disparity
 from PyStereoVisionToolkit import PointCloudViewer
+import PyMeshToolkit
 
 
 #
@@ -68,7 +69,8 @@ class StereoVisionWidget( QtGui.QWidget ) :
 		self.setWindowTitle( 'StereoVision' )
 		
 		# Point cloud viewer
-		self.pointcloud_viewer = PointCloudViewer.PointCloudViewer()
+	#	self.pointcloud_viewer = PointCloudViewer.PointCloudViewer()
+		self.pointcloud_viewer = PyMeshToolkit.Viewer.QtOpenGLWidget()
 		
 		# Stereo camera widget
 		self.camera_widget = Camera.StereoCameraWidget( self, self.calibration )
@@ -129,6 +131,18 @@ class StereoVisionWidget( QtGui.QWidget ) :
 		
 		# Set the Escape key to close the application
 		QtGui.QShortcut( QtGui.QKeySequence( QtCore.Qt.Key_Escape ), self ).activated.connect( self.close )
+		
+		# Initialize the face array
+		nb_lines, nb_cols = 240, 320
+		vindex = np.array( range( nb_lines * nb_cols ) ).reshape( nb_lines, nb_cols )
+		self.faces = np.empty( ( 2 * (nb_lines - 1) * (nb_cols - 1), 3 ), dtype=np.int )
+		self.faces[ ::2, 0 ] = vindex[:nb_lines - 1, :nb_cols - 1].flatten()
+		self.faces[ ::2, 1 ] = vindex[1:nb_lines, 1:nb_cols].flatten()
+		self.faces[ ::2, 2 ] = vindex[:nb_lines - 1, 1:nb_cols].flatten()
+		self.faces[ 1::2, 0 ] = vindex[:nb_lines - 1, :nb_cols - 1].flatten()
+		self.faces[ 1::2, 1 ] = vindex[1:nb_lines, :nb_cols - 1].flatten()
+		self.faces[ 1::2, 2 ] = vindex[1:nb_lines, 1:nb_cols].flatten()
+
 
 	#
 	# Activate the cross on the images
@@ -184,9 +198,16 @@ class StereoVisionWidget( QtGui.QWidget ) :
 		X, Y = np.meshgrid( np.arange( 320 ), np.arange( 240 ) )
 		coordinates = np.array( (X.flatten(), Y.flatten(),
 			self.camera_widget.disparity.disparity.flatten() * 0.5) ).T
+		coordinates = coordinates.reshape(-1, 3)
+		coordinates[:,1] = -coordinates[:,1]
 		colors = cv2.cvtColor( cv2.pyrDown( self.camera_widget.image_left ), cv2.COLOR_BGR2RGB )
-		self.pointcloud_viewer.LoadPointCloud( coordinates, colors )
+		colors = colors.reshape(-1, 3)
+		colors = np.array( colors, dtype=np.float32 ) / 255
+	#	self.pointcloud_viewer.LoadPointCloud( coordinates, colors )
 	#	Disparity.WritePly( 'mesh-{}.ply'.format( time.strftime( '%Y%m%d_%H%M%S' ) ), coordinates, colors )
+		mesh = PyMeshToolkit.Core.Mesh( 'Stereo', coordinates, self.faces, colors )
+		PyMeshToolkit.File.Ply.WritePly( mesh, 'mesh-{}.ply'.format( time.strftime( '%Y%m%d_%H%M%S' ) ) )
+		self.pointcloud_viewer.meshviewer.LoadMesh( mesh )
 
 	#
 	# Update the calibration pattern size
