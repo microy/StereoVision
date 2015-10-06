@@ -14,12 +14,10 @@ import platform
 import sys
 import numpy as np
 import OpenGL.GL as gl
-import PyQt4 as qt
-from PyQt4.QtCore import QT_VERSION_STR
-from PyQt4.Qt import PYQT_VERSION_STR
-import PyQt4.QtCore as qtcore
-import PyQt4.QtGui as qtgui
-import PyQt4.QtOpenGL as qtgl
+import PySide as qt
+import PySide.QtCore as qtcore
+import PySide.QtGui as qtgui
+import PySide.QtOpenGL as qtgl
 from PyStereoVisionToolkit import Trackball
 from PyStereoVisionToolkit import Shader
 
@@ -300,8 +298,8 @@ class PointCloudViewer( qtgl.QGLWidget ) :
 			# Print system informations
 			print( 'System Informations...' )
 			print( '  Python :    {}'.format( platform.python_version() ) )
-			print( '  PyQt :      {}'.format( PYQT_VERSION_STR ) )
-			print( '  Qt :        {}'.format( QT_VERSION_STR ) )
+			print( '  PySide :    {}'.format( qt.__version__ ) )
+			print( '  Qt :        {}'.format( qtcore.__version__ ) )
 
 			# Display OpenGL driver informations
 			print( 'OpenGL Informations...' )

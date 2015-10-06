@@ -16,8 +16,8 @@ import sys
 import time
 import cv2
 import numpy as np
-from PyQt4 import QtCore
-from PyQt4 import QtGui
+from PySide import QtCore
+from PySide import QtGui
 from PyStereoVisionToolkit import Calibration
 from PyStereoVisionToolkit import Camera
 from PyStereoVisionToolkit import Disparity
