@@ -14,10 +14,9 @@ import platform
 import sys
 import numpy as np
 import OpenGL.GL as gl
-import PySide as qt
-import PySide.QtCore as qtcore
-import PySide.QtGui as qtgui
-import PySide.QtOpenGL as qtgl
+import PySide as Qt
+from PySide import QtCore
+from PySide import QtOpenGL
 from PyStereoVisionToolkit import Trackball
 from PyStereoVisionToolkit import Shader
 
@@ -26,7 +25,7 @@ from PyStereoVisionToolkit import Shader
 # Customize the Qt OpenGL widget
 # to view a point cloud
 #
-class PointCloudViewer( qtgl.QGLWidget ) :
+class PointCloudViewer( QtOpenGL.QGLWidget ) :
 
 	#
 	# Initialisation
@@ -34,7 +33,7 @@ class PointCloudViewer( qtgl.QGLWidget ) :
 	def __init__( self, parent = None ) :
 		
 		# Initialise QGLWidget with multisampling enabled and OpenGL 3 core only
-		super( PointCloudViewer, self ).__init__( qtgl.QGLFormat( qtgl.QGL.SampleBuffers | qtgl.QGL.NoDeprecatedFunctions ), parent )
+		super( PointCloudViewer, self ).__init__( QtOpenGL.QGLFormat( QtOpenGL.QGL.SampleBuffers | QtOpenGL.QGL.NoDeprecatedFunctions ), parent )
 
 		# Track mouse events
 		self.setMouseTracking( True )
@@ -229,10 +228,10 @@ class PointCloudViewer( qtgl.QGLWidget ) :
 	def mousePressEvent( self, mouseEvent ) :
 
 		# Left button
-		if int( mouseEvent.buttons() ) & qtcore.Qt.LeftButton : button = 1
+		if int( mouseEvent.buttons() ) & QtCore.Qt.LeftButton : button = 1
 
 		# Right button
-		elif int( mouseEvent.buttons() ) & qtcore.Qt.RightButton : button = 2
+		elif int( mouseEvent.buttons() ) & QtCore.Qt.RightButton : button = 2
 
 		# Unmanaged
 		else : return
@@ -279,13 +278,13 @@ class PointCloudViewer( qtgl.QGLWidget ) :
 	def keyPressEvent( self, event ) :
 
 		# Escape
-		if event.key() == qtcore.Qt.Key_Escape :
+		if event.key() == QtCore.Qt.Key_Escape :
 			
 			# Exit
 			self.close()
 			
 		# A
-		elif event.key() == qtcore.Qt.Key_A :
+		elif event.key() == QtCore.Qt.Key_A :
 
 			# Enable / Disable antialiasing
 			self.antialiasing = not self.antialiasing
@@ -293,13 +292,13 @@ class PointCloudViewer( qtgl.QGLWidget ) :
 			else : gl.glDisable( gl.GL_MULTISAMPLE )
 
 		# I
-		elif event.key() == qtcore.Qt.Key_I :
+		elif event.key() == QtCore.Qt.Key_I :
 			
 			# Print system informations
 			print( 'System Informations...' )
 			print( '  Python :    {}'.format( platform.python_version() ) )
-			print( '  PySide :    {}'.format( qt.__version__ ) )
-			print( '  Qt :        {}'.format( qtcore.__version__ ) )
+			print( '  PySide :    {}'.format( Qt.__version__ ) )
+			print( '  Qt :        {}'.format( QtCore.__version__ ) )
 
 			# Display OpenGL driver informations
 			print( 'OpenGL Informations...' )
@@ -309,7 +308,7 @@ class PointCloudViewer( qtgl.QGLWidget ) :
 			print( '  Shader :    {}'.format( gl.glGetString( gl.GL_SHADING_LANGUAGE_VERSION ).decode( 'UTF-8' ) ) )
 
 		# R
-		elif event.key() == qtcore.Qt.Key_R :
+		elif event.key() == QtCore.Qt.Key_R :
 
 			# Reset model translation and rotation
 			self.trackball.Reset()
