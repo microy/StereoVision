@@ -68,6 +68,9 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 		# Enable multisampling (antialiasing)
 		gl.glEnable( gl.GL_MULTISAMPLE )
 
+		# Change point size
+		gl.glPointSize( 5.0 )
+		
 		# Initialise the projection transformation matrix
 		self.SetProjectionMatrix( self.width(), self.height() )
 
