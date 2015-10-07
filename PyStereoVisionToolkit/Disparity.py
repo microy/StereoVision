@@ -167,6 +167,11 @@ class StereoSGBM( QtGui.QWidget ) :
 
 		# Compute the disparity map
 		self.disparity = self.sgbm.compute( left_image, right_image ).astype( np.float32 ) / 16.0
+
+	#	self.disparity[0:50,:] = 0
+	#	self.disparity[210:240,:] = 0
+	#	self.disparity[:,0:70] = 0
+	#	self.disparity[:,250:320] = 0
 		
 		# Create the disparity image for display
 		self.disparity_image = self.disparity
