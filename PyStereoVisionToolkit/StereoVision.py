@@ -68,11 +68,6 @@ class StereoVisionWidget( QtGui.QWidget ) :
 		# Set the window title
 		self.setWindowTitle( 'StereoVision' )
 		
-		# Point cloud viewer
-		self.pointcloud_viewer = PointCloudViewer.PointCloudViewer()
-	#	self.pointcloud_viewer = PyMeshToolkit.Viewer.QtOpenGLWidget()
-		self.X, self.Y = np.meshgrid( np.arange( 320 ), np.arange( 240 ) )
-		
 		# Stereo camera widget
 		self.camera_widget = Camera.StereoCameraWidget( self, self.calibration )
 
@@ -94,12 +89,9 @@ class StereoVisionWidget( QtGui.QWidget ) :
 		self.button_rectification.setCheckable( True )
 		self.button_rectification.setShortcut( 'F4' )
 		self.button_rectification.clicked.connect( self.Rectification )
-		self.button_disparity = QtGui.QPushButton( 'Disparity', self )
-		self.button_disparity.setCheckable( True )
-		self.button_disparity.setShortcut( 'F5' )
-		self.button_disparity.clicked.connect( self.Disparity )
 		self.button_reconstruction = QtGui.QPushButton( 'Reconstruction', self )
-		self.button_reconstruction.setShortcut( 'F6' )
+		self.button_reconstruction.setCheckable( True )
+		self.button_reconstruction.setShortcut( 'F5' )
 		self.button_reconstruction.clicked.connect( self.Reconstruction )
 		self.spinbox_pattern_rows = QtGui.QSpinBox( self )
 		self.spinbox_pattern_rows.setValue( Calibration.pattern_size[0] )
@@ -107,9 +99,12 @@ class StereoVisionWidget( QtGui.QWidget ) :
 		self.spinbox_pattern_cols = QtGui.QSpinBox( self )
 		self.spinbox_pattern_cols.setValue( Calibration.pattern_size[1] )
 		self.spinbox_pattern_cols.valueChanged.connect( self.UpdatePatternSize )
-		self.button_save = QtGui.QPushButton( 'Save', self )
-		self.button_save.setShortcut( 'Space' )
-		self.button_save.clicked.connect( self.Save )
+		self.button_save_images = QtGui.QPushButton( 'Save Images', self )
+		self.button_save_images.setShortcut( 'Space' )
+		self.button_save_images.clicked.connect( self.SaveImages )
+		self.button_save_mesh = QtGui.QPushButton( 'Save Mesh', self )
+		self.button_save_mesh.setShortcut( 'Enter' )
+		self.button_save_mesh.clicked.connect( self.SaveMesh )
 
 		# Widget layout
 		self.layout_pattern_size = QtGui.QHBoxLayout()
@@ -121,10 +116,10 @@ class StereoVisionWidget( QtGui.QWidget ) :
 		self.layout_controls.addWidget( self.button_chessboard )
 		self.layout_controls.addWidget( self.button_calibration )
 		self.layout_controls.addWidget( self.button_rectification )
-		self.layout_controls.addWidget( self.button_disparity )
 		self.layout_controls.addWidget( self.button_reconstruction )
 		self.layout_controls.addLayout( self.layout_pattern_size )
-		self.layout_controls.addWidget( self.button_save )
+		self.layout_controls.addWidget( self.button_save_images )
+		self.layout_controls.addWidget( self.button_save_mesh )
 		self.layout_global = QtGui.QVBoxLayout( self )
 		self.layout_global.addWidget( self.camera_widget )
 		self.layout_global.addLayout( self.layout_controls )
@@ -175,45 +170,24 @@ class StereoVisionWidget( QtGui.QWidget ) :
 	def Rectification( self ) :
 
 		self.camera_widget.rectification_enabled = not self.camera_widget.rectification_enabled
-		if self.camera_widget.rectification_enabled and self.button_disparity.isChecked() :
-			self.button_disparity.click()
+		if self.camera_widget.rectification_enabled and self.button_reconstruction.isChecked() :
+			self.button_reconstruction.click()
 
 	#
 	# Disparity map
 	#
-	def Disparity( self ) :
+	def Reconstruction( self ) :
 
 		self.camera_widget.disparity_enabled = not self.camera_widget.disparity_enabled
 		if self.camera_widget.disparity_enabled and self.button_rectification.isChecked() :
 			self.button_rectification.click()
-		if self.camera_widget.disparity_enabled : self.camera_widget.disparity.show()
-		else : self.camera_widget.disparity.hide()
+		if self.camera_widget.disparity_enabled :
+			self.camera_widget.disparity.show()
+			self.camera_widget.pointcloud_viewer.show()
+		else :
+			self.camera_widget.disparity.hide()
+			self.camera_widget.pointcloud_viewer.hide()
 
-	#
-	# 3D reconstruction
-	#
-	def Reconstruction( self ) :
-
-		if self.pointcloud_viewer.isHidden() : self.pointcloud_viewer.show()
-		
-	#	coordinates = cv2.reprojectImageTo3D( self.camera_widget.disparity.disparity, self.calibration['Q'] )
-	
-		coordinates = np.array( (self.X.flatten(), self.Y.flatten(),
-			self.camera_widget.disparity.disparity.flatten() * 0.5) ).T
-		coordinates = coordinates.reshape(-1, 3)
-		coordinates[:,1] = -coordinates[:,1]
-		colors = cv2.cvtColor( cv2.pyrDown( self.camera_widget.image_left ), cv2.COLOR_BGR2RGB )
-		colors = colors.reshape(-1, 3)
-		colors = np.array( colors, dtype=np.float32 ) / 255
-		
-		self.pointcloud_viewer.LoadPointCloud( coordinates, colors )
-		
-	#	mesh = PyMeshToolkit.Core.Mesh( 'Stereo', coordinates, self.faces, colors )
-	#	PyMeshToolkit.File.Ply.WritePly( mesh, 'mesh-{}.ply'.format( time.strftime( '%Y%m%d_%H%M%S' ) ) )
-	#	self.pointcloud_viewer.meshviewer.LoadMesh( mesh )
-
-	#	Disparity.WritePly( 'mesh-{}.ply'.format( time.strftime( '%Y%m%d_%H%M%S' ) ), coordinates, colors )
-	
 	#
 	# Update the calibration pattern size
 	#
@@ -225,7 +199,7 @@ class StereoVisionWidget( QtGui.QWidget ) :
 	#
 	# Save the stereo images
 	#
-	def Save( self ) :
+	def SaveImages( self ) :
 		
 		# Save images to disk 
 		current_time = time.strftime( '%Y%m%d_%H%M%S' )
@@ -238,11 +212,18 @@ class StereoVisionWidget( QtGui.QWidget ) :
 			cv2.imwrite( 'right-{}.png'.format(current_time), self.camera_widget.image_right )
 
 	#
+	# Save the stereo images
+	#
+	def SaveMesh( self ) :
+		
+		mesh = PyMeshToolkit.Core.Mesh( 'Stereo', self.camera_widget.coordinates, self.faces, self.camera_widget.colors )
+		PyMeshToolkit.File.Ply.WritePly( mesh, 'mesh-{}.ply'.format( time.strftime( '%Y%m%d_%H%M%S' ) ) )
+		
+	#
 	# Close the camera widget
 	#
 	def closeEvent( self, event ) :
 		
 		# Stop image acquisition, and close the widgets
-		self.pointcloud_viewer.close()
 		self.camera_widget.close()
 		event.accept()

@@ -15,6 +15,7 @@ from PySide import QtCore
 from PySide import QtGui
 from PyStereoVisionToolkit import Calibration
 from PyStereoVisionToolkit import Disparity
+from PyStereoVisionToolkit import PointCloudViewer
 
 
 #
@@ -46,6 +47,10 @@ class StereoCameraWidget( QtGui.QLabel ) :
 		# StereoSGBM
 		self.disparity = Disparity.StereoSGBM()
 		
+		# Point cloud viewer
+		self.pointcloud_viewer = PointCloudViewer.PointCloudViewer()
+		self.X, self.Y = np.meshgrid( np.arange( 320 ), np.arange( 240 ) )
+
 		# Initialize the stereo cameras
 		self.camera_left = cv2.VideoCapture( 0 )
 		self.camera_right = cv2.VideoCapture( 1 )
@@ -117,7 +122,13 @@ class StereoCameraWidget( QtGui.QLabel ) :
 			# Display the dispariy image
 			stereo_image = cv2.pyrUp( self.disparity.disparity_image )
 			
-			self.parent().Reconstruction()
+			# Point cloud
+			self.coordinates = np.array( (self.X.flatten(), self.Y.flatten(), self.disparity.disparity.flatten() * 0.5) ).T
+			self.coordinates = self.coordinates.reshape(-1, 3)
+			self.coordinates[:,1] = -self.coordinates[:,1]
+			self.colors = np.array( cv2.cvtColor( rectified_images[0], cv2.COLOR_BGR2RGB ), dtype=np.float32 ) / 255
+			self.colors = self.colors.reshape(-1, 3)
+			self.pointcloud_viewer.LoadPointCloud( self.coordinates, self.colors )
 		
 		# Or display the stereo images
 		else :
@@ -144,5 +155,6 @@ class StereoCameraWidget( QtGui.QLabel ) :
 		self.camera_right.release()
 		
 		# Close the widgets
+		self.pointcloud_viewer.close()
 		self.disparity.close()
 		event.accept()
