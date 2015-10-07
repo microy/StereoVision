@@ -69,8 +69,9 @@ class StereoVisionWidget( QtGui.QWidget ) :
 		self.setWindowTitle( 'StereoVision' )
 		
 		# Point cloud viewer
-	#	self.pointcloud_viewer = PointCloudViewer.PointCloudViewer()
-		self.pointcloud_viewer = PyMeshToolkit.Viewer.QtOpenGLWidget()
+		self.pointcloud_viewer = PointCloudViewer.PointCloudViewer()
+	#	self.pointcloud_viewer = PyMeshToolkit.Viewer.QtOpenGLWidget()
+		self.X, self.Y = np.meshgrid( np.arange( 320 ), np.arange( 240 ) )
 		
 		# Stereo camera widget
 		self.camera_widget = Camera.StereoCameraWidget( self, self.calibration )
@@ -193,22 +194,26 @@ class StereoVisionWidget( QtGui.QWidget ) :
 	#
 	def Reconstruction( self ) :
 
-		self.pointcloud_viewer.show()
+		if self.pointcloud_viewer.isHidden() : self.pointcloud_viewer.show()
+		
 	#	coordinates = cv2.reprojectImageTo3D( self.camera_widget.disparity.disparity, self.calibration['Q'] )
-		X, Y = np.meshgrid( np.arange( 320 ), np.arange( 240 ) )
-		coordinates = np.array( (X.flatten(), Y.flatten(),
+	
+		coordinates = np.array( (self.X.flatten(), self.Y.flatten(),
 			self.camera_widget.disparity.disparity.flatten() * 0.5) ).T
 		coordinates = coordinates.reshape(-1, 3)
 		coordinates[:,1] = -coordinates[:,1]
 		colors = cv2.cvtColor( cv2.pyrDown( self.camera_widget.image_left ), cv2.COLOR_BGR2RGB )
 		colors = colors.reshape(-1, 3)
 		colors = np.array( colors, dtype=np.float32 ) / 255
-	#	self.pointcloud_viewer.LoadPointCloud( coordinates, colors )
-	#	Disparity.WritePly( 'mesh-{}.ply'.format( time.strftime( '%Y%m%d_%H%M%S' ) ), coordinates, colors )
-		mesh = PyMeshToolkit.Core.Mesh( 'Stereo', coordinates, self.faces, colors )
-		PyMeshToolkit.File.Ply.WritePly( mesh, 'mesh-{}.ply'.format( time.strftime( '%Y%m%d_%H%M%S' ) ) )
-		self.pointcloud_viewer.meshviewer.LoadMesh( mesh )
+		
+		self.pointcloud_viewer.LoadPointCloud( coordinates, colors )
+		
+	#	mesh = PyMeshToolkit.Core.Mesh( 'Stereo', coordinates, self.faces, colors )
+	#	PyMeshToolkit.File.Ply.WritePly( mesh, 'mesh-{}.ply'.format( time.strftime( '%Y%m%d_%H%M%S' ) ) )
+	#	self.pointcloud_viewer.meshviewer.LoadMesh( mesh )
 
+	#	Disparity.WritePly( 'mesh-{}.ply'.format( time.strftime( '%Y%m%d_%H%M%S' ) ), coordinates, colors )
+	
 	#
 	# Update the calibration pattern size
 	#
@@ -238,5 +243,6 @@ class StereoVisionWidget( QtGui.QWidget ) :
 	def closeEvent( self, event ) :
 		
 		# Stop image acquisition, and close the widgets
+		self.pointcloud_viewer.close()
 		self.camera_widget.close()
 		event.accept()

@@ -116,6 +116,8 @@ class StereoCameraWidget( QtGui.QLabel ) :
 			
 			# Display the dispariy image
 			stereo_image = cv2.pyrUp( self.disparity.disparity_image )
+			
+			self.parent().Reconstruction()
 		
 		# Or display the stereo images
 		else :

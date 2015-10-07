@@ -89,11 +89,19 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 		self.vertex_array_id = gl.glGenVertexArrays( 1 )
 		gl.glBindVertexArray( self.vertex_array_id )
 
-		# Index buffer object
-		indices = np.array( np.arange( 76800 ), dtype=np.uint32 )
-		self.index_buffer_id = gl.glGenBuffers( 1 )
-		gl.glBindBuffer( gl.GL_ELEMENT_ARRAY_BUFFER, self.index_buffer_id )
-		gl.glBufferData( gl.GL_ELEMENT_ARRAY_BUFFER, indices.nbytes, indices, gl.GL_STATIC_DRAW )
+		# Vertex buffer object
+		self.vertex_buffer_id = gl.glGenBuffers( 1 )
+	#	gl.glBindBuffer( gl.GL_ARRAY_BUFFER, self.vertex_buffer_id )
+	#	gl.glBufferData( gl.GL_ARRAY_BUFFER, 921600, None, gl.GL_STATIC_DRAW )
+	#	gl.glEnableVertexAttribArray( 0 )
+	#	gl.glVertexAttribPointer( 0, 3, gl.GL_FLOAT, gl.GL_FALSE, 0, None )
+
+		# Color buffer object
+		self.color_buffer_id = gl.glGenBuffers( 1 )
+	#	gl.glBindBuffer( gl.GL_ARRAY_BUFFER, self.color_buffer_id )
+	#	gl.glBufferData( gl.GL_ARRAY_BUFFER, 921600, None, gl.GL_STATIC_DRAW )
+	#	gl.glEnableVertexAttribArray( 1 )
+	#	gl.glVertexAttribPointer( 1, 3, gl.GL_FLOAT, gl.GL_FALSE, 0, None )
 
 	#
 	# Load the mesh for display
@@ -114,8 +122,8 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 
 		# Cast input data (required for OpenGL)
 		vertices = np.array( coordinates, dtype=np.float32 )
-		vertices[:,1] = -vertices[:,1]
-		colors = np.array( colors, dtype=np.float32 ) / 255
+	#	vertices[:,1] = -vertices[:,1]
+	#	colors = np.array( colors, dtype=np.float32 ) / 255
 		
 		# Normalize the model
 		center =  0.5 * ( np.amin( vertices, axis = 0 ) + np.amax( vertices, axis = 0 ) )
@@ -125,26 +133,31 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 	#	print center, radius
 		vertices -= center
 		vertices *= 10.0 / radius
+		gl.glBindVertexArray( self.vertex_array_id )
 
 		# Vertex buffer object
-		self.vertex_buffer_id = gl.glGenBuffers( 1 )
+	#	self.vertex_buffer_id = gl.glGenBuffers( 1 )
 		gl.glBindBuffer( gl.GL_ARRAY_BUFFER, self.vertex_buffer_id )
 		gl.glBufferData( gl.GL_ARRAY_BUFFER, vertices.nbytes, vertices, gl.GL_STATIC_DRAW )
 		gl.glEnableVertexAttribArray( 0 )
 		gl.glVertexAttribPointer( 0, 3, gl.GL_FLOAT, gl.GL_FALSE, 0, None )
+	#	gl.glBindBuffer( gl.GL_ARRAY_BUFFER, self.vertex_buffer_id )
+	#	gl.glBufferSubData( gl.GL_ARRAY_BUFFER, 0, vertices.nbytes, vertices )
 
 		# Color buffer object
-		self.color_buffer_id = gl.glGenBuffers( 1 )
+	#	self.color_buffer_id = gl.glGenBuffers( 1 )
 		gl.glBindBuffer( gl.GL_ARRAY_BUFFER, self.color_buffer_id )
 		gl.glBufferData( gl.GL_ARRAY_BUFFER, colors.nbytes, colors, gl.GL_STATIC_DRAW )
 		gl.glEnableVertexAttribArray( 1 )
 		gl.glVertexAttribPointer( 1, 3, gl.GL_FLOAT, gl.GL_FALSE, 0, None )
+	#	gl.glBindBuffer( gl.GL_ARRAY_BUFFER, self.color_buffer_id )
+	#	gl.glBufferSubData( gl.GL_ARRAY_BUFFER, 0, colors.nbytes, colors )
 
 		# Setup model element number
 		self.point_cloud_loaded = True
 
 		# Reset the trackball
-		self.trackball.Reset()
+	#	self.trackball.Reset()
 
 		# Refresh display
 		self.update()
@@ -211,7 +224,6 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 			1, gl.GL_FALSE, np.dot( modelview_matrix, self.projection_matrix ) )
 
 		# Draw the mesh
-	#	gl.glDrawElements( gl.GL_POINTS, 76800, gl.GL_UNSIGNED_INT, None )
 		gl.glDrawArrays( gl.GL_POINTS, 0, 153600 )
 
 	#
