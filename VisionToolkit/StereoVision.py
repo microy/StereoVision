@@ -22,7 +22,6 @@ from VisionToolkit import Calibration
 from VisionToolkit import StereoCamera
 from VisionToolkit import Disparity
 from VisionToolkit import PointCloudViewer
-import PyMeshToolkit
 
 
 #
@@ -216,8 +215,10 @@ class StereoVisionWidget( QtGui.QWidget ) :
 	#
 	def SaveMesh( self ) :
 		
-		mesh = PyMeshToolkit.Core.Mesh( 'Stereo', self.camera_widget.coordinates, self.faces, self.camera_widget.colors )
-		PyMeshToolkit.File.Ply.WritePly( mesh, 'mesh-{}.ply'.format( time.strftime( '%Y%m%d_%H%M%S' ) ) )
+	#	import MeshToolkit
+	#	mesh = MeshToolkit.Core.Mesh( 'Stereo', self.camera_widget.coordinates, self.faces, self.camera_widget.colors )
+	#	MeshToolkit.File.Ply.WritePly( mesh, 'mesh-{}.ply'.format( time.strftime( '%Y%m%d_%H%M%S' ) ) )
+		pass
 		
 	#
 	# Close the camera widget
