@@ -19,7 +19,7 @@ import numpy as np
 from PySide import QtCore
 from PySide import QtGui
 from VisionToolkit import Calibration
-from VisionToolkit import Camera
+from VisionToolkit import StereoCamera
 from VisionToolkit import Disparity
 from VisionToolkit import PointCloudViewer
 import PyMeshToolkit
@@ -69,7 +69,7 @@ class StereoVisionWidget( QtGui.QWidget ) :
 		self.setWindowTitle( 'StereoVision' )
 		
 		# Stereo camera widget
-		self.camera_widget = Camera.StereoCameraWidget( self, self.calibration )
+		self.camera_widget = StereoCamera.StereoCameraWidget( self, self.calibration )
 
 		# Widget elements
 		self.button_cross = QtGui.QPushButton( 'Cross', self )
