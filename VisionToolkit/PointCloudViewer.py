@@ -17,8 +17,8 @@ import OpenGL.GL as gl
 import PySide as Qt
 from PySide import QtCore
 from PySide import QtOpenGL
-from PyStereoVisionToolkit import Trackball
-from PyStereoVisionToolkit import Shader
+from VisionToolkit import Trackball
+from VisionToolkit import Shader
 
 
 #

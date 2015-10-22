@@ -1,9 +1,9 @@
-# PyStereoVisionToolkit
+# VisionToolkit
 
-Implement a stereovision acquisition and processing library in Python for research purpose.
+Implement a computer vision library in Python for research purpose.
 
-- Capture live images from two cameras
-- Calibrate the stereo cameras
+- Capture live images from one or two cameras
+- Calibrate the mono or stereo cameras
 - Reconstruct the 3D scene
 
 Requirements :

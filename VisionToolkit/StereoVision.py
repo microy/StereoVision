@@ -18,10 +18,10 @@ import cv2
 import numpy as np
 from PySide import QtCore
 from PySide import QtGui
-from PyStereoVisionToolkit import Calibration
-from PyStereoVisionToolkit import Camera
-from PyStereoVisionToolkit import Disparity
-from PyStereoVisionToolkit import PointCloudViewer
+from VisionToolkit import Calibration
+from VisionToolkit import Camera
+from VisionToolkit import Disparity
+from VisionToolkit import PointCloudViewer
 import PyMeshToolkit
 
 

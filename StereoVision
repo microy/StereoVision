@@ -1,8 +1,8 @@
 #! /usr/bin/env python
 
 #
-# PyStereoVisionToolkit start-up script
+# VisionToolkit start-up script
 #
-from PyStereoVisionToolkit import StereoVision
+from VisionToolkit import StereoVision
 if __name__ == '__main__' :	StereoVision.StereoVision()
 	

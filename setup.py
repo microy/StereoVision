@@ -2,7 +2,7 @@
 # -*- coding:utf-8 -*- 
 
 #
-# Setup for the PyStereoVisionToolkit package
+# Setup for the VisionToolkit package
 #
 
 # Setup module
@@ -11,14 +11,14 @@ from setuptools import setup
 # Setup configuration
 setup(
 
-    name = "PyStereoVisionToolkit",
+    name = "VisionToolkit",
     version = "0.4",
-    packages = ['PyStereoVisionToolkit'],
+    packages = ['VisionToolkit'],
     scripts = ['StereoVision'],
     author = "Michaël Roy",
     author_email = "microygh@gmail.com",
-    description = "Python StereoVision Toolkit",
+    description = "Python Computer Vision Toolkit",
     license = "MIT",
-    url = "https://github.com/microy/PyStereoVisionToolkit"
+    url = "https://github.com/microy/VisionToolkit"
     
 )
