@@ -18,9 +18,9 @@ import Vimba
 
 
 #
-# Qt Widget to display the images from a camera
+# Qt Widget to display the images from an Allied Vision camera (through Vimba)
 #
-class CameraWidget( QtGui.QLabel ) :
+class VmbCameraWidget( QtGui.QLabel ) :
 
 	#
 	# Signal sent by the image callback function called by Vimba
@@ -30,13 +30,13 @@ class CameraWidget( QtGui.QLabel ) :
 	#
 	# Initialization
 	#
-	def __init__( self, parent = None ) :
+	def __init__( self, camera_id, parent = None ) :
 
 		# Initialize QLabel
-		super( CameraWidget, self ).__init__( parent )
+		super( VmbCameraWidget, self ).__init__( parent )
 
 		# Change the window title
-		self.setWindowTitle( 'Camera' )
+		self.setWindowTitle( 'Allied Vision Camera' )
 		
 		# Fix the widget size
 		self.setFixedSize( 2452*0.3, 2056*0.3 )
@@ -55,7 +55,7 @@ class CameraWidget( QtGui.QLabel ) :
 		Vimba.VmbStartup()
 
 		# Initialize the camera
-		self.camera = Vimba.VmbCamera( '50-0503326223' )
+		self.camera = Vimba.VmbCamera( camera_id )
 		
 		# Connect the camera
 		self.camera.Open()
@@ -123,7 +123,7 @@ class CameraWidget( QtGui.QLabel ) :
 if __name__ == '__main__' :
 
 	application = QtGui.QApplication( sys.argv )
-	widget = CameraWidget()
+	widget = VmbCameraWidget( '50-0503326223' )
 	widget.show()
 	sys.exit( application.exec_() )
 
