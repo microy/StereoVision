@@ -18,11 +18,7 @@ import cv2
 import numpy as np
 from PySide import QtCore
 from PySide import QtGui
-from VisionToolkit import Calibration
-from VisionToolkit import Camera
-from VisionToolkit import Disparity
-from VisionToolkit import PointCloudViewer
-import PyMeshToolkit
+import VisionToolkit as vtk
 
 
 #
@@ -61,15 +57,15 @@ class StereoVisionWidget( QtGui.QWidget ) :
 		
 		# Load the calibration parameter file, if it exists
 		self.calibration = None
-		if os.path.isfile( '{}/calibration.pkl'.format(Calibration.calibration_directory) ) :
-			with open( '{}/calibration.pkl'.format(Calibration.calibration_directory) , 'rb') as calibration_file :
+		if os.path.isfile( '{}/calibration.pkl'.format(vtk.calibration_directory) ) :
+			with open( '{}/calibration.pkl'.format(vtk.calibration_directory) , 'rb') as calibration_file :
 				self.calibration = pickle.load( calibration_file )
 		
 		# Set the window title
 		self.setWindowTitle( 'StereoVision' )
 		
 		# Stereo camera widget
-		self.camera_widget = Camera.StereoCameraWidget( self, self.calibration )
+		self.camera_widget = vtk.StereoCameraWidget( self, self.calibration )
 
 		# Widget elements
 		self.button_cross = QtGui.QPushButton( 'Cross', self )
@@ -94,10 +90,10 @@ class StereoVisionWidget( QtGui.QWidget ) :
 		self.button_reconstruction.setShortcut( 'F5' )
 		self.button_reconstruction.clicked.connect( self.Reconstruction )
 		self.spinbox_pattern_rows = QtGui.QSpinBox( self )
-		self.spinbox_pattern_rows.setValue( Calibration.pattern_size[0] )
+		self.spinbox_pattern_rows.setValue( vtk.pattern_size[0] )
 		self.spinbox_pattern_rows.valueChanged.connect( self.UpdatePatternSize )
 		self.spinbox_pattern_cols = QtGui.QSpinBox( self )
-		self.spinbox_pattern_cols.setValue( Calibration.pattern_size[1] )
+		self.spinbox_pattern_cols.setValue( vtk.pattern_size[1] )
 		self.spinbox_pattern_cols.valueChanged.connect( self.UpdatePatternSize )
 		self.button_save_images = QtGui.QPushButton( 'Save Images', self )
 		self.button_save_images.setShortcut( 'Space' )
@@ -160,7 +156,7 @@ class StereoVisionWidget( QtGui.QWidget ) :
 	def Calibration( self ) :
 
 		# Calibrate the stereo cameras
-		self.calibration = Calibration.StereoCameraCalibration()
+		self.calibration = vtk.StereoCameraCalibration()
 		self.camera_widget.calibration = self.calibration
 		self.button_calibration.setIcon( self.style().standardIcon( QtGui.QStyle.SP_DialogYesButton ) )
 
@@ -194,7 +190,7 @@ class StereoVisionWidget( QtGui.QWidget ) :
 	def UpdatePatternSize( self, _ ) :
 		
 		# Get the calibration pattern dimensions
-		Calibration.pattern_size = ( self.spinbox_pattern_rows.value(), self.spinbox_pattern_cols.value() )
+		vtk.pattern_size = ( self.spinbox_pattern_rows.value(), self.spinbox_pattern_cols.value() )
 
 	#
 	# Save the stereo images
@@ -205,8 +201,8 @@ class StereoVisionWidget( QtGui.QWidget ) :
 		current_time = time.strftime( '%Y%m%d_%H%M%S' )
 		print( 'Save images {} to disk...'.format(current_time) )
 		if self.camera_widget.chessboard_enabled :
-			cv2.imwrite( '{}/left-{}.png'.format(Calibration.calibration_directory, current_time), self.camera_widget.image_left )
-			cv2.imwrite( '{}/right-{}.png'.format(Calibration.calibration_directory, current_time), self.camera_widget.image_right )
+			cv2.imwrite( '{}/left-{}.png'.format(vtk.calibration_directory, current_time), self.camera_widget.image_left )
+			cv2.imwrite( '{}/right-{}.png'.format(vtk.calibration_directory, current_time), self.camera_widget.image_right )
 		else :
 			cv2.imwrite( 'left-{}.png'.format(current_time), self.camera_widget.image_left )
 			cv2.imwrite( 'right-{}.png'.format(current_time), self.camera_widget.image_right )
@@ -216,8 +212,9 @@ class StereoVisionWidget( QtGui.QWidget ) :
 	#
 	def SaveMesh( self ) :
 		
-		mesh = PyMeshToolkit.Core.Mesh( 'Stereo', self.camera_widget.coordinates, self.faces, self.camera_widget.colors )
-		PyMeshToolkit.File.Ply.WritePly( mesh, 'mesh-{}.ply'.format( time.strftime( '%Y%m%d_%H%M%S' ) ) )
+	#	mesh = PyMeshToolkit.Core.Mesh( 'Stereo', self.camera_widget.coordinates, self.faces, self.camera_widget.colors )
+	#	PyMeshToolkit.File.Ply.WritePly( mesh, 'mesh-{}.ply'.format( time.strftime( '%Y%m%d_%H%M%S' ) ) )
+		pass
 		
 	#
 	# Close the camera widget

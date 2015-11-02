@@ -1,4 +1,4 @@
-# -*- coding:utf-8 -*- 
+# -*- coding:utf-8 -*-
 
 
 #
@@ -17,8 +17,7 @@ import OpenGL.GL as gl
 import PySide as Qt
 from PySide import QtCore
 from PySide import QtOpenGL
-from VisionToolkit import Trackball
-from VisionToolkit import Shader
+import VisionToolkit as vtk
 
 
 #
@@ -31,18 +30,18 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 	# Initialisation
 	#
 	def __init__( self, parent = None ) :
-		
+
 		# Initialise QGLWidget with multisampling enabled and OpenGL 3 core only
 		super( PointCloudViewer, self ).__init__( QtOpenGL.QGLFormat( QtOpenGL.QGL.SampleBuffers | QtOpenGL.QGL.NoDeprecatedFunctions ), parent )
 
 		# Track mouse events
 		self.setMouseTracking( True )
-		
+
 		# Change the widget position and size
 		self.setGeometry( 100, 100, 1024, 768 )
 
 		# Trackball for smooth manipulation
-		self.trackball = Trackball.Trackball()
+		self.trackball = vtk.Trackball()
 
 	#
 	# initializeGL
@@ -70,7 +69,7 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 
 		# Change point size
 		gl.glPointSize( 5.0 )
-		
+
 		# Initialise the projection transformation matrix
 		self.SetProjectionMatrix( self.width(), self.height() )
 
@@ -81,13 +80,13 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 		self.modelview_matrix[3,2] = -30.0
 
 		# Load the shaders
-		self.shader = Shader.FlatShader()
+		self.shader = vtk.FlatShader()
 		gl.glUseProgram( self.shader )
 
 		# Initialise viewing parameters
 		self.point_cloud_loaded = False
 		self.antialiasing = True
-		
+
 		# Vertex array object
 		self.vertex_array_id = gl.glGenVertexArrays( 1 )
 		gl.glBindVertexArray( self.vertex_array_id )
@@ -127,7 +126,7 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 		vertices = np.array( coordinates, dtype=np.float32 )
 	#	vertices[:,1] = -vertices[:,1]
 	#	colors = np.array( colors, dtype=np.float32 ) / 255
-		
+
 		# Normalize the model
 		center =  0.5 * ( np.amin( vertices, axis = 0 ) + np.amax( vertices, axis = 0 ) )
 		radius = np.sqrt(((center - vertices) ** 2).sum(axis = 1)).max()
@@ -164,7 +163,7 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 
 		# Refresh display
 		self.update()
-		
+
 	#
 	# Close the mesh
 	#
@@ -294,10 +293,10 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 
 		# Escape
 		if event.key() == QtCore.Qt.Key_Escape :
-			
+
 			# Exit
 			self.close()
-			
+
 		# A
 		elif event.key() == QtCore.Qt.Key_A :
 
@@ -308,7 +307,7 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 
 		# I
 		elif event.key() == QtCore.Qt.Key_I :
-			
+
 			# Print system informations
 			print( 'System Informations...' )
 			print( '  Python :    {}'.format( platform.python_version() ) )

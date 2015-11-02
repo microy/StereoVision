@@ -13,9 +13,7 @@ import cv2
 import numpy as np
 from PySide import QtCore
 from PySide import QtGui
-from VisionToolkit import Calibration
-from VisionToolkit import Disparity
-from VisionToolkit import PointCloudViewer
+import VisionToolkit as vtk
 
 
 #
@@ -45,10 +43,10 @@ class StereoCameraWidget( QtGui.QLabel ) :
 		self.disparity_enabled = False
 
 		# StereoSGBM
-		self.disparity = Disparity.StereoSGBM()
+		self.disparity = vtk.StereoSGBM()
 		
 		# Point cloud viewer
-		self.pointcloud_viewer = PointCloudViewer.PointCloudViewer()
+		self.pointcloud_viewer = vtk.PointCloudViewer()
 		self.X, self.Y = np.meshgrid( np.arange( 320 ), np.arange( 240 ) )
 
 		# Initialize the stereo cameras
@@ -87,8 +85,8 @@ class StereoCameraWidget( QtGui.QLabel ) :
 
 		# Preview the calibration chessboard on the image
 		if self.chessboard_enabled :
-			image_left_displayed = Calibration.PreviewChessboard( image_left_displayed )
-			image_right_displayed = Calibration.PreviewChessboard( image_right_displayed )
+			image_left_displayed = vtk.PreviewChessboard( image_left_displayed )
+			image_right_displayed = vtk.PreviewChessboard( image_right_displayed )
 
 		# Display a cross in the middle of the image
 		if self.cross_enabled :
@@ -103,7 +101,7 @@ class StereoCameraWidget( QtGui.QLabel ) :
 		if self.rectification_enabled and self.calibration :
 			
 			# Undistort the images according to the stereo camera calibration parameters
-			rectified_images = Calibration.StereoRectification( self.calibration, self.image_left, self.image_right, True )
+			rectified_images = vtk.StereoRectification( self.calibration, self.image_left, self.image_right, True )
 			
 			# Prepare image for display
 			stereo_image = np.concatenate( rectified_images, axis=1 )
@@ -113,7 +111,7 @@ class StereoCameraWidget( QtGui.QLabel ) :
 		elif self.disparity_enabled and self.calibration :
 			
 			# Undistort the images according to the stereo camera calibration parameters
-			rectified_images = Calibration.StereoRectification( self.calibration, self.image_left, self.image_right )
+			rectified_images = vtk.StereoRectification( self.calibration, self.image_left, self.image_right )
 			rectified_images = cv2.pyrDown( rectified_images[0] ), cv2.pyrDown( rectified_images[1] )
 		
 			# Compute the disparity
