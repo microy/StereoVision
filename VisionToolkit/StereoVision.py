@@ -18,7 +18,14 @@ import cv2
 import numpy as np
 from PySide import QtCore
 from PySide import QtGui
+<<<<<<< HEAD
 import VisionToolkit as vtk
+=======
+from VisionToolkit import Calibration
+from VisionToolkit import StereoCamera
+from VisionToolkit import Disparity
+from VisionToolkit import PointCloudViewer
+>>>>>>> d77f209f34322f542f4f88a7b59793b3c2993294
 
 
 #
@@ -65,7 +72,11 @@ class StereoVisionWidget( QtGui.QWidget ) :
 		self.setWindowTitle( 'StereoVision' )
 		
 		# Stereo camera widget
+<<<<<<< HEAD
 		self.camera_widget = vtk.StereoCameraWidget( self, self.calibration )
+=======
+		self.camera_widget = StereoCamera.StereoCameraWidget( self, self.calibration )
+>>>>>>> d77f209f34322f542f4f88a7b59793b3c2993294
 
 		# Widget elements
 		self.button_cross = QtGui.QPushButton( 'Cross', self )
@@ -212,8 +223,14 @@ class StereoVisionWidget( QtGui.QWidget ) :
 	#
 	def SaveMesh( self ) :
 		
+<<<<<<< HEAD
 	#	mesh = PyMeshToolkit.Core.Mesh( 'Stereo', self.camera_widget.coordinates, self.faces, self.camera_widget.colors )
 	#	PyMeshToolkit.File.Ply.WritePly( mesh, 'mesh-{}.ply'.format( time.strftime( '%Y%m%d_%H%M%S' ) ) )
+=======
+	#	import MeshToolkit
+	#	mesh = MeshToolkit.Core.Mesh( 'Stereo', self.camera_widget.coordinates, self.faces, self.camera_widget.colors )
+	#	MeshToolkit.File.Ply.WritePly( mesh, 'mesh-{}.ply'.format( time.strftime( '%Y%m%d_%H%M%S' ) ) )
+>>>>>>> d77f209f34322f542f4f88a7b59793b3c2993294
 		pass
 		
 	#
