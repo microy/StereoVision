@@ -283,11 +283,14 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 	#
 	def wheelEvent( self, event ) :
 
-		# Get the mouse wheel delta for normalisation
+		# Get the mouse wheel delta
 		delta = event.delta()
+		
+		# Normalize the wheel delta
+		delta = delta and delta // abs( delta )
 
 		# Update the trackball
-		self.trackball.MouseWheel( delta and delta // abs(delta) )
+		self.trackball.MouseWheel( delta )
 
 		# Refresh display
 		self.update()
