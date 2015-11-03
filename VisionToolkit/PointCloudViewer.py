@@ -42,6 +42,12 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 
 		# Trackball for smooth manipulation
 		self.trackball = vtk.Trackball()
+		
+		# Set the Escape key to close the application
+		QtGui.QShortcut( QtGui.QKeySequence( QtCore.Qt.Key_Escape ), self ).activated.connect( self.close )
+		
+		# Set the R key to reset the view
+		QtGui.QShortcut( QtGui.QKeySequence( QtCore.Qt.Key_R ), self ).activated.connect( self.trackball.Reset )
 
 	#
 	# initializeGL
@@ -221,7 +227,7 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 		# Apply trackball transformation to the initial model-view matrix
 		modelview_matrix = np.dot( self.trackball.transformation, self.modelview_matrix )
 
-		# Senf the MVP matrix to the shader
+		# Send the MVP matrix to the shader
 		gl.glUniformMatrix4fv( gl.glGetUniformLocation( self.shader, "MVP_Matrix" ),
 			1, gl.GL_FALSE, np.dot( modelview_matrix, self.projection_matrix ) )
 
@@ -282,53 +288,6 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 
 		# Update the trackball
 		self.trackball.MouseWheel( delta and delta // abs(delta) )
-
-		# Refresh display
-		self.update()
-
-	#
-	# Keyboard event
-	#
-	def keyPressEvent( self, event ) :
-
-		# Escape
-		if event.key() == QtCore.Qt.Key_Escape :
-
-			# Exit
-			self.close()
-
-		# A
-		elif event.key() == QtCore.Qt.Key_A :
-
-			# Enable / Disable antialiasing
-			self.antialiasing = not self.antialiasing
-			if self.antialiasing : gl.glEnable( gl.GL_MULTISAMPLE )
-			else : gl.glDisable( gl.GL_MULTISAMPLE )
-
-		# I
-		elif event.key() == QtCore.Qt.Key_I :
-
-			# Print system informations
-			print( 'System Informations...' )
-			print( '  Python :    {}'.format( platform.python_version() ) )
-			print( '  PySide :    {}'.format( Qt.__version__ ) )
-			print( '  Qt :        {}'.format( QtCore.__version__ ) )
-
-			# Display OpenGL driver informations
-			print( 'OpenGL Informations...' )
-			print( '  Vendor :    {}'.format( gl.glGetString( gl.GL_VENDOR ).decode( 'UTF-8' ) ) )
-			print( '  Renderer :  {}'.format( gl.glGetString( gl.GL_RENDERER ).decode( 'UTF-8' ) ) )
-			print( '  Version :   {}'.format( gl.glGetString( gl.GL_VERSION ).decode( 'UTF-8' ) ) )
-			print( '  Shader :    {}'.format( gl.glGetString( gl.GL_SHADING_LANGUAGE_VERSION ).decode( 'UTF-8' ) ) )
-
-		# R
-		elif event.key() == QtCore.Qt.Key_R :
-
-			# Reset model translation and rotation
-			self.trackball.Reset()
-
-		# Unmanaged key
-		else : return
 
 		# Refresh display
 		self.update()
