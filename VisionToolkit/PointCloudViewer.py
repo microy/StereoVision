@@ -186,20 +186,6 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 		self.point_cloud_loaded = False
 
 	#
-	# Resize the viewport
-	#
-	def Resize( self, width, height ) :
-
-		# Resize the viewport
-		gl.glViewport( 0, 0, width, height )
-
-		# Resize the trackball
-		self.trackball.Resize( width, height )
-
-		# Compute perspective projection matrix
-		self.SetProjectionMatrix( width, height )
-
-	#
 	# Compute a perspective matrix
 	#
 	def SetProjectionMatrix( self, width, height ) :
@@ -239,8 +225,14 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 	#
 	def resizeGL( self, width, height ) :
 
-		# Resize the mesh viewer
-		self.Resize( width, height )
+		# Resize the viewport
+		gl.glViewport( 0, 0, width, height )
+
+		# Resize the trackball
+		self.trackball.Resize( width, height )
+
+		# Compute perspective projection matrix
+		self.SetProjectionMatrix( width, height )
 
 	#
 	# mousePressEvent
