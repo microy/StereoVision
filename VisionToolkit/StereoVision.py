@@ -1,4 +1,4 @@
-# -*- coding:utf-8 -*- 
+# -*- coding:utf-8 -*-
 
 
 #
@@ -33,11 +33,11 @@ class StereoVision( QtGui.QApplication ) :
 
 		# Initialize parent class
 		super( StereoVision, self ).__init__( sys.argv )
-		
+
 		# Show the stereovision widget
 		widget = StereoVisionWidget()
 		widget.show()
-		
+
 		# Enter Qt main loop
 		sys.exit( self.exec_() )
 
@@ -51,19 +51,18 @@ class StereoVisionWidget( QtGui.QWidget ) :
 	# Initialization
 	#
 	def __init__( self, parent = None ) :
-		
+
 		# Initialise QWidget
 		super( StereoVisionWidget, self ).__init__( parent )
-		
+
 		# Load the calibration parameter file, if it exists
-		self.calibration = None
-		if os.path.isfile( '{}/calibration.pkl'.format(vtk.calibration_directory) ) :
-			with open( '{}/calibration.pkl'.format(vtk.calibration_directory) , 'rb') as calibration_file :
-				self.calibration = pickle.load( calibration_file )
-		
+		self.calibration = vtk.LoadCalibration()
+		if not self.calibration :
+			vtk.CreateCalibrationDirectory()
+
 		# Set the window title
 		self.setWindowTitle( 'StereoVision' )
-		
+
 		# Stereo camera widget
 		self.camera_widget = vtk.StereoCameraWidget( self, self.calibration )
 
@@ -120,10 +119,10 @@ class StereoVisionWidget( QtGui.QWidget ) :
 		self.layout_global.addWidget( self.camera_widget )
 		self.layout_global.addLayout( self.layout_controls )
 		self.layout_global.setSizeConstraint( QtGui.QLayout.SetFixedSize )
-		
+
 		# Set the Escape key to close the application
 		QtGui.QShortcut( QtGui.QKeySequence( QtCore.Qt.Key_Escape ), self ).activated.connect( self.close )
-		
+
 		# Initialize the face array
 		nb_lines, nb_cols = 240, 320
 		vindex = np.array( range( nb_lines * nb_cols ) ).reshape( nb_lines, nb_cols )
@@ -187,7 +186,7 @@ class StereoVisionWidget( QtGui.QWidget ) :
 	# Update the calibration pattern size
 	#
 	def UpdatePatternSize( self, _ ) :
-		
+
 		# Get the calibration pattern dimensions
 		vtk.pattern_size = ( self.spinbox_pattern_rows.value(), self.spinbox_pattern_cols.value() )
 
@@ -195,8 +194,8 @@ class StereoVisionWidget( QtGui.QWidget ) :
 	# Save the stereo images
 	#
 	def SaveImages( self ) :
-		
-		# Save images to disk 
+
+		# Save images to disk
 		current_time = time.strftime( '%Y%m%d_%H%M%S' )
 		print( 'Save images {} to disk...'.format(current_time) )
 		if self.camera_widget.chessboard_enabled :
@@ -210,17 +209,17 @@ class StereoVisionWidget( QtGui.QWidget ) :
 	# Save the stereo images
 	#
 	def SaveMesh( self ) :
-		
+
 	#	import MeshToolkit
 	#	mesh = MeshToolkit.Core.Mesh( 'Stereo', self.camera_widget.coordinates, self.faces, self.camera_widget.colors )
 	#	MeshToolkit.File.Ply.WritePly( mesh, 'mesh-{}.ply'.format( time.strftime( '%Y%m%d_%H%M%S' ) ) )
 		pass
-		
+
 	#
 	# Close the camera widget
 	#
 	def closeEvent( self, event ) :
-		
+
 		# Stop image acquisition, and close the widgets
 		self.camera_widget.close()
 		event.accept()
