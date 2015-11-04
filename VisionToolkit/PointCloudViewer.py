@@ -27,6 +27,41 @@ import VisionToolkit as vtk
 class PointCloudViewer( QtOpenGL.QGLWidget ) :
 
 	#
+	# Vertex shader
+	#
+	vertex_shader_source = '''#version 330 core
+
+		layout (location = 0) in vec4 Vertex;
+		layout (location = 1) in vec3 Color;
+
+		uniform mat4 MVP_Matrix;
+
+		flat out vec4 FragColor;
+
+		void main( void ) {
+
+			FragColor.xyz = Color;
+			FragColor.a = 1.0;
+
+			gl_Position = MVP_Matrix * Vertex;
+		}'''
+
+	#
+	# Fragment shader
+	#
+	fragment_shader_source = '''#version 330 core
+
+		flat in vec4 FragColor;
+
+		out vec4 Color;
+
+		void main( void ) {
+
+			Color = FragColor;
+
+		}'''
+
+	#
 	# Initialisation
 	#
 	def __init__( self, parent = None ) :
@@ -42,10 +77,10 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 
 		# Trackball for smooth manipulation
 		self.trackball = vtk.Trackball()
-		
+
 		# Set the Escape key to close the application
 		QtGui.QShortcut( QtGui.QKeySequence( QtCore.Qt.Key_Escape ), self ).activated.connect( self.close )
-		
+
 		# Set the R key to reset the view
 		QtGui.QShortcut( QtGui.QKeySequence( QtCore.Qt.Key_R ), self ).activated.connect( self.trackball.Reset )
 
@@ -76,6 +111,25 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 		# Change point size
 		gl.glPointSize( 5.0 )
 
+		# Compile the shaders
+		vertex_shader = gl.glCreateShader( gl.GL_VERTEX_SHADER )
+		gl.glShaderSource( vertex_shader, vertex_shader_source )
+		gl.glCompileShader( vertex_shader )
+		fragment_shader = gl.glCreateShader( gl.GL_FRAGMENT_SHADER )
+		gl.glShaderSource( fragment_shader, fragment_shader_source )
+		gl.glCompileShader( fragment_shader )
+
+		# Load the shaders
+		shader = gl.glCreateProgram()
+		gl.glAttachShader( shader, vertex_shader )
+		gl.glAttachShader( shader, fragment_shader )
+		gl.glLinkProgram( shader )
+		gl.glUseProgram( shader )
+		gl.glDetachShader( shader, vertex_shader )
+		gl.glDetachShader( shader, fragment_shader )
+		gl.glDeleteShader( vertex_shader )
+		gl.glDeleteShader( fragment_shader )
+
 		# Initialise the projection transformation matrix
 		self.SetProjectionMatrix( self.width(), self.height() )
 
@@ -84,10 +138,6 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 
 		# Position the scene (camera)
 		self.modelview_matrix[3,2] = -30.0
-
-		# Load the shaders
-		self.shader = vtk.FlatShader()
-		gl.glUseProgram( self.shader )
 
 		# Initialise viewing parameters
 		self.point_cloud_loaded = False
@@ -277,7 +327,7 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 
 		# Get the mouse wheel delta
 		delta = event.delta()
-		
+
 		# Normalize the wheel delta
 		delta = delta and delta // abs( delta )
 
