@@ -6,8 +6,6 @@ from . import Disparity
 from .Disparity import *
 from . import PointCloudViewer
 from .PointCloudViewer import *
-from . import Shader
-from .Shader import *
 from . import StereoCamera
 from .StereoCamera import *
 from . import Trackball
