@@ -10,8 +10,6 @@
 # External dependencies
 #
 import math
-import platform
-import sys
 import numpy as np
 import OpenGL.GL as gl
 import PySide as Qt
@@ -113,10 +111,10 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 
 		# Compile the shaders
 		vertex_shader = gl.glCreateShader( gl.GL_VERTEX_SHADER )
-		gl.glShaderSource( vertex_shader, vertex_shader_source )
+		gl.glShaderSource( vertex_shader, self.vertex_shader_source )
 		gl.glCompileShader( vertex_shader )
 		fragment_shader = gl.glCreateShader( gl.GL_FRAGMENT_SHADER )
-		gl.glShaderSource( fragment_shader, fragment_shader_source )
+		gl.glShaderSource( fragment_shader, self.fragment_shader_source )
 		gl.glCompileShader( fragment_shader )
 
 		# Load the shaders
@@ -213,9 +211,6 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 
 		# Setup model element number
 		self.point_cloud_loaded = True
-
-		# Reset the trackball
-	#	self.trackball.Reset()
 
 		# Refresh display
 		self.update()
