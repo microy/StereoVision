@@ -1,8 +1,9 @@
 #! /usr/bin/env python
+# -*- coding:utf-8 -*-
 
 
 #
-# Show the USB camera
+# Show the images from a USB camera
 #
 
 
