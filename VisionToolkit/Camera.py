@@ -132,7 +132,7 @@ class UsbCamera( threading.Thread ) :
 		# Initialize the thread
 		super( UsbCamera, self ).__init__()
 
-		# Callback function on image received
+		# Function called when an image is received
 		self.image_callback = image_callback
 
 		# Initialize the camera
@@ -157,24 +157,22 @@ class UsbCamera( threading.Thread ) :
 			# Capture image from the camera
 			_, image = self.camera.read()
 
-			# Convert color coding
-			image = cv2.cvtColor( image, cv2.COLOR_BGR2RGB )
-
 			# Send the image via the external callback function
 			self.image_callback( image )
 
 		# Release the camera
 		self.camera.release()
 
+
 #
-# Qt Widget to display the images from an USB camera
+# Qt Widget to display the images from a USB camera
 #
 class UsbCameraWidget( QtGui.QLabel ) :
 
 	#
-	# Signal sent by the image callback function called by the camera
+	# Signal sent to update the image in the widget
 	#
-	image_received = QtCore.Signal( np.ndarray )
+	update_image = QtCore.Signal( np.ndarray )
 
 	#
 	# Initialization
@@ -195,14 +193,25 @@ class UsbCameraWidget( QtGui.QLabel ) :
 		QtGui.QShortcut( QtGui.QKeySequence( QtCore.Qt.Key_Escape ), self ).activated.connect( self.close )
 
 		# Connect the signal to update the image
-		self.image_received.connect( self.UpdateImage )
+		self.update_image.connect( self.UpdateImage )
 
 		# Initialize the stereo cameras
-		self.camera = UsbCamera( self.image_received.emit )
+		self.camera = UsbCamera( self.ProcessImage )
 		self.camera.start()
 
 	#
-	# Display the image from the camera
+	# Process the image from the camera
+	#
+	def ProcessImage( self, image ) :
+
+		# Convert color coding
+		image = cv2.cvtColor( image, cv2.COLOR_BGR2RGB )
+
+		# Update the image in the widget
+		self.update_image.emit( image )
+
+	#
+	# Display the image
 	#
 	def UpdateImage( self, image ) :
 
