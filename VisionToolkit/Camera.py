@@ -62,13 +62,6 @@ class VmbCameraWidget( QtGui.QLabel ) :
 		# Connect the camera
 		self.camera.Open()
 
-		# Configure the sync out signal
-		Vimba.vimba.VmbFeatureEnumSet( self.camera.handle, 'SyncOutSource', 'Exposing' )
-
-		# Configure fixed rate trigger
-		Vimba.vimba.VmbFeatureEnumSet( self.camera.handle, 'TriggerSource', 'FixedRate' )
-		Vimba.vimba.VmbFeatureFloatSet( self.camera.handle, 'AcquisitionFrameRateAbs', ct.c_double( 7.4 ) )
-
 		# Start image acquisition
 		self.camera.StartCapture( self.ImageCallback )
 
@@ -104,10 +97,6 @@ class VmbCameraWidget( QtGui.QLabel ) :
 
 		# Stop image acquisition
 		self.camera.StopCapture()
-
-		# Restore camera default parameters
-		Vimba.vimba.VmbFeatureEnumSet( self.camera.handle, 'UserSetSelector', 'Default' )
-		Vimba.vimba.VmbFeatureCommandRun( self.camera.handle, 'UserSetLoad' )
 
 		# Disconnect the camera
 		self.camera.Close()
