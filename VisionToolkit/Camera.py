@@ -9,8 +9,6 @@
 #
 # External dependencies
 #
-import ctypes as ct
-import sys
 import threading
 import numpy as np
 import cv2
@@ -221,15 +219,3 @@ class UsbCameraWidget( QtGui.QLabel ) :
 
 		# Close the widget
 		event.accept()
-
-
-#
-# Main application
-#
-if __name__ == '__main__' :
-
-	application = QtGui.QApplication( sys.argv )
-#	widget = VmbCameraWidget( '50-0503326223' )
-	widget = UsbCameraWidget()
-	widget.show()
-	sys.exit( application.exec_() )
