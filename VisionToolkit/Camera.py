@@ -50,9 +50,6 @@ class VmbCameraWidget( QtGui.QLabel ) :
 		# Connect the signal to update the image
 		self.update_image.connect( self.UpdateImage )
 
-		# Create an indexed color table (grayscale)
-		self.colortable = [ QtGui.qRgb( i, i, i ) for i in range( 256 ) ]
-
 		# Initialize the Vimba driver
 		Vimba.VmbStartup()
 
@@ -70,6 +67,9 @@ class VmbCameraWidget( QtGui.QLabel ) :
 	#
 	def ImageCallback( self, image ) :
 
+		# Convert color coding
+		image = cv2.cvtColor( image, cv2.COLOR_GRAY2RGB )
+
 		# Send the image to the widget through a signal
 		self.update_image.emit( image )
 
@@ -79,10 +79,7 @@ class VmbCameraWidget( QtGui.QLabel ) :
 	def UpdateImage( self, image ) :
 
 		# Create a Qt image
-		qimage = QtGui.QImage( image, image.shape[1], image.shape[0], QtGui.QImage.Format_Indexed8 )
-
-		# Add an indexed color table (grayscale)
-		qimage.setColorTable( self.colortable )
+		qimage = QtGui.QImage( image, image.shape[1], image.shape[0], QtGui.QImage.Format_RGB888 )
 
 		# Set the image to the Qt widget
 		self.setPixmap( QtGui.QPixmap.fromImage( qimage ) )
