@@ -27,7 +27,7 @@ class VmbCameraWidget( QtGui.QLabel ) :
 	#
 	# Signal sent by the image callback function called by Vimba
 	#
-	image_received = QtCore.Signal( np.ndarray )
+	update_image = QtCore.Signal( np.ndarray )
 
 	#
 	# Initialization
@@ -48,7 +48,7 @@ class VmbCameraWidget( QtGui.QLabel ) :
 		QtGui.QShortcut( QtGui.QKeySequence( QtCore.Qt.Key_Escape ), self ).activated.connect( self.close )
 
 		# Connect the signal to update the image
-		self.image_received.connect( self.UpdateImage )
+		self.update_image.connect( self.UpdateImage )
 
 		# Create an indexed color table (grayscale)
 		self.colortable = [ QtGui.qRgb( i, i, i ) for i in range( 256 ) ]
@@ -78,7 +78,7 @@ class VmbCameraWidget( QtGui.QLabel ) :
 	def ImageCallback( self, image ) :
 
 		# Send the image to the widget through a signal
-		self.image_received.emit( image )
+		self.update_image.emit( image )
 
 	#
 	# Display the image from the camera
