@@ -1,4 +1,4 @@
-# -*- coding:utf-8 -*- 
+# -*- coding:utf-8 -*-
 
 
 #
@@ -26,27 +26,27 @@ vimba = None
 # Initialize the Vimba library
 #
 def VmbStartup() :
-	
+
 	# Get Vimba installation directory
 	vimba_path = "/" + "/".join(os.environ.get("GENICAM_GENTL64_PATH").split("/")[1:-3])
 	vimba_path += "/VimbaC/DynamicLib/x86_64bit/libVimbaC.so"
-		
+
 	# Load Vimba library
 	global vimba
 	vimba = ct.cdll.LoadLibrary( vimba_path )
 
 	# Initialize the library
 	vimba.VmbStartup()
-		
+
 	# Send discovery packet to GigE cameras
 	vimba.VmbFeatureCommandRun( ct.c_void_p(1), "GeVDiscoveryAllOnce" )
-	
+
 
 #
 # Release the Vimba library
 #
 def VmbShutdown() :
-	
+
 	# Release the library
 	vimba.VmbShutdown()
 
@@ -55,7 +55,7 @@ def VmbShutdown() :
 # Vimba frame structure
 #
 class VmbFrame( ct.Structure ) :
-	
+
 	#
 	# VmbFrame structure fields
 	#
@@ -73,7 +73,7 @@ class VmbFrame( ct.Structure ) :
 			('offsetY', ct.c_uint32),
 			('frameID', ct.c_uint64),
 			('timestamp', ct.c_uint64)]
-	
+
 	#
 	# Initialize the image buffer
 	#
@@ -95,7 +95,7 @@ class VmbFrame( ct.Structure ) :
 	#
 	@property
 	def is_valid( self ) :
-		
+
 		return not self.receiveStatus
 
 
@@ -103,23 +103,23 @@ class VmbFrame( ct.Structure ) :
 # Vimba camera
 #
 class VmbCamera( object ) :
-	
+
 	#
 	# Initialize the camera
 	#
 	def __init__( self, camera_id ) :
-		
+
 		# Camera handle
 		self.handle = ct.c_void_p()
 
 		# Camera ID (serial number, IP address...)
 		self.id = camera_id
-		
+
 	#
 	# Open the camera
 	#
 	def Open( self ) :
-		
+
 		# Connect the camera
 		vimba.VmbCameraOpen( self.id, 1, ct.byref(self.handle) )
 
@@ -128,7 +128,7 @@ class VmbCamera( object ) :
 
 		# Configure freerun trigger
 		vimba.VmbFeatureEnumSet( self.handle, "TriggerSource", "Freerun" )
-		
+
 		# Configure the image format
 		vimba.VmbFeatureEnumSet( self.handle, "PixelFormat", "Mono8" )
 
@@ -140,7 +140,7 @@ class VmbCamera( object ) :
 		self.height = tmp_value.value
 		vimba.VmbFeatureIntGet( self.handle, "PayloadSize", ct.byref(tmp_value) )
 		self.payloadsize = tmp_value.value
-		
+
 		# Default image parameters of our cameras (AVT Manta G504B) for debug purpose
 #		self.width = 2452
 #		self.height = 2056
@@ -150,39 +150,39 @@ class VmbCamera( object ) :
 	# Close the camera
 	#
 	def Close( self ) :
-		
+
 		# Close the camera
 		vimba.VmbCameraClose( self.handle )
 
 	#
 	# Start the acquisition
 	#
-	def StartCapture( self, frame_callback_function, frame_buffer_size = 10 ) :
+	def StartCapture( self, image_callback, frame_buffer_size = 10 ) :
 
 		# Register the external image callback function
-		self.external_frame_callback_function = frame_callback_function
-		
+		self.image_callback = image_callback
+
 		# Register the internal frame callback function
-		self.internal_frame_callback_function = ct.CFUNCTYPE( None, ct.c_void_p, ct.POINTER(VmbFrame) )( self.FrameCallback )
+		self.frame_callback = ct.CFUNCTYPE( None, ct.c_void_p, ct.POINTER(VmbFrame) )( self.FrameCallback )
 
 		# Initialize frame buffer
 		self.frame_buffer = []
 		for i in range( frame_buffer_size ) :
 			self.frame_buffer.append( VmbFrame( self.payloadsize ) )
-		
+
 		# Announce the frames
 		for i in range( frame_buffer_size ) :
 			vimba.VmbFrameAnnounce( self.handle, ct.byref(self.frame_buffer[i]), ct.sizeof(self.frame_buffer[i]) )
 
 		# Start capture engine
 		vimba.VmbCaptureStart( self.handle )
-		
+
 		# Queue the frames
 		for i in range( frame_buffer_size ) :
-			vimba.VmbCaptureFrameQueue( self.handle, ct.byref(self.frame_buffer[i]), self.internal_frame_callback_function )
+			vimba.VmbCaptureFrameQueue( self.handle, ct.byref(self.frame_buffer[i]), self.frame_callback )
 
 		# Start acquisition
-		vimba.VmbFeatureCommandRun( self.handle, "AcquisitionStart" )	
+		vimba.VmbFeatureCommandRun( self.handle, "AcquisitionStart" )
 
 	#
 	# Stop the acquisition
@@ -200,24 +200,24 @@ class VmbCamera( object ) :
 
 		# Revoke frames
 		vimba.VmbFrameRevokeAll( self.handle )
-		
+
 	#
 	# Frame callback function called by Vimba
 	#
 	def FrameCallback( self, camera, frame ) :
 
-		# Call external frame callback function
-		self.external_frame_callback_function( frame.contents )
+		# Call external image callback function
+		self.image_callback( frame.contents.image )
 
 		# Requeue the frame so it can be filled again
-		vimba.VmbCaptureFrameQueue( camera, frame, self.internal_frame_callback_function )
+		vimba.VmbCaptureFrameQueue( camera, frame, self.frame_callback )
 
 
 #
 # Vimba stereo camera
 #
 class VmbStereoCamera( object ) :
-	
+
 	#
 	# Initialize the cameras
 	#
@@ -226,7 +226,7 @@ class VmbStereoCamera( object ) :
 		# Camera connection
 		self.camera_left = VmbCamera( camera_left_id )
 		self.camera_right = VmbCamera( camera_right_id )
-		
+
 		# Software trigger thread
 		self.software_trigger = VmbSoftwareTrigger( self.camera_left, self.camera_right )
 
@@ -234,7 +234,7 @@ class VmbStereoCamera( object ) :
 	# Open the cameras
 	#
 	def Open( self ) :
-		
+
 		# Open the cameras
 		self.camera_left.Open()
 		self.camera_right.Open()
@@ -251,7 +251,7 @@ class VmbStereoCamera( object ) :
 		# Restore freerun trigger
 		vimba.VmbFeatureEnumSet( self.camera_left.handle, "TriggerSource", "Freerun" )
 		vimba.VmbFeatureEnumSet( self.camera_right.handle, "TriggerSource", "Freerun" )
-		
+
 		# Close the cameras
 		self.camera_left.Close()
 		self.camera_right.Close()
@@ -260,7 +260,7 @@ class VmbStereoCamera( object ) :
 	# Start synchronous acquisition
 	#
 	def StartCapture( self, frame_callback_function ) :
-		
+
 		# Register the external image callback function
 		self.external_frame_callback_function = frame_callback_function
 
@@ -300,7 +300,7 @@ class VmbStereoCamera( object ) :
 
 		# Synchronize the frames
 		self.Synchronize()
-		
+
 	#
 	# Receive a frame from camera right
 	#
@@ -308,10 +308,10 @@ class VmbStereoCamera( object ) :
 
 		# Save the current frame
 		self.frame_right = frame
-		
+
 		# Frame ready
 		self.frame_right_ready = True
-		
+
 		# Synchronize the frames
 		self.Synchronize()
 
@@ -322,20 +322,20 @@ class VmbStereoCamera( object ) :
 
 		# Wait for both frames
 		if self.frame_left_ready and self.frame_right_ready :
-			
+
 			# Send the frames to the external program
 			self.external_frame_callback_function( self.frame_left, self.frame_right )
-			
+
 			# Initialize frame status
 			self.frame_left_ready = False
 			self.frame_right_ready = False
 
-		
+
 #
 # Thread to send software trigger to both cameras
 #
 class VmbSoftwareTrigger( threading.Thread ) :
-	
+
 	#
 	# Initialisation
 	#
@@ -355,7 +355,7 @@ class VmbSoftwareTrigger( threading.Thread ) :
 
 		self.running = True
 		self.start()
-	
+
 	#
 	# Stop the software trigger thread
 	#
@@ -363,7 +363,7 @@ class VmbSoftwareTrigger( threading.Thread ) :
 
 		self.running = False
 		self.join()
-		
+
 	#
 	# Thread main loop
 	#
@@ -375,6 +375,6 @@ class VmbSoftwareTrigger( threading.Thread ) :
 			# Send software trigger to both cameras
 			vimba.VmbFeatureCommandRun( self.camera_left.handle, "TriggerSoftware" )
 			vimba.VmbFeatureCommandRun( self.camera_right.handle, "TriggerSoftware" )
-			
+
 			# Wait 120ms between two consecutive triggers
 			time.sleep( 0.12 )

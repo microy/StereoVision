@@ -70,15 +70,15 @@ class VmbCameraWidget( QtGui.QLabel ) :
 		Vimba.vimba.VmbFeatureFloatSet( self.camera.handle, 'AcquisitionFrameRateAbs', ct.c_double( 7.4 ) )
 
 		# Start image acquisition
-		self.camera.StartCapture( self.FrameCallback )
+		self.camera.StartCapture( self.ImageCallback )
 
 	#
 	# Receive the image sent by the camera
 	#
-	def FrameCallback( self, frame ) :
+	def ImageCallback( self, image ) :
 
 		# Send the image to the widget through a signal
-		self.image_received.emit( frame.image )
+		self.image_received.emit( image )
 
 	#
 	# Display the image from the camera
