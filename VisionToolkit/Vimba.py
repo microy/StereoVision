@@ -28,8 +28,8 @@ vimba = None
 def VmbStartup() :
 
 	# Get Vimba installation directory
-	vimba_path = "/" + "/".join(os.environ.get("GENICAM_GENTL64_PATH").split("/")[1:-3])
-	vimba_path += "/VimbaC/DynamicLib/x86_64bit/libVimbaC.so"
+	vimba_path = '/' + '/'.join( os.environ.get( 'GENICAM_GENTL64_PATH' ).split( '/' )[ 1 : -3 ] )
+	vimba_path += '/VimbaC/DynamicLib/x86_64bit/libVimbaC.so'
 
 	# Load Vimba library
 	global vimba
@@ -39,7 +39,7 @@ def VmbStartup() :
 	vimba.VmbStartup()
 
 	# Send discovery packet to GigE cameras
-	vimba.VmbFeatureCommandRun( ct.c_void_p(1), "GeVDiscoveryAllOnce" )
+	vimba.VmbFeatureCommandRun( ct.c_void_p(1), 'GeVDiscoveryAllOnce' )
 
 
 #
@@ -59,20 +59,20 @@ class VmbFrame( ct.Structure ) :
 	#
 	# VmbFrame structure fields
 	#
-	_fields_ = [('buffer', ct.POINTER(ct.c_char)),
-			('bufferSize', ct.c_uint32),
-			('context', ct.c_void_p * 4),
-			('receiveStatus', ct.c_int32),
-			('receiveFlags', ct.c_uint32),
-			('imageSize', ct.c_uint32),
-			('ancillarySize', ct.c_uint32),
-			('pixelFormat', ct.c_uint32),
-			('width', ct.c_uint32),
-			('height', ct.c_uint32),
-			('offsetX', ct.c_uint32),
-			('offsetY', ct.c_uint32),
-			('frameID', ct.c_uint64),
-			('timestamp', ct.c_uint64)]
+	_fields_ = [ ( 'buffer', ct.POINTER( ct.c_char ) ),
+			( 'bufferSize', ct.c_uint32 ),
+			( 'context', ct.c_void_p * 4 ),
+			( 'receiveStatus', ct.c_int32 ),
+			( 'receiveFlags', ct.c_uint32 ),
+			( 'imageSize', ct.c_uint32 ),
+			( 'ancillarySize', ct.c_uint32 ),
+			( 'pixelFormat', ct.c_uint32 ),
+			( 'width', ct.c_uint32 ),
+			( 'height', ct.c_uint32 ),
+			( 'offsetX', ct.c_uint32 ),
+			( 'offsetY', ct.c_uint32 ),
+			( 'frameID', ct.c_uint64 ),
+			( 'timestamp', ct.c_uint64 ) ]
 
 	#
 	# Initialize the image buffer
@@ -88,15 +88,7 @@ class VmbFrame( ct.Structure ) :
 	@property
 	def image( self ) :
 
-		return np.ndarray( buffer=self.buffer[0 : self.bufferSize], dtype=np.uint8, shape=(self.height, self.width) )
-
-	#
-	# Tell if the frame is valid
-	#
-	@property
-	def is_valid( self ) :
-
-		return not self.receiveStatus
+		return np.ndarray( buffer=self.buffer[ 0 : self.bufferSize ], dtype=np.uint8, shape=( self.height, self.width ) )
 
 
 #
@@ -121,18 +113,18 @@ class VmbCamera( object ) :
 	def Open( self ) :
 
 		# Connect the camera
-		vimba.VmbCameraOpen( self.id, 1, ct.byref(self.handle) )
+		vimba.VmbCameraOpen( self.id, 1, ct.byref( self.handle ) )
 
 		# Adjust packet size automatically
-		vimba.VmbFeatureCommandRun( self.handle, "GVSPAdjustPacketSize" )
+		vimba.VmbFeatureCommandRun( self.handle, 'GVSPAdjustPacketSize' )
 
 		# Query image parameters
 		tmp_value = ct.c_int()
-		vimba.VmbFeatureIntGet( self.handle, "Width", ct.byref(tmp_value) )
+		vimba.VmbFeatureIntGet( self.handle, 'Width', ct.byref( tmp_value ) )
 		self.width = tmp_value.value
-		vimba.VmbFeatureIntGet( self.handle, "Height", ct.byref(tmp_value) )
+		vimba.VmbFeatureIntGet( self.handle, 'Height', ct.byref( tmp_value ) )
 		self.height = tmp_value.value
-		vimba.VmbFeatureIntGet( self.handle, "PayloadSize", ct.byref(tmp_value) )
+		vimba.VmbFeatureIntGet( self.handle, 'PayloadSize', ct.byref( tmp_value ) )
 		self.payloadsize = tmp_value.value
 
 	#
@@ -171,7 +163,7 @@ class VmbCamera( object ) :
 			vimba.VmbCaptureFrameQueue( self.handle, ct.byref(self.frame_buffer[i]), self.frame_callback )
 
 		# Start acquisition
-		vimba.VmbFeatureCommandRun( self.handle, "AcquisitionStart" )
+		vimba.VmbFeatureCommandRun( self.handle, 'AcquisitionStart' )
 
 	#
 	# Stop the acquisition
@@ -179,7 +171,7 @@ class VmbCamera( object ) :
 	def StopCapture( self ) :
 
 		# Stop acquisition
-		vimba.VmbFeatureCommandRun( self.handle, "AcquisitionStop" )
+		vimba.VmbFeatureCommandRun( self.handle, 'AcquisitionStop' )
 
 		# Flush the frame queue
 		vimba.VmbCaptureQueueFlush( self.handle )
@@ -216,9 +208,6 @@ class VmbStereoCamera( object ) :
 		self.camera_left = VmbCamera( camera_left_id )
 		self.camera_right = VmbCamera( camera_right_id )
 
-		# Software trigger thread
-		self.software_trigger = VmbSoftwareTrigger( self.camera_left, self.camera_right )
-
 	#
 	# Open the cameras
 	#
@@ -228,18 +217,10 @@ class VmbStereoCamera( object ) :
 		self.camera_left.Open()
 		self.camera_right.Open()
 
-		# Configure software trigger
-		vimba.VmbFeatureEnumSet( self.camera_left.handle, "TriggerSource", "Software" )
-		vimba.VmbFeatureEnumSet( self.camera_right.handle, "TriggerSource", "Software" )
-
 	#
 	# Close the cameras
 	#
 	def Close( self ) :
-
-		# Restore freerun trigger
-		vimba.VmbFeatureEnumSet( self.camera_left.handle, "TriggerSource", "Freerun" )
-		vimba.VmbFeatureEnumSet( self.camera_right.handle, "TriggerSource", "Freerun" )
 
 		# Close the cameras
 		self.camera_left.Close()
@@ -248,29 +229,23 @@ class VmbStereoCamera( object ) :
 	#
 	# Start synchronous acquisition
 	#
-	def StartCapture( self, frame_callback_function ) :
+	def StartCapture( self, image_callback ) :
 
 		# Register the external image callback function
-		self.external_frame_callback_function = frame_callback_function
+		self.image_callback = image_callback
 
 		# Initialize frame status
-		self.frame_left_ready = False
-		self.frame_right_ready = False
+		self.image_left_ready = False
+		self.image_right_ready = False
 
 		# Start acquisition
-		self.camera_left.StartCapture( self.FrameCallbackLeft )
-		self.camera_right.StartCapture( self.FrameCallbackRight )
-
-		# Start the software trigger thread
-		self.software_trigger.Start()
+		self.camera_left.StartCapture( self.ImageCallbackLeft )
+		self.camera_right.StartCapture( self.ImageCallbackRight )
 
 	#
 	# Stop the acquisition
 	#
 	def StopCapture( self ) :
-
-		# Stop the software trigger thread
-		self.software_trigger.Stop()
 
 		# Stop image acquisition
 		self.camera_left.StopCapture()
@@ -279,13 +254,13 @@ class VmbStereoCamera( object ) :
 	#
 	# Receive a frame from camera left
 	#
-	def FrameCallbackLeft( self, frame ) :
+	def ImageCallbackLeft( self, image ) :
 
 		# Save the current frame
-		self.frame_left = frame
+		self.image_left = image
 
 		# Frame ready
-		self.frame_left_ready = True
+		self.image_left_ready = True
 
 		# Synchronize the frames
 		self.Synchronize()
@@ -293,77 +268,28 @@ class VmbStereoCamera( object ) :
 	#
 	# Receive a frame from camera right
 	#
-	def FrameCallbackRight( self, frame ) :
+	def ImageCallbackRight( self, image ) :
 
 		# Save the current frame
-		self.frame_right = frame
+		self.image_right = image
 
 		# Frame ready
-		self.frame_right_ready = True
+		self.image_right_ready = True
 
 		# Synchronize the frames
 		self.Synchronize()
 
 	#
-	# Synchronize the frames from both camera
+	# Synchronize the images from both camera
 	#
 	def Synchronize( self ) :
 
-		# Wait for both frames
-		if self.frame_left_ready and self.frame_right_ready :
+		# Wait for both images
+		if self.image_left_ready and self.image_right_ready :
 
-			# Send the frames to the external program
-			self.external_frame_callback_function( self.frame_left, self.frame_right )
+			# Send the images to the external program
+			self.image_callback( self.image_left, self.image_right )
 
-			# Initialize frame status
-			self.frame_left_ready = False
-			self.frame_right_ready = False
-
-
-#
-# Thread to send software trigger to both cameras
-#
-class VmbSoftwareTrigger( threading.Thread ) :
-
-	#
-	# Initialisation
-	#
-	def __init__( self, camera_left, camera_right ) :
-
-		# Initialise the thread
-		threading.Thread.__init__( self )
-
-		# Register the cameras
-		self.camera_left = camera_left
-		self.camera_right = camera_right
-
-	#
-	# Start the software trigger thread
-	#
-	def Start( self ) :
-
-		self.running = True
-		self.start()
-
-	#
-	# Stop the software trigger thread
-	#
-	def Stop( self ) :
-
-		self.running = False
-		self.join()
-
-	#
-	# Thread main loop
-	#
-	def run( self ) :
-
-		# Thread running
-		while self.running :
-
-			# Send software trigger to both cameras
-			vimba.VmbFeatureCommandRun( self.camera_left.handle, "TriggerSoftware" )
-			vimba.VmbFeatureCommandRun( self.camera_right.handle, "TriggerSoftware" )
-
-			# Wait 120ms between two consecutive triggers
-			time.sleep( 0.12 )
+			# Initialize image status
+			self.image_left_ready = False
+			self.image_right_ready = False
