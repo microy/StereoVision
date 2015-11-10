@@ -3,6 +3,6 @@
 #
 # VisionToolkit start-up script
 #
-from VisionToolkit import StereoVision
-if __name__ == '__main__' :	StereoVision.StereoVision()
-	
+import VisionToolkit as vtk
+if __name__ == '__main__' :
+	vtk.StereoVision()

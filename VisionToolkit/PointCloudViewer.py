@@ -14,6 +14,7 @@ import numpy as np
 import OpenGL.GL as gl
 import PySide as Qt
 from PySide import QtCore
+from PySide import QtGui
 from PySide import QtOpenGL
 import VisionToolkit as vtk
 

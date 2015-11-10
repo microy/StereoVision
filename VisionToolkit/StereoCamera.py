@@ -1,4 +1,4 @@
-# -*- coding:utf-8 -*- 
+# -*- coding:utf-8 -*-
 
 
 #
@@ -44,7 +44,7 @@ class StereoCameraWidget( QtGui.QLabel ) :
 
 		# StereoSGBM
 		self.disparity = vtk.StereoSGBM()
-		
+
 		# Point cloud viewer
 		self.pointcloud_viewer = vtk.PointCloudViewer()
 		self.X, self.Y = np.meshgrid( np.arange( 320 ), np.arange( 240 ) )
@@ -70,7 +70,7 @@ class StereoCameraWidget( QtGui.QLabel ) :
 	# Capture frames and display them
 	#
 	def QueryFrame( self ) :
-		
+
 		# Capture images
 		self.camera_left.grab()
 		self.camera_right.grab()
@@ -99,27 +99,27 @@ class StereoCameraWidget( QtGui.QLabel ) :
 
 		# Display the rectifed images
 		if self.rectification_enabled and self.calibration :
-			
+
 			# Undistort the images according to the stereo camera calibration parameters
 			rectified_images = vtk.StereoRectification( self.calibration, self.image_left, self.image_right, True )
-			
+
 			# Prepare image for display
 			stereo_image = np.concatenate( rectified_images, axis=1 )
 			stereo_image = cv2.cvtColor( stereo_image, cv2.COLOR_BGR2RGB )
 
 		# Display the disparity image
 		elif self.disparity_enabled and self.calibration :
-			
+
 			# Undistort the images according to the stereo camera calibration parameters
 			rectified_images = vtk.StereoRectification( self.calibration, self.image_left, self.image_right )
 			rectified_images = cv2.pyrDown( rectified_images[0] ), cv2.pyrDown( rectified_images[1] )
-		
+
 			# Compute the disparity
 			self.disparity.ComputeDisparity( *rectified_images )
-			
+
 			# Display the dispariy image
 			stereo_image = cv2.pyrUp( self.disparity.disparity_image )
-			
+
 			# Point cloud
 			self.coordinates = np.array( (self.X.flatten(), self.Y.flatten(), self.disparity.disparity.flatten() * 0.5) ).T
 			self.coordinates = self.coordinates.reshape(-1, 3)
@@ -127,31 +127,31 @@ class StereoCameraWidget( QtGui.QLabel ) :
 			self.colors = np.array( cv2.cvtColor( rectified_images[0], cv2.COLOR_BGR2RGB ), dtype=np.float32 ) / 255
 			self.colors = self.colors.reshape(-1, 3)
 			self.pointcloud_viewer.LoadPointCloud( self.coordinates, self.colors )
-		
+
 		# Or display the stereo images
 		else :
-			
+
 			# Prepare image for display
 			stereo_image = np.concatenate( (image_left_displayed, image_right_displayed), axis=1 )
 			stereo_image = cv2.cvtColor( stereo_image, cv2.COLOR_BGR2RGB )
-		
+
 		# Set the image
 		self.setPixmap( QtGui.QPixmap.fromImage( QtGui.QImage( stereo_image,
 			stereo_image.shape[1], stereo_image.shape[0], QtGui.QImage.Format_RGB888 ) ) )
-			
+
 		# Update the widget
 		self.update()
-		
+
 	#
 	# Close the camera viewer
 	#
 	def closeEvent( self, event ) :
-		
+
 		# Stop image acquisition
 		self.timer.stop()
 		self.camera_left.release()
 		self.camera_right.release()
-		
+
 		# Close the widgets
 		self.pointcloud_viewer.close()
 		self.disparity.close()

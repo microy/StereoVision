@@ -8,6 +8,8 @@ from . import PointCloudViewer
 from .PointCloudViewer import *
 from . import StereoCamera
 from .StereoCamera import *
+from . import StereoVision
+from .StereoVision import *
 from . import Trackball
 from .Trackball import *
 from . import Vimba
