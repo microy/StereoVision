@@ -1,5 +1,9 @@
 from . import Calibration
 from .Calibration import *
+from . import CameraWidget
+from .CameraWidget import *
+from . import Vimba
+from .Vimba import *
 from . import Camera
 from .Camera import *
 from . import Disparity
@@ -12,5 +16,3 @@ from . import StereoVision
 from .StereoVision import *
 from . import Trackball
 from .Trackball import *
-from . import Vimba
-from .Vimba import *

@@ -10,29 +10,24 @@
 # External dependencies
 #
 import threading
-import numpy as np
 import cv2
 from PySide import QtCore
 from PySide import QtGui
-import Vimba
+import VisionToolkit as vt
+from VisionToolkit import Vimba
 
 
 #
 # Qt Widget to display the images from an Allied Vision camera (through Vimba)
 #
-class VmbCameraWidget( QtGui.QLabel ) :
-
-	#
-	# Signal sent by the image callback function called by Vimba
-	#
-	update_image = QtCore.Signal( np.ndarray )
+class VmbCameraWidget( vt.CameraWidget ) :
 
 	#
 	# Initialization
 	#
 	def __init__( self, camera_id, parent = None ) :
 
-		# Initialize QLabel
+		# Initialize the camera widget
 		super( VmbCameraWidget, self ).__init__( parent )
 
 		# Change the window title
@@ -44,9 +39,6 @@ class VmbCameraWidget( QtGui.QLabel ) :
 
 		# Set the Escape key to close the application
 		QtGui.QShortcut( QtGui.QKeySequence( QtCore.Qt.Key_Escape ), self ).activated.connect( self.close )
-
-		# Connect the signal to update the image
-		self.update_image.connect( self.UpdateImage )
 
 		# Initialize the Vimba driver
 		Vimba.VmbStartup()
@@ -72,20 +64,6 @@ class VmbCameraWidget( QtGui.QLabel ) :
 		self.update_image.emit( image )
 
 	#
-	# Display the image from the camera
-	#
-	def UpdateImage( self, image ) :
-
-		# Create a Qt image
-		qimage = QtGui.QImage( image, image.shape[1], image.shape[0], QtGui.QImage.Format_RGB888 )
-
-		# Set the image to the Qt widget
-		self.setPixmap( QtGui.QPixmap.fromImage( qimage ) )
-
-		# Update the widget
-		self.update()
-
-	#
 	# Close the camera viewer
 	#
 	def closeEvent( self, event ) :
@@ -99,12 +77,12 @@ class VmbCameraWidget( QtGui.QLabel ) :
 		# Shutdown Vimba
 		Vimba.VmbShutdown()
 
-		# Accept the Qt close event
+		# Close the widget
 		event.accept()
 
 
 #
-# Thread to read images from a USB camera
+# Thread to read the images from a USB camera
 #
 class UsbCamera( threading.Thread ) :
 
@@ -151,19 +129,14 @@ class UsbCamera( threading.Thread ) :
 #
 # Qt Widget to display the images from a USB camera
 #
-class UsbCameraWidget( QtGui.QLabel ) :
-
-	#
-	# Signal sent to update the image in the widget
-	#
-	update_image = QtCore.Signal( np.ndarray )
+class UsbCameraWidget( vt.CameraWidget ) :
 
 	#
 	# Initialization
 	#
 	def __init__( self, parent = None ) :
 
-		# Initialize QLabel
+		# Initialize the camera widget
 		super( UsbCameraWidget, self ).__init__( parent )
 
 		# Change the window title
@@ -176,10 +149,7 @@ class UsbCameraWidget( QtGui.QLabel ) :
 		# Set the Escape key to close the application
 		QtGui.QShortcut( QtGui.QKeySequence( QtCore.Qt.Key_Escape ), self ).activated.connect( self.close )
 
-		# Connect the signal to update the image
-		self.update_image.connect( self.UpdateImage )
-
-		# Initialize the stereo cameras
+		# Initialize the camera
 		self.camera = UsbCamera( self.ProcessImage )
 		self.camera.start()
 
@@ -193,20 +163,6 @@ class UsbCameraWidget( QtGui.QLabel ) :
 
 		# Update the image in the widget
 		self.update_image.emit( image )
-
-	#
-	# Display the image
-	#
-	def UpdateImage( self, image ) :
-
-		# Create a Qt image
-		qimage = QtGui.QImage( image, image.shape[1], image.shape[0], QtGui.QImage.Format_RGB888 )
-
-		# Set the image to the Qt widget
-		self.setPixmap( QtGui.QPixmap.fromImage( qimage ) )
-
-		# Update the widget
-		self.update()
 
 	#
 	# Close the camera viewer
