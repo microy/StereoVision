@@ -9,6 +9,7 @@
 #
 # External dependencies
 #
+import threading
 import cv2
 import numpy as np
 from PySide import QtCore
@@ -17,9 +18,67 @@ import VisionToolkit as vtk
 
 
 #
+# Thread to read images from two USB cameras
+#
+class StereoUsbCamera( threading.Thread ) :
+
+	#
+	# Initialisation
+	#
+	def __init__( self, image_callback ) :
+
+		# Initialize the thread
+		super( StereoUsbCamera, self ).__init__()
+
+		# Function called when the images are received
+		self.image_callback = image_callback
+
+		# Initialize the cameras
+		self.camera_left = cv2.VideoCapture( 0 )
+		self.camera_right = cv2.VideoCapture( 1 )
+
+		# Lower the camera frame rate and resolution
+		self.camera_left.set( cv2.cv.CV_CAP_PROP_FRAME_WIDTH, 640 )
+		self.camera_left.set( cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, 480 )
+		self.camera_right.set( cv2.cv.CV_CAP_PROP_FRAME_WIDTH, 640 )
+		self.camera_right.set( cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, 480 )
+		self.camera_left.set( cv2.cv.CV_CAP_PROP_FPS, 5 )
+		self.camera_right.set( cv2.cv.CV_CAP_PROP_FPS, 5 )
+
+	#
+	# Thread main loop
+	#
+	def run( self ) :
+
+		# Thread running
+		self.running = True
+		while self.running :
+
+			# Capture images
+			self.camera_left.grab()
+			self.camera_right.grab()
+
+			# Get the images
+			_, image_left = self.camera_left.retrieve()
+			_, image_right = self.camera_right.retrieve()
+
+			# Send the image via the external callback function
+			self.image_callback( image_left, image_right )
+
+		# Release the cameras
+		self.camera_left.release()
+		self.camera_right.release()
+
+
+#
 # Qt Widget to display the images from stereo cameras
 #
 class StereoCameraWidget( QtGui.QLabel ) :
+
+	#
+	# Signal sent to update the image in the widget
+	#
+	update_image = QtCore.Signal( np.ndarray )
 
 	#
 	# Initialisation
@@ -49,39 +108,21 @@ class StereoCameraWidget( QtGui.QLabel ) :
 		self.pointcloud_viewer = vtk.PointCloudViewer()
 		self.X, self.Y = np.meshgrid( np.arange( 320 ), np.arange( 240 ) )
 
+		# Connect the signal to update the image
+		self.update_image.connect( self.UpdateImage )
+
 		# Initialize the stereo cameras
-		self.camera_left = cv2.VideoCapture( 0 )
-		self.camera_right = cv2.VideoCapture( 1 )
-
-		# Lower the camera frame rate
-		self.camera_left.set( cv2.cv.CV_CAP_PROP_FRAME_WIDTH, 640 )
-		self.camera_left.set( cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, 480 )
-		self.camera_right.set( cv2.cv.CV_CAP_PROP_FRAME_WIDTH, 640 )
-		self.camera_right.set( cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, 480 )
-		self.camera_left.set( cv2.cv.CV_CAP_PROP_FPS, 5 )
-		self.camera_right.set( cv2.cv.CV_CAP_PROP_FPS, 5 )
-
-		# Timer for capture
-		self.timer = QtCore.QTimer( self )
-		self.timer.timeout.connect( self.QueryFrame )
-		self.timer.start( 1000 / 5 )
+		self.stereo_camera = StereoUsbCamera( self.ImageCallback )
+		self.stereo_camera.start()
 
 	#
 	# Capture frames and display them
 	#
-	def QueryFrame( self ) :
-
-		# Capture images
-		self.camera_left.grab()
-		self.camera_right.grab()
-
-		# Get the images
-		_, self.image_left = self.camera_left.retrieve()
-		_, self.image_right = self.camera_right.retrieve()
+	def ImageCallback( self, image_left, image_right ) :
 
 		# Copy images for display
-		image_left_displayed = np.array( self.image_left )
-		image_right_displayed = np.array( self.image_right )
+		image_left_displayed = np.array( image_left )
+		image_right_displayed = np.array( image_right )
 
 		# Preview the calibration chessboard on the image
 		if self.chessboard_enabled :
@@ -101,7 +142,7 @@ class StereoCameraWidget( QtGui.QLabel ) :
 		if self.rectification_enabled and self.calibration :
 
 			# Undistort the images according to the stereo camera calibration parameters
-			rectified_images = vtk.StereoRectification( self.calibration, self.image_left, self.image_right, True )
+			rectified_images = vtk.StereoRectification( self.calibration, image_left, image_right, True )
 
 			# Prepare image for display
 			stereo_image = np.concatenate( rectified_images, axis=1 )
@@ -111,7 +152,7 @@ class StereoCameraWidget( QtGui.QLabel ) :
 		elif self.disparity_enabled and self.calibration :
 
 			# Undistort the images according to the stereo camera calibration parameters
-			rectified_images = vtk.StereoRectification( self.calibration, self.image_left, self.image_right )
+			rectified_images = vtk.StereoRectification( self.calibration, image_left, image_right )
 			rectified_images = cv2.pyrDown( rectified_images[0] ), cv2.pyrDown( rectified_images[1] )
 
 			# Compute the disparity
@@ -135,9 +176,19 @@ class StereoCameraWidget( QtGui.QLabel ) :
 			stereo_image = np.concatenate( (image_left_displayed, image_right_displayed), axis=1 )
 			stereo_image = cv2.cvtColor( stereo_image, cv2.COLOR_BGR2RGB )
 
-		# Set the image
-		self.setPixmap( QtGui.QPixmap.fromImage( QtGui.QImage( stereo_image,
-			stereo_image.shape[1], stereo_image.shape[0], QtGui.QImage.Format_RGB888 ) ) )
+		# Update the image in the widget
+		self.update_image.emit( stereo_image )
+
+	#
+	# Display the image
+	#
+	def UpdateImage( self, image ) :
+
+		# Create a Qt image
+		qimage = QtGui.QImage( image, image.shape[1], image.shape[0], QtGui.QImage.Format_RGB888 )
+
+		# Set the image to the Qt widget
+		self.setPixmap( QtGui.QPixmap.fromImage( qimage ) )
 
 		# Update the widget
 		self.update()
@@ -148,9 +199,8 @@ class StereoCameraWidget( QtGui.QLabel ) :
 	def closeEvent( self, event ) :
 
 		# Stop image acquisition
-		self.timer.stop()
-		self.camera_left.release()
-		self.camera_right.release()
+		self.stereo_camera.running = False
+		self.stereo_camera.join()
 
 		# Close the widgets
 		self.pointcloud_viewer.close()
