@@ -18,59 +18,6 @@ import VisionToolkit as vt
 
 
 #
-# Thread to read images from two USB cameras
-#
-class StereoUsbCamera( threading.Thread ) :
-
-	#
-	# Initialisation
-	#
-	def __init__( self, image_callback ) :
-
-		# Initialize the thread
-		super( StereoUsbCamera, self ).__init__()
-
-		# Function called when the images are received
-		self.image_callback = image_callback
-
-		# Initialize the cameras
-		self.camera_left = cv2.VideoCapture( 0 )
-		self.camera_right = cv2.VideoCapture( 1 )
-
-		# Lower the camera frame rate and resolution
-		self.camera_left.set( cv2.cv.CV_CAP_PROP_FRAME_WIDTH, 640 )
-		self.camera_left.set( cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, 480 )
-		self.camera_right.set( cv2.cv.CV_CAP_PROP_FRAME_WIDTH, 640 )
-		self.camera_right.set( cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, 480 )
-		self.camera_left.set( cv2.cv.CV_CAP_PROP_FPS, 5 )
-		self.camera_right.set( cv2.cv.CV_CAP_PROP_FPS, 5 )
-
-	#
-	# Thread main loop
-	#
-	def run( self ) :
-
-		# Thread running
-		self.running = True
-		while self.running :
-
-			# Capture images
-			self.camera_left.grab()
-			self.camera_right.grab()
-
-			# Get the images
-			_, image_left = self.camera_left.retrieve()
-			_, image_right = self.camera_right.retrieve()
-
-			# Send the image via the external callback function
-			self.image_callback( image_left, image_right )
-
-		# Release the cameras
-		self.camera_left.release()
-		self.camera_right.release()
-
-
-#
 # Qt Widget to display the images from stereo cameras
 #
 class StereoCameraWidget( vt.CameraWidget ) :
@@ -104,7 +51,7 @@ class StereoCameraWidget( vt.CameraWidget ) :
 		self.X, self.Y = np.meshgrid( np.arange( 320 ), np.arange( 240 ) )
 
 		# Initialize the stereo cameras
-		self.stereo_camera = StereoUsbCamera( self.ImageCallback )
+		self.stereo_camera = vt.StereoUsbCamera( self.ImageCallback )
 		self.stereo_camera.start()
 
 	#

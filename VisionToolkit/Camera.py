@@ -2,7 +2,7 @@
 
 
 #
-# Module to display live images from a camera
+# Module to capture images from USB cameras
 #
 
 
@@ -11,74 +11,6 @@
 #
 import threading
 import cv2
-from PySide import QtCore
-from PySide import QtGui
-import VisionToolkit as vt
-from VisionToolkit import Vimba
-
-
-#
-# Qt Widget to display the images from an Allied Vision camera (through Vimba)
-#
-class VmbCameraWidget( vt.CameraWidget ) :
-
-	#
-	# Initialization
-	#
-	def __init__( self, camera_id, parent = None ) :
-
-		# Initialize the camera widget
-		super( VmbCameraWidget, self ).__init__( parent )
-
-		# Change the window title
-		self.setWindowTitle( 'Allied Vision Camera' )
-
-		# Fix the widget size
-		self.setFixedSize( 2452*0.3, 2056*0.3 )
-		self.setScaledContents( True )
-
-		# Set the Escape key to close the application
-		QtGui.QShortcut( QtGui.QKeySequence( QtCore.Qt.Key_Escape ), self ).activated.connect( self.close )
-
-		# Initialize the Vimba driver
-		Vimba.VmbStartup()
-
-		# Initialize the camera
-		self.camera = Vimba.VmbCamera( camera_id )
-
-		# Connect the camera
-		self.camera.Open()
-
-		# Start image acquisition
-		self.camera.StartCapture( self.ImageCallback )
-
-	#
-	# Receive the image sent by the camera
-	#
-	def ImageCallback( self, image ) :
-
-		# Convert color coding
-		image = cv2.cvtColor( image, cv2.COLOR_GRAY2RGB )
-
-		# Send the image to the widget through a signal
-		self.update_image.emit( image )
-
-	#
-	# Close the camera viewer
-	#
-	def closeEvent( self, event ) :
-
-		# Stop image acquisition
-		self.camera.StopCapture()
-
-		# Disconnect the camera
-		self.camera.Close()
-
-		# Shutdown Vimba
-		Vimba.VmbShutdown()
-
-		# Close the widget
-		event.accept()
 
 
 #
@@ -127,51 +59,53 @@ class UsbCamera( threading.Thread ) :
 
 
 #
-# Qt Widget to display the images from a USB camera
+# Thread to read images from two USB cameras
 #
-class UsbCameraWidget( vt.CameraWidget ) :
+class StereoUsbCamera( threading.Thread ) :
 
 	#
-	# Initialization
+	# Initialisation
 	#
-	def __init__( self, parent = None ) :
+	def __init__( self, image_callback ) :
 
-		# Initialize the camera widget
-		super( UsbCameraWidget, self ).__init__( parent )
+		# Initialize the thread
+		super( StereoUsbCamera, self ).__init__()
 
-		# Change the window title
-		self.setWindowTitle( 'USB Camera' )
+		# Function called when the images are received
+		self.image_callback = image_callback
 
-		# Fix the widget size
-		self.setFixedSize( 640, 480 )
-		self.setScaledContents( True )
+		# Initialize the cameras
+		self.camera_left = cv2.VideoCapture( 0 )
+		self.camera_right = cv2.VideoCapture( 1 )
 
-		# Set the Escape key to close the application
-		QtGui.QShortcut( QtGui.QKeySequence( QtCore.Qt.Key_Escape ), self ).activated.connect( self.close )
-
-		# Initialize the camera
-		self.camera = UsbCamera( self.ProcessImage )
-		self.camera.start()
-
-	#
-	# Process the image from the camera
-	#
-	def ProcessImage( self, image ) :
-
-		# Convert color coding
-		image = cv2.cvtColor( image, cv2.COLOR_BGR2RGB )
-
-		# Update the image in the widget
-		self.update_image.emit( image )
+		# Lower the camera frame rate and resolution
+		self.camera_left.set( cv2.cv.CV_CAP_PROP_FRAME_WIDTH, 640 )
+		self.camera_left.set( cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, 480 )
+		self.camera_right.set( cv2.cv.CV_CAP_PROP_FRAME_WIDTH, 640 )
+		self.camera_right.set( cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, 480 )
+		self.camera_left.set( cv2.cv.CV_CAP_PROP_FPS, 5 )
+		self.camera_right.set( cv2.cv.CV_CAP_PROP_FPS, 5 )
 
 	#
-	# Close the camera viewer
+	# Thread main loop
 	#
-	def closeEvent( self, event ) :
+	def run( self ) :
 
-		# Stop image acquisition
-		self.camera.running = False
-		self.camera.join()
+		# Thread running
+		self.running = True
+		while self.running :
 
-		# Close the widget
-		event.accept()
+			# Capture images
+			self.camera_left.grab()
+			self.camera_right.grab()
+
+			# Get the images
+			_, image_left = self.camera_left.retrieve()
+			_, image_right = self.camera_right.retrieve()
+
+			# Send the image via the external callback function
+			self.image_callback( image_left, image_right )
+
+		# Release the cameras
+		self.camera_left.release()
+		self.camera_right.release()
