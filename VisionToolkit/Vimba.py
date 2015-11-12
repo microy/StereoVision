@@ -7,6 +7,14 @@
 
 
 #
+# Inspired from :
+#
+#       - Pymba
+#         https://github.com/morefigs/pymba
+#
+
+
+#
 # External dependencies
 #
 import os

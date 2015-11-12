@@ -21,6 +21,7 @@ import VisionToolkit as vtk
 if __name__ == '__main__' :
 
 	application = QtGui.QApplication( sys.argv )
-	widget = vtk.VmbCameraWidget( '50-0503326223' )
+#	widget = vtk.VmbCameraWidget( '50-0503326223' )
+	widget = vtk.VmbCameraWidget( '50-0503323406' )
 	widget.show()
 	sys.exit( application.exec_() )
