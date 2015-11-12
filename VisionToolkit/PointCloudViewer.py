@@ -260,7 +260,7 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 		modelview_matrix = np.dot( self.trackball.transformation, self.modelview_matrix )
 
 		# Send the MVP matrix to the shader
-		gl.glUniformMatrix4fv( gl.glGetUniformLocation( self.shader, "MVP_Matrix" ),
+		gl.glUniformMatrix4fv( gl.glGetUniformLocation( self.shader, b'MVP_Matrix' ),
 			1, gl.GL_FALSE, np.dot( modelview_matrix, self.projection_matrix ) )
 
 		# Draw the mesh
