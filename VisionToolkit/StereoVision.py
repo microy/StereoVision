@@ -22,27 +22,6 @@ import VisionToolkit as vtk
 
 
 #
-# Main stereovision application
-#
-class StereoVision( QtGui.QApplication ) :
-
-	#
-	# Initialization
-	#
-	def __init__( self ) :
-
-		# Initialize parent class
-		super( StereoVision, self ).__init__( sys.argv )
-
-		# Show the stereovision widget
-		widget = StereoVisionWidget()
-		widget.show()
-
-		# Enter Qt main loop
-		sys.exit( self.exec_() )
-
-
-#
 # Stereovision user interface
 #
 class StereoVisionWidget( QtGui.QWidget ) :

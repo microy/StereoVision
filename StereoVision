@@ -1,8 +1,26 @@
 #! /usr/bin/env python
+# -*- coding:utf-8 -*-
+
 
 #
-# VisionToolkit start-up script
+# StereoVision application
 #
+
+
+#
+# External dependencies
+#
+import sys
+from PySide import QtGui
 import VisionToolkit as vtk
+
+
+#
+# Main application
+#
 if __name__ == '__main__' :
-	vtk.StereoVision()
+
+	application = QtGui.QApplication( sys.argv )
+	widget = vtk.StereoVisionWidget()
+	widget.show()
+	sys.exit( application.exec_() )
