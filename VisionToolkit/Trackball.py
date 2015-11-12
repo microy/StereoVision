@@ -1,4 +1,4 @@
-# -*- coding:utf-8 -*- 
+# -*- coding:utf-8 -*-
 
 
 #
@@ -155,7 +155,7 @@ class Trackball( object ) :
 
 		# Require a display update
 		return True
-	
+
 	#
 	# Map the mouse position onto a unit sphere
 	#
