@@ -18,7 +18,7 @@ import cv2
 import numpy as np
 from PySide import QtCore
 from PySide import QtGui
-import VisionToolkit as vtk
+import VisionToolkit as vt
 
 
 #
@@ -35,15 +35,15 @@ class StereoVisionWidget( QtGui.QWidget ) :
 		super( StereoVisionWidget, self ).__init__( parent )
 
 		# Load the calibration parameter file, if it exists
-		self.calibration = vtk.LoadCalibration()
+		self.calibration = vt.LoadCalibration()
 		if not self.calibration :
-			vtk.CreateCalibrationDirectory()
+			vt.CreateCalibrationDirectory()
 
 		# Set the window title
 		self.setWindowTitle( 'StereoVision' )
 
 		# Stereo camera widget
-		self.camera_widget = vtk.StereoCameraWidget( self, self.calibration )
+		self.camera_widget = vt.StereoCameraWidget( self, self.calibration )
 
 		# Widget elements
 		self.button_cross = QtGui.QPushButton( 'Cross', self )
@@ -68,10 +68,10 @@ class StereoVisionWidget( QtGui.QWidget ) :
 		self.button_reconstruction.setShortcut( 'F5' )
 		self.button_reconstruction.clicked.connect( self.Reconstruction )
 		self.spinbox_pattern_rows = QtGui.QSpinBox( self )
-		self.spinbox_pattern_rows.setValue( vtk.pattern_size[0] )
+		self.spinbox_pattern_rows.setValue( vt.pattern_size[0] )
 		self.spinbox_pattern_rows.valueChanged.connect( self.UpdatePatternSize )
 		self.spinbox_pattern_cols = QtGui.QSpinBox( self )
-		self.spinbox_pattern_cols.setValue( vtk.pattern_size[1] )
+		self.spinbox_pattern_cols.setValue( vt.pattern_size[1] )
 		self.spinbox_pattern_cols.valueChanged.connect( self.UpdatePatternSize )
 		self.button_save_images = QtGui.QPushButton( 'Save Images', self )
 		self.button_save_images.setShortcut( 'Space' )
@@ -133,7 +133,7 @@ class StereoVisionWidget( QtGui.QWidget ) :
 	def Calibration( self ) :
 
 		# Calibrate the stereo cameras
-		self.calibration = vtk.StereoCameraCalibration()
+		self.calibration = vt.StereoCameraCalibration()
 		self.camera_widget.calibration = self.calibration
 		self.button_calibration.setIcon( self.style().standardIcon( QtGui.QStyle.SP_DialogYesButton ) )
 
@@ -167,7 +167,7 @@ class StereoVisionWidget( QtGui.QWidget ) :
 	def UpdatePatternSize( self, _ ) :
 
 		# Get the calibration pattern dimensions
-		vtk.pattern_size = ( self.spinbox_pattern_rows.value(), self.spinbox_pattern_cols.value() )
+		vt.pattern_size = ( self.spinbox_pattern_rows.value(), self.spinbox_pattern_cols.value() )
 
 	#
 	# Save the stereo images
@@ -178,21 +178,18 @@ class StereoVisionWidget( QtGui.QWidget ) :
 		current_time = time.strftime( '%Y%m%d_%H%M%S' )
 		print( 'Save images {} to disk...'.format(current_time) )
 		if self.camera_widget.chessboard_enabled :
-			cv2.imwrite( '{}/left-{}.png'.format(vtk.calibration_directory, current_time), self.camera_widget.image_left )
-			cv2.imwrite( '{}/right-{}.png'.format(vtk.calibration_directory, current_time), self.camera_widget.image_right )
+			cv2.imwrite( '{}/left-{}.png'.format(vt.calibration_directory, current_time), self.camera_widget.image_left )
+			cv2.imwrite( '{}/right-{}.png'.format(vt.calibration_directory, current_time), self.camera_widget.image_right )
 		else :
 			cv2.imwrite( 'left-{}.png'.format(current_time), self.camera_widget.image_left )
 			cv2.imwrite( 'right-{}.png'.format(current_time), self.camera_widget.image_right )
 
 	#
-	# Save the stereo images
+	# Save the mesh obtained from the disparity
 	#
 	def SaveMesh( self ) :
 
-	#	import MeshToolkit
-	#	mesh = MeshToolkit.Core.Mesh( 'Stereo', self.camera_widget.coordinates, self.faces, self.camera_widget.colors )
-	#	MeshToolkit.File.Ply.WritePly( mesh, 'mesh-{}.ply'.format( time.strftime( '%Y%m%d_%H%M%S' ) ) )
-		pass
+		vt.WritePly( 'stereo.ply', self.camera_widget.coordinates, self.camera_widget.colors )
 
 	#
 	# Close the camera widget
