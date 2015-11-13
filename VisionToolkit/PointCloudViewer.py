@@ -16,7 +16,7 @@ import PySide as Qt
 from PySide import QtCore
 from PySide import QtGui
 from PySide import QtOpenGL
-import VisionToolkit as vtk
+import VisionToolkit as vt
 
 
 #
@@ -71,11 +71,11 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 		# Track mouse events
 		self.setMouseTracking( True )
 
-		# Change the widget position and size
+		# Change the widget position and size
 		self.setGeometry( 100, 100, 1024, 768 )
 
 		# Trackball for smooth manipulation
-		self.trackball = vtk.Trackball()
+		self.trackball = vt.Trackball()
 
 		# Set the Escape key to close the application
 		QtGui.QShortcut( QtGui.QKeySequence( QtCore.Qt.Key_Escape ), self ).activated.connect( self.close )
@@ -119,13 +119,13 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 		gl.glCompileShader( fragment_shader )
 
 		# Load the shaders
-		shader = gl.glCreateProgram()
-		gl.glAttachShader( shader, vertex_shader )
-		gl.glAttachShader( shader, fragment_shader )
-		gl.glLinkProgram( shader )
-		gl.glUseProgram( shader )
-		gl.glDetachShader( shader, vertex_shader )
-		gl.glDetachShader( shader, fragment_shader )
+		self.shader = gl.glCreateProgram()
+		gl.glAttachShader( self.shader, vertex_shader )
+		gl.glAttachShader( self.shader, fragment_shader )
+		gl.glLinkProgram( self.shader )
+		gl.glUseProgram( self.shader )
+		gl.glDetachShader( self.shader, vertex_shader )
+		gl.glDetachShader( self.shader, fragment_shader )
 		gl.glDeleteShader( vertex_shader )
 		gl.glDeleteShader( fragment_shader )
 
@@ -135,14 +135,14 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 		# Initialise Model-View transformation matrix
 		self.modelview_matrix = np.identity( 4, dtype=np.float32 )
 
-		# Position the scene (camera)
+		# Position the scene (camera)
 		self.modelview_matrix[3,2] = -30.0
 
 		# Initialise viewing parameters
 		self.point_cloud_loaded = False
 		self.antialiasing = True
 
-		# Vertex array object
+		# Vertex array object
 		self.vertex_array_id = gl.glGenVertexArrays( 1 )
 		gl.glBindVertexArray( self.vertex_array_id )
 
@@ -221,14 +221,14 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 	#
 	def Close( self ) :
 
-		# Need to initialise ?
+		# Need to initialise ?
 		if not self.point_cloud_loaded : return
 
-		# Delete buffer objects
+		# Delete buffer objects
 		gl.glDeleteBuffers( 1, np.array([ self.vertex_buffer_id ]) )
 		gl.glDeleteBuffers( 1, np.array([ self.color_buffer_id ]) )
 
-		# Initialise the model parameters
+		# Initialise the model parameters
 		self.point_cloud_loaded = False
 
 	#
@@ -263,7 +263,7 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 		gl.glUniformMatrix4fv( gl.glGetUniformLocation( self.shader, b'MVP_Matrix' ),
 			1, gl.GL_FALSE, np.dot( modelview_matrix, self.projection_matrix ) )
 
-		# Draw the mesh
+		# Draw the mesh
 		gl.glDrawArrays( gl.GL_POINTS, 0, 153600 )
 
 	#
@@ -274,7 +274,7 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 		# Resize the viewport
 		gl.glViewport( 0, 0, width, height )
 
-		# Resize the trackball
+		# Resize the trackball
 		self.trackball.Resize( width, height )
 
 		# Compute perspective projection matrix
@@ -285,10 +285,10 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 	#
 	def mousePressEvent( self, mouseEvent ) :
 
-		# Left button
+		# Left button
 		if int( mouseEvent.buttons() ) & QtCore.Qt.LeftButton : button = 1
 
-		# Right button
+		# Right button
 		elif int( mouseEvent.buttons() ) & QtCore.Qt.RightButton : button = 2
 
 		# Unmanaged
@@ -324,7 +324,7 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 		# Get the mouse wheel delta
 		delta = event.delta()
 
-		# Normalize the wheel delta
+		# Normalize the wheel delta
 		delta = delta and delta // abs( delta )
 
 		# Update the trackball
