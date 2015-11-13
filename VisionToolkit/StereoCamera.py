@@ -50,38 +50,20 @@ class StereoCameraWidget( vt.CameraWidget ) :
 		self.X, self.Y = np.meshgrid( np.arange( 320 ), np.arange( 240 ) )
 
 		# Initialize the stereo cameras
-		self.camera_left = cv2.VideoCapture( 0 )
-		self.camera_right = cv2.VideoCapture( 1 )
-
-		# Lower the camera frame rate
-		self.camera_left.set( cv2.cv.CV_CAP_PROP_FRAME_WIDTH, 640 )
-		self.camera_left.set( cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, 480 )
-		self.camera_right.set( cv2.cv.CV_CAP_PROP_FRAME_WIDTH, 640 )
-		self.camera_right.set( cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, 480 )
-		self.camera_left.set( cv2.cv.CV_CAP_PROP_FPS, 5 )
-		self.camera_right.set( cv2.cv.CV_CAP_PROP_FPS, 5 )
-
-		# Timer for capture
-		self.timer = QtCore.QTimer( self )
-		self.timer.timeout.connect( self.QueryFrame )
-		self.timer.start( 1000 / 5 )
+		self.stereo_camera = vt.StereoUsbCamera( self.ImageCallback )
+		self.stereo_camera.start()
 
 	#
-	# Capture frames and display them
+	# Receive the images from the cameras, and process them
 	#
-	def QueryFrame( self ) :
+	def ImageCallback( self, image_left, image_right ) :
 
-		# Capture images
-		self.camera_left.grab()
-		self.camera_right.grab()
-
-		# Get the images
-		_, self.image_left = self.camera_left.retrieve()
-		_, self.image_right = self.camera_right.retrieve()
+		self.image_left = image_left
+		self.image_right = image_right
 
 		# Copy images for display
-		image_left_displayed = np.array( self.image_left )
-		image_right_displayed = np.array( self.image_right )
+		image_left_displayed = np.array( image_left )
+		image_right_displayed = np.array( image_right )
 
 		# Preview the calibration chessboard on the image
 		if self.chessboard_enabled :
@@ -101,7 +83,7 @@ class StereoCameraWidget( vt.CameraWidget ) :
 		if self.rectification_enabled and self.calibration :
 
 			# Undistort the images according to the stereo camera calibration parameters
-			rectified_images = vt.StereoRectification( self.calibration, self.image_left, self.image_right, True )
+			rectified_images = vt.StereoRectification( self.calibration, image_left, image_right, True )
 
 			# Prepare image for display
 			stereo_image = np.concatenate( rectified_images, axis=1 )
@@ -111,7 +93,7 @@ class StereoCameraWidget( vt.CameraWidget ) :
 		elif self.disparity_enabled and self.calibration :
 
 			# Undistort the images according to the stereo camera calibration parameters
-			rectified_images = vt.StereoRectification( self.calibration, self.image_left, self.image_right )
+			rectified_images = vt.StereoRectification( self.calibration, image_left, image_right )
 			rectified_images = cv2.pyrDown( rectified_images[0] ), cv2.pyrDown( rectified_images[1] )
 
 			# Compute the disparity
@@ -126,7 +108,7 @@ class StereoCameraWidget( vt.CameraWidget ) :
 			self.coordinates[:,1] = -self.coordinates[:,1]
 			self.colors = np.array( cv2.cvtColor( rectified_images[0], cv2.COLOR_BGR2RGB ), dtype=np.float32 ) / 255
 			self.colors = self.colors.reshape(-1, 3)
-			self.pointcloud_viewer.LoadPointCloud( self.coordinates, self.colors )
+			self.pointcloud_viewer.update_pointcloud.emit( self.coordinates, self.colors )
 
 		# Or display the stereo images
 		else :
@@ -139,14 +121,13 @@ class StereoCameraWidget( vt.CameraWidget ) :
 		self.update_image.emit( stereo_image )
 
 	#
-	# Close the camera viewer
+	# Close the widget
 	#
 	def closeEvent( self, event ) :
 
 		# Stop image acquisition
-		self.timer.stop()
-		self.camera_left.release()
-		self.camera_right.release()
+		self.stereo_camera.running = False
+		self.stereo_camera.join()
 
 		# Close the widgets
 		self.pointcloud_viewer.close()

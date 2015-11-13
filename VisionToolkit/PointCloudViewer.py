@@ -26,6 +26,11 @@ import VisionToolkit as vt
 class PointCloudViewer( QtOpenGL.QGLWidget ) :
 
 	#
+	# Signal sent to update the point cloud in the widget
+	#
+	update_pointcloud = QtCore.Signal( np.ndarray, np.ndarray )
+
+	#
 	# Vertex shader
 	#
 	vertex_shader_source = '''#version 330 core
@@ -67,6 +72,9 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 
 		# Initialise QGLWidget with multisampling enabled and OpenGL 3 core only
 		super( PointCloudViewer, self ).__init__( QtOpenGL.QGLFormat( QtOpenGL.QGL.SampleBuffers | QtOpenGL.QGL.NoDeprecatedFunctions ), parent )
+
+		# Connect the signal to update the point cloud
+		self.update_pointcloud.connect( self.UpdatePointCloud )
 
 		# Track mouse events
 		self.setMouseTracking( True )
@@ -161,9 +169,9 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 	#	gl.glVertexAttribPointer( 1, 3, gl.GL_FLOAT, gl.GL_FALSE, 0, None )
 
 	#
-	# Load the mesh for display
+	# Load the point cloud for display
 	#
-	def LoadPointCloud( self, coordinates, colors ) :
+	def UpdatePointCloud( self, coordinates, colors ) :
 
 		# Close previous mesh
 		self.Close()
