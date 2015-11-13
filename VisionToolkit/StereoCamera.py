@@ -58,6 +58,9 @@ class StereoCameraWidget( vt.CameraWidget ) :
 	#
 	def ImageCallback( self, image_left, image_right ) :
 
+		self.image_left = image_left
+		self.image_right = image_right
+
 		# Copy images for display
 		image_left_displayed = np.array( image_left )
 		image_right_displayed = np.array( image_right )
