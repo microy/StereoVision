@@ -19,7 +19,6 @@
 #
 import os
 import time
-import threading
 import ctypes as ct
 import numpy as np
 
@@ -98,6 +97,14 @@ class VmbFrame( ct.Structure ) :
 
 		return np.ndarray( buffer=self.buffer[ 0 : self.bufferSize ], dtype=np.uint8, shape=( self.height, self.width ) )
 
+	#
+	# Tell if the frame is valid
+	#
+	@property
+	def is_valid( self ) :
+
+		return not self.receiveStatus
+
 
 #
 # Vimba camera
@@ -146,13 +153,13 @@ class VmbCamera( object ) :
 	#
 	# Start the acquisition
 	#
-	def StartCapture( self, image_callback, frame_buffer_size = 10 ) :
+	def StartCapture( self, frame_callback, frame_buffer_size = 10 ) :
 
 		# Register the external image callback function
-		self.image_callback = image_callback
+		self.frame_callback = frame_callback
 
 		# Register the internal frame callback function
-		self.frame_callback = ct.CFUNCTYPE( None, ct.c_void_p, ct.POINTER(VmbFrame) )( self.FrameCallback )
+		self.vmb_frame_callback = ct.CFUNCTYPE( None, ct.c_void_p, ct.POINTER(VmbFrame) )( self.VmbFrameCallback )
 
 		# Initialize frame buffer
 		self.frame_buffer = []
@@ -168,7 +175,7 @@ class VmbCamera( object ) :
 
 		# Queue the frames
 		for i in range( frame_buffer_size ) :
-			vimba.VmbCaptureFrameQueue( self.handle, ct.byref(self.frame_buffer[i]), self.frame_callback )
+			vimba.VmbCaptureFrameQueue( self.handle, ct.byref(self.frame_buffer[i]), self.vmb_frame_callback )
 
 		# Start acquisition
 		vimba.VmbFeatureCommandRun( self.handle, 'AcquisitionStart' )
@@ -191,18 +198,15 @@ class VmbCamera( object ) :
 		vimba.VmbFrameRevokeAll( self.handle )
 
 	#
-	# Frame callback function called by Vimba
+	# Function called by Vimba to receive the frame
 	#
-	def FrameCallback( self, camera, frame ) :
+	def VmbFrameCallback( self, camera, frame ) :
 
-		# Check frame validity
-		if not frame.contents.receiveStatus :
-
-			# Call external image callback function
-			self.image_callback( frame.contents.image )
+		# Call external frame callback function
+		self.frame_callback( frame.contents )
 
 		# Requeue the frame so it can be filled again
-		vimba.VmbCaptureFrameQueue( camera, frame, self.frame_callback )
+		vimba.VmbCaptureFrameQueue( camera, frame, self.vmb_frame_callback )
 
 
 #
@@ -240,18 +244,18 @@ class VmbStereoCamera( object ) :
 	#
 	# Start synchronous acquisition
 	#
-	def StartCapture( self, image_callback ) :
+	def StartCapture( self, frame_callback ) :
 
 		# Register the external image callback function
-		self.image_callback = image_callback
+		self.frame_callback = frame_callback
 
 		# Initialize frame status
-		self.image_left_ready = False
-		self.image_right_ready = False
+		self.frame_left_ready = False
+		self.frame_right_ready = False
 
 		# Start acquisition
-		self.camera_left.StartCapture( self.ImageCallbackLeft )
-		self.camera_right.StartCapture( self.ImageCallbackRight )
+		self.camera_left.StartCapture( self.FrameCallbackLeft )
+		self.camera_right.StartCapture( self.FrameCallbackRight )
 
 	#
 	# Stop the acquisition
@@ -265,13 +269,16 @@ class VmbStereoCamera( object ) :
 	#
 	# Receive a frame from camera left
 	#
-	def ImageCallbackLeft( self, image ) :
+	def FrameCallbackLeft( self, frame ) :
+
+		# Check frame status
+		if not frame.is_valid : return
 
 		# Save the current frame
-		self.image_left = image
+		self.frame_left = frame
 
 		# Frame ready
-		self.image_left_ready = True
+		self.frame_left_ready = True
 
 		# Synchronize the frames
 		self.Synchronize()
@@ -279,13 +286,16 @@ class VmbStereoCamera( object ) :
 	#
 	# Receive a frame from camera right
 	#
-	def ImageCallbackRight( self, image ) :
+	def FrameCallbackRight( self, image ) :
+
+		# Check frame status
+		if not frame.is_valid : return
 
 		# Save the current frame
-		self.image_right = image
+		self.frame_right = frame
 
 		# Frame ready
-		self.image_right_ready = True
+		self.frame_right_ready = True
 
 		# Synchronize the frames
 		self.Synchronize()
@@ -296,11 +306,11 @@ class VmbStereoCamera( object ) :
 	def Synchronize( self ) :
 
 		# Wait for both images
-		if self.image_left_ready and self.image_right_ready :
+		if self.frame_left_ready and self.frame_right_ready :
 
 			# Send the images to the external program
-			self.image_callback( self.image_left, self.image_right )
+			self.frame_callback( self.frame_left, self.frame_right )
 
 			# Initialize image status
-			self.image_left_ready = False
-			self.image_right_ready = False
+			self.frame_left_ready = False
+			self.frame_right_ready = False

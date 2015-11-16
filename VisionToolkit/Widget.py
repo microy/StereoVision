@@ -136,15 +136,18 @@ class VmbCameraWidget( CameraWidget ) :
 		self.camera.Open()
 
 		# Start image acquisition
-		self.camera.StartCapture( self.ImageCallback )
+		self.camera.StartCapture( self.FrameCallback )
 
 	#
-	# Receive the image sent by the camera
+	# Receive the frame sent by the camera
 	#
-	def ImageCallback( self, image ) :
+	def FrameCallback( self, frame ) :
 
-		# Convert color coding
-		image = cv2.cvtColor( image, cv2.COLOR_GRAY2RGB )
+		# Check frame status
+		if not frame.is_valid : return
+
+		# Convert the frame and its color coding
+		image = cv2.cvtColor( frame.image, cv2.COLOR_GRAY2RGB )
 
 		# Send the image to the widget through a signal
 		self.update_image.emit( image )
