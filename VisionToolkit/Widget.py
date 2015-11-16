@@ -168,3 +168,109 @@ class VmbCameraWidget( CameraWidget ) :
 
 		# Close the widget
 		event.accept()
+
+#
+# Qt Widget to display the images from two Allied Vision cameras (through Vimba)
+#
+class VmbStereoCameraWidget( CameraWidget ) :
+
+	#
+	# Initialization
+	#
+	def __init__( self, camera_left_id, camera_right_id, parent = None ) :
+
+		# Initialize the camera widget
+		super( VmbCameraWidget, self ).__init__( parent )
+
+		# Change the window title
+		self.setWindowTitle( 'Allied Vision Stereo Camera' )
+
+		# Fix the widget size
+		self.setFixedSize( 2452*0.15, 2056*0.3 )
+		self.setScaledContents( True )
+
+		# Initialize the viewing parameters
+		self.chessboard_enabled = False
+		self.cross_enabled = False
+
+		# Set the Escape key to close the application
+		QtGui.QShortcut( QtGui.QKeySequence( QtCore.Qt.Key_Escape ), self ).activated.connect( self.close )
+
+		# Set the Space key to toggle the chessboard preview
+		QtGui.QShortcut( QtGui.QKeySequence( QtCore.Qt.Key_Space ), self ).activated.connect( self.ToggleChessboard )
+
+		# Set the Space key to toggle the cross preview
+		QtGui.QShortcut( QtGui.QKeySequence( QtCore.Qt.Key_C ), self ).activated.connect( self.ToggleCross )
+
+		# Initialize the Vimba driver
+		vt.VmbStartup()
+
+		# Initialize the stereo cameras
+		self.camera = vt.VmbStereoCamera( camera_left_id, camera_right_id )
+
+		# Connect the cameras
+		self.camera.Open()
+
+		# Start image acquisition
+		self.camera.StartCapture( self.FrameCallback )
+
+	#
+	# Receive the frame sent by the camera
+	#
+	def FrameCallback( self, frame_left, frame_right ) :
+
+		# Copy images for display
+		self.image_left = frame_left.image
+		self.image_right = frame_right.image
+
+		# Preview the calibration chessboard on the image
+		if self.chessboard_enabled :
+			self.image_left = vt.PreviewChessboard( self.image_left )
+			self.image_right = vt.PreviewChessboard( self.image_right )
+
+		# Display a cross in the middle of the image
+		if self.cross_enabled :
+			cv2.rectangle( self.image_left, (220, 100), (420, 380), (0, 255, 0), 2 )
+			cv2.rectangle( self.image_right, (220, 100), (420, 380), (0, 255, 0), 2 )
+			cv2.line( self.image_left, (320, 0), (320, 480), (0, 0, 255), 2 )
+			cv2.line( self.image_right, (0, 240), (640, 240), (0, 0, 255), 2 )
+			cv2.line( self.image_left, (320, 0), (320, 480), (0, 0, 255), 2 )
+			cv2.line( self.image_right, (0, 240), (640, 240), (0, 0, 255), 2 )
+
+		# Prepare image for display
+		stereo_image = np.concatenate( ( self.image_left, self.image_right ), axis=1 )
+		stereo_image = cv2.cvtColor( stereo_image, cv2.COLOR_BGR2RGB )
+
+		# Send the image to the widget through a signal
+		self.update_image.emit( stereo_image )
+
+	#
+	# Toggle the chessboard preview
+	#
+	def ToggleChessboard( self ) :
+
+		self.chessboard_enabled = not self.chessboard_enabled
+
+	#
+	# Toggle the chessboard preview
+	#
+	def ToggleCross( self ) :
+
+		self.cross_enabled = not self.cross_enabled
+
+	#
+	# Close the camera viewer
+	#
+	def closeEvent( self, event ) :
+
+		# Stop image acquisition
+		self.camera.StopCapture()
+
+		# Disconnect the camera
+		self.camera.Close()
+
+		# Shutdown Vimba
+		vt.VmbShutdown()
+
+		# Close the widget
+		event.accept()
