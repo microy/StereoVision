@@ -155,7 +155,7 @@ class VmbCamera( object ) :
 	#
 	def StartCapture( self, frame_callback, frame_buffer_size = 10 ) :
 
-		# Register the external image callback function
+		# Register the external frame callback function
 		self.frame_callback = frame_callback
 
 		# Register the internal frame callback function
@@ -253,6 +253,10 @@ class VmbStereoCamera( object ) :
 		self.frame_left_ready = False
 		self.frame_right_ready = False
 
+		# Reset the camera timestamp
+		vimba.VmbFeatureCommandRun( self.camera_left.handle, "GevTimestampControlReset" )
+		vimba.VmbFeatureCommandRun( self.camera_right.handle, "GevTimestampControlReset" )
+
 		# Start acquisition
 		self.camera_left.StartCapture( self.FrameCallbackLeft )
 		self.camera_right.StartCapture( self.FrameCallbackRight )
@@ -286,7 +290,7 @@ class VmbStereoCamera( object ) :
 	#
 	# Receive a frame from camera right
 	#
-	def FrameCallbackRight( self, image ) :
+	def FrameCallbackRight( self, frame ) :
 
 		# Check frame status
 		if not frame.is_valid : return
@@ -307,6 +311,9 @@ class VmbStereoCamera( object ) :
 
 		# Wait for both images
 		if self.frame_left_ready and self.frame_right_ready :
+
+			# Check frame timestamp difference
+			print( abs( self.frame_left.timestamp - self.frame_right.timestamp ) )
 
 			# Send the images to the external program
 			self.frame_callback( self.frame_left, self.frame_right )
