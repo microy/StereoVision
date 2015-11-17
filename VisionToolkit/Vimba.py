@@ -220,11 +220,6 @@ class VmbStereoCamera( object ) :
 	#
 	def __init__( self, camera_left_id, camera_right_id ) :
 
-		# Get time function
-		if sys.version_info[0] < 3 :
-			self.time = time.clock
-		else : self.time = time.perf_counter
-
 		# Camera connection
 		self.camera_left = VmbCamera( camera_left_id )
 		self.camera_right = VmbCamera( camera_right_id )
@@ -256,12 +251,8 @@ class VmbStereoCamera( object ) :
 		self.frame_callback = frame_callback
 
 		# Initialize frame status
-		self.frame_left_ready = False
-		self.frame_right_ready = False
-
-		# Reset the camera timestamp
-		vimba.VmbFeatureCommandRun( self.camera_left.handle, "GevTimestampControlReset" )
-		vimba.VmbFeatureCommandRun( self.camera_right.handle, "GevTimestampControlReset" )
+		self.frame_left_time = 0
+		self.frame_right_time = 0
 
 		# Start acquisition
 		self.camera_left.StartCapture( self.FrameCallbackLeft )
@@ -285,13 +276,10 @@ class VmbStereoCamera( object ) :
 		if not frame.is_valid : return
 
 		# Frame time
-		self.frame_left_time = self.time()
+		self.frame_left_time = time.time()
 
 		# Save the current frame
 		self.frame_left = frame
-
-		# Frame ready
-		self.frame_left_ready = True
 
 		# Synchronize the frames
 		self.Synchronize()
@@ -305,13 +293,10 @@ class VmbStereoCamera( object ) :
 		if not frame.is_valid : return
 
 		# Frame time
-		self.frame_right_time = self.time()
+		self.frame_right_time = time.time()
 
 		# Save the current frame
 		self.frame_right = frame
-
-		# Frame ready
-		self.frame_right_ready = True
 
 		# Synchronize the frames
 		self.Synchronize()
@@ -322,17 +307,14 @@ class VmbStereoCamera( object ) :
 	def Synchronize( self ) :
 
 		# Wait for both images
-		if self.frame_left_ready and self.frame_right_ready :
+		if self.frame_left_time and self.frame_right_time :
 
 			# Check frame time difference
-			print( 'Frame IDs : {} + {} - Timestamp diff : {} - Time diff : {}'.format(
-				self.frame_left.frameID, self.frame_right.frameID,
-				abs( self.frame_left.timestamp - self.frame_right.timestamp ),
-				abs( self.frame_left_time - self.frame_right_time )  )
+			if abs( self.frame_left_time - self.frame_right_time ) < 0.01 :
 
-			# Send the images to the external program
-			self.frame_callback( self.frame_left, self.frame_right )
+				# Send the images to the external program
+				self.frame_callback( self.frame_left, self.frame_right )
 
 			# Initialize image status
-			self.frame_left_ready = False
-			self.frame_right_ready = False
+			self.frame_left_time = 0
+			self.frame_right_time = 0
