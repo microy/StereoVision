@@ -180,13 +180,13 @@ class VmbStereoCameraWidget( CameraWidget ) :
 	def __init__( self, camera_left_id, camera_right_id, parent = None ) :
 
 		# Initialize the camera widget
-		super( VmbCameraWidget, self ).__init__( parent )
+		super( VmbStereoCameraWidget, self ).__init__( parent )
 
 		# Change the window title
 		self.setWindowTitle( 'Allied Vision Stereo Camera' )
 
 		# Fix the widget size
-		self.setFixedSize( 2452*0.15, 2056*0.3 )
+		self.setFixedSize( 2452*0.5, 2056*0.25 )
 		self.setScaledContents( True )
 
 		# Initialize the viewing parameters
@@ -239,7 +239,7 @@ class VmbStereoCameraWidget( CameraWidget ) :
 
 		# Prepare image for display
 		stereo_image = np.concatenate( ( self.image_left, self.image_right ), axis=1 )
-		stereo_image = cv2.cvtColor( stereo_image, cv2.COLOR_BGR2RGB )
+		stereo_image = cv2.cvtColor( stereo_image, cv2.COLOR_GRAY2RGB )
 
 		# Send the image to the widget through a signal
 		self.update_image.emit( stereo_image )
