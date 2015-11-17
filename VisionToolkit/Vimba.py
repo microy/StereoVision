@@ -272,9 +272,6 @@ class VmbStereoCamera( object ) :
 	#
 	def FrameCallbackLeft( self, frame ) :
 
-		# Check frame status
-		if not frame.is_valid : return
-
 		# Frame time
 		self.frame_left_time = time.time()
 
@@ -288,9 +285,6 @@ class VmbStereoCamera( object ) :
 	# Receive a frame from camera right
 	#
 	def FrameCallbackRight( self, frame ) :
-
-		# Check frame status
-		if not frame.is_valid : return
 
 		# Frame time
 		self.frame_right_time = time.time()
@@ -309,12 +303,14 @@ class VmbStereoCamera( object ) :
 		# Wait for both images
 		if self.frame_left_time and self.frame_right_time :
 
+			print( '{}({}) - {}({}) - {}'.format( self.frame_left.frameID, self.frame_left.receiveStatus, self.frame_right.frameID, self.frame_right.receiveStatus, abs( self.frame_left_time - self.frame_right_time ) ) )
+
 			# Check frame time difference
-			if abs( self.frame_left_time - self.frame_right_time ) < 0.01 :
+			if self.frame_left.is_valid and self.frame_right.is_valid : # and abs( self.frame_left_time - self.frame_right_time ) < 0.01 :
 
 				# Send the images to the external program
 				self.frame_callback( self.frame_left, self.frame_right )
 
-			# Initialize image status
-			self.frame_left_time = 0
-			self.frame_right_time = 0
+				# Initialize image status
+				self.frame_left_time = 0
+				self.frame_right_time = 0

@@ -172,7 +172,12 @@ class VmbCameraWidget( CameraWidget ) :
 #
 # Qt Widget to display the images from two Allied Vision cameras (through Vimba)
 #
-class VmbStereoCameraWidget( CameraWidget ) :
+class VmbStereoCameraWidget( QtGui.QLabel ) :
+
+	#
+	# Signal sent to update the image in the widget
+	#
+	update_image = QtCore.Signal()
 
 	#
 	# Initialization
@@ -181,6 +186,9 @@ class VmbStereoCameraWidget( CameraWidget ) :
 
 		# Initialize the camera widget
 		super( VmbStereoCameraWidget, self ).__init__( parent )
+
+		# Connect the signal to update the image
+		self.update_image.connect( self.UpdateImage )
 
 		# Change the window title
 		self.setWindowTitle( 'Allied Vision Stereo Camera' )
@@ -219,30 +227,31 @@ class VmbStereoCameraWidget( CameraWidget ) :
 	#
 	def FrameCallback( self, frame_left, frame_right ) :
 
+
 		# Copy images for display
 		self.image_left = frame_left.image
 		self.image_right = frame_right.image
 
-		# Preview the calibration chessboard on the image
-		if self.chessboard_enabled :
-			self.image_left = vt.PreviewChessboard( self.image_left )
-			self.image_right = vt.PreviewChessboard( self.image_right )
+		# Send the image to the widget through a signal
+		self.update_image.emit()
 
-		# Display a cross in the middle of the image
-		if self.cross_enabled :
-			cv2.rectangle( self.image_left, (220, 100), (420, 380), (0, 255, 0), 2 )
-			cv2.rectangle( self.image_right, (220, 100), (420, 380), (0, 255, 0), 2 )
-			cv2.line( self.image_left, (320, 0), (320, 480), (0, 0, 255), 2 )
-			cv2.line( self.image_right, (0, 240), (640, 240), (0, 0, 255), 2 )
-			cv2.line( self.image_left, (320, 0), (320, 480), (0, 0, 255), 2 )
-			cv2.line( self.image_right, (0, 240), (640, 240), (0, 0, 255), 2 )
+	#
+	# Update the image in the widget
+	#
+	def UpdateImage( self ) :
 
 		# Prepare image for display
-		stereo_image = np.concatenate( ( self.image_left, self.image_right ), axis=1 )
-		stereo_image = cv2.cvtColor( stereo_image, cv2.COLOR_GRAY2RGB )
+	#	stereo_image = np.concatenate( ( self.image_left, self.image_right ), axis=1 )
+	#	stereo_image = cv2.cvtColor( stereo_image, cv2.COLOR_GRAY2RGB )
 
-		# Send the image to the widget through a signal
-		self.update_image.emit( stereo_image )
+		# Create a Qt image
+	#	qimage = QtGui.QImage( stereo_image, stereo_image.shape[1], stereo_image.shape[0], QtGui.QImage.Format_RGB888 )
+
+		# Set the image to the Qt widget
+	#	self.setPixmap( QtGui.QPixmap.fromImage( qimage ) )
+
+		# Update the widget
+		self.update()
 
 	#
 	# Toggle the chessboard preview
