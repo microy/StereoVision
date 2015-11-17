@@ -9,20 +9,14 @@ int trigger = 13;
 boolean running = false;
 int button_state;
 int last_button_state = LOW;
-
-// 5 Hz
 int high_duration = 10;
-int low_duration = 190;
-
-// 9 Hz
-//int high_duration = 10;
-//int low_duration = 101;
+int low_duration = 190; // 5Hz
+//int low_duration = 101; // 9Hz
 
 // Arduino setup
 void setup() {
-  // Input signal
+  // Input-Output signals
   pinMode( button, INPUT );
-  // Output signal
   pinMode( trigger, OUTPUT );
 }
 
