@@ -18,6 +18,7 @@
 # External dependencies
 #
 import os
+import sys
 import time
 import ctypes as ct
 import numpy as np
@@ -219,6 +220,11 @@ class VmbStereoCamera( object ) :
 	#
 	def __init__( self, camera_left_id, camera_right_id ) :
 
+		# Get time function
+		if sys.version_info[0] < 3 :
+			self.time = time.clock
+		else : self.time = time.perf_counter
+
 		# Camera connection
 		self.camera_left = VmbCamera( camera_left_id )
 		self.camera_right = VmbCamera( camera_right_id )
@@ -278,6 +284,9 @@ class VmbStereoCamera( object ) :
 		# Check frame status
 		if not frame.is_valid : return
 
+		# Frame time
+		self.frame_left_time = self.time()
+
 		# Save the current frame
 		self.frame_left = frame
 
@@ -294,6 +303,9 @@ class VmbStereoCamera( object ) :
 
 		# Check frame status
 		if not frame.is_valid : return
+
+		# Frame time
+		self.frame_right_time = self.time()
 
 		# Save the current frame
 		self.frame_right = frame
@@ -312,8 +324,11 @@ class VmbStereoCamera( object ) :
 		# Wait for both images
 		if self.frame_left_ready and self.frame_right_ready :
 
-			# Check frame timestamp difference
-			print( abs( self.frame_left.timestamp - self.frame_right.timestamp ) )
+			# Check frame time difference
+			print( 'Frame IDs : {} + {} - Timestamp diff : {} - Time diff : {}'.format(
+				self.frame_left.frameID, self.frame_right.frameID,
+				abs( self.frame_left.timestamp - self.frame_right.timestamp ),
+				abs( self.frame_left_time - self.frame_right_time )  )
 
 			# Send the images to the external program
 			self.frame_callback( self.frame_left, self.frame_right )
