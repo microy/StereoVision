@@ -1,16 +1,22 @@
 
 //
-// Generate a 9Hz signal to trigger camera and lightning
+// Generate a signal to trigger camera and lightning
 //
 
 // Setup
 int button = 7;
 int trigger = 13;
-int high_duration = 11;
-int low_duration = 100;
 boolean running = false;
 int button_state;
 int last_button_state = LOW;
+
+// 5 Hz
+int high_duration = 10;
+int low_duration = 190;
+
+// 9 Hz
+//int high_duration = 10;
+//int low_duration = 101;
 
 // Arduino setup
 void setup() {
