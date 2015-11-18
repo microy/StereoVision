@@ -51,6 +51,14 @@ class StereoCameraWidget( vt.CameraWidget ) :
 
 		# Initialize the stereo cameras
 		self.stereo_camera = vt.StereoUsbCamera( self.ImageCallback )
+		# Lower the camera frame rate and resolution
+		self.stereo_camera.camera_left.set( cv2.cv.CV_CAP_PROP_FRAME_WIDTH, 640 )
+		self.stereo_camera.camera_left.set( cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, 480 )
+		self.stereo_camera.camera_right.set( cv2.cv.CV_CAP_PROP_FRAME_WIDTH, 640 )
+		self.stereo_camera.camera_right.set( cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, 480 )
+		self.stereo_camera.camera_left.set( cv2.cv.CV_CAP_PROP_FPS, 5 )
+		self.stereo_camera.camera_right.set( cv2.cv.CV_CAP_PROP_FPS, 5 )
+		# Start capture
 		self.stereo_camera.start()
 
 	#
