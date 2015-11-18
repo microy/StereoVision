@@ -32,12 +32,9 @@ class UsbCamera( threading.Thread ) :
 		# Initialize the camera
 		self.camera = cv2.VideoCapture( 0 )
 
-		# Set camera resolution
-		self.camera.set( cv2.cv.CV_CAP_PROP_FRAME_WIDTH, 640 )
-		self.camera.set( cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, 480 )
-
-		# Set camera frame rate
-		self.camera.set( cv2.cv.CV_CAP_PROP_FPS, 25 )
+		# Get camera parameters
+		self.width = self.camera.get( cv2.cv.CV_CAP_PROP_FRAME_WIDTH )
+		self.height = self.camera.get( cv2.cv.CV_CAP_PROP_FRAME_HEIGHT )
 
 	#
 	# Thread main loop
@@ -78,13 +75,9 @@ class StereoUsbCamera( threading.Thread ) :
 		self.camera_left = cv2.VideoCapture( 0 )
 		self.camera_right = cv2.VideoCapture( 1 )
 
-		# Lower the camera frame rate and resolution
-		self.camera_left.set( cv2.cv.CV_CAP_PROP_FRAME_WIDTH, 640 )
-		self.camera_left.set( cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, 480 )
-		self.camera_right.set( cv2.cv.CV_CAP_PROP_FRAME_WIDTH, 640 )
-		self.camera_right.set( cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, 480 )
-		self.camera_left.set( cv2.cv.CV_CAP_PROP_FPS, 5 )
-		self.camera_right.set( cv2.cv.CV_CAP_PROP_FPS, 5 )
+		# Get camera parameters
+		self.width = self.camera_left.get( cv2.cv.CV_CAP_PROP_FRAME_WIDTH )
+		self.height = self.camera_left.get( cv2.cv.CV_CAP_PROP_FRAME_HEIGHT )
 
 	#
 	# Thread main loop
