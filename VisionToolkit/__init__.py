@@ -4,6 +4,8 @@ from . import Camera
 from .Camera import *
 from . import Widget
 from .Widget import *
+from . import ImageWidget
+from .ImageWidget import *
 from . import Disparity
 from .Disparity import *
 from . import PointCloudViewer
