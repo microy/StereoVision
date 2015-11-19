@@ -15,9 +15,8 @@ import time
 import ctypes as ct
 import numpy as np
 
-# Global access to the Vimba library
+# The Vimba library
 vimba = None
-
 
 # Initialize the Vimba library
 def VmbStartup() :
@@ -30,7 +29,7 @@ def VmbStartup() :
 	# Initialize the library
 	vimba.VmbStartup()
 	# Send discovery packet to GigE cameras
-	vimba.VmbFeatureCommandRun( ct.c_void_p(1), 'GeVDiscoveryAllOnce' )
+	vimba.VmbFeatureCommandRun( ct.c_void_p( 1 ), 'GeVDiscoveryAllOnce' )
 
 # Release the Vimba library
 def VmbShutdown() :
@@ -64,7 +63,7 @@ class VmbFrame( ct.Structure ) :
 	# Convert the frame to a numpy array
 	@property
 	def image( self ) :
-		return np.ndarray( buffer=self.buffer[ 0 : self.bufferSize ], dtype=np.uint8, shape=( self.height, self.width ) )
+		return np.ndarray( buffer = self.buffer[ 0 : self.bufferSize ], dtype = np.uint8, shape = ( self.height, self.width ) )
 
 	# Tell if the frame is valid
 	@property
@@ -98,7 +97,6 @@ class VmbCamera( object ) :
 
 	# Close the camera
 	def Close( self ) :
-		# Close the camera
 		vimba.VmbCameraClose( self.handle )
 
 	# Start the acquisition
@@ -106,19 +104,19 @@ class VmbCamera( object ) :
 		# Register the external frame callback function
 		self.frame_callback = frame_callback
 		# Register the internal frame callback function
-		self.vmb_frame_callback = ct.CFUNCTYPE( None, ct.c_void_p, ct.POINTER(VmbFrame) )( self.VmbFrameCallback )
+		self.vmb_frame_callback = ct.CFUNCTYPE( None, ct.c_void_p, ct.POINTER( VmbFrame ) )( self.VmbFrameCallback )
 		# Initialize frame buffer
 		self.frame_buffer = []
 		for i in range( frame_buffer_size ) :
 			self.frame_buffer.append( VmbFrame( self.payloadsize ) )
 		# Announce the frames
 		for i in range( frame_buffer_size ) :
-			vimba.VmbFrameAnnounce( self.handle, ct.byref(self.frame_buffer[i]), ct.sizeof(self.frame_buffer[i]) )
+			vimba.VmbFrameAnnounce( self.handle, ct.byref( self.frame_buffer[i] ), ct.sizeof( self.frame_buffer[i] ) )
 		# Start capture engine
 		vimba.VmbCaptureStart( self.handle )
 		# Queue the frames
 		for i in range( frame_buffer_size ) :
-			vimba.VmbCaptureFrameQueue( self.handle, ct.byref(self.frame_buffer[i]), self.vmb_frame_callback )
+			vimba.VmbCaptureFrameQueue( self.handle, ct.byref( self.frame_buffer[i] ), self.vmb_frame_callback )
 		# Start acquisition
 		vimba.VmbFeatureCommandRun( self.handle, 'AcquisitionStart' )
 
@@ -145,19 +143,16 @@ class VmbStereoCamera( object ) :
 
 	# Initialize the cameras
 	def __init__( self, camera_left_id, camera_right_id ) :
-		# Camera connection
 		self.camera_left = VmbCamera( camera_left_id )
 		self.camera_right = VmbCamera( camera_right_id )
 
 	# Open the cameras
 	def Open( self ) :
-		# Open the cameras
 		self.camera_left.Open()
 		self.camera_right.Open()
 
 	# Close the cameras
 	def Close( self ) :
-		# Close the cameras
 		self.camera_left.Close()
 		self.camera_right.Close()
 
@@ -174,7 +169,6 @@ class VmbStereoCamera( object ) :
 
 	# Stop the acquisition
 	def StopCapture( self ) :
-		# Stop image acquisition
 		self.camera_left.StopCapture()
 		self.camera_right.StopCapture()
 
@@ -192,11 +186,11 @@ class VmbStereoCamera( object ) :
 		# Synchronize the frames
 		self.Synchronize()
 
-	# Synchronize the images from both camera
+	# Synchronize the frames from both camera
 	def Synchronize( self ) :
-		# Wait for both images
+		# Wait for both frames
 		if self.frame_left and self.frame_right :
-			# Send the images to the external program
+			# Send the frames to the external program
 			self.frame_callback( self.frame_left, self.frame_right )
 			# Initialize the frames
 			self.frame_left = None
