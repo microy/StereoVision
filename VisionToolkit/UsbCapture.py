@@ -19,9 +19,16 @@ class UsbCapture( threading.Thread ) :
 		self.image_callback = image_callback
 		# Initialize the camera
 		self.camera = cv2.VideoCapture( 0 )
-		# Get camera parameters
-		self.width = self.camera.get( cv2.cv.CV_CAP_PROP_FRAME_WIDTH )
-		self.height = self.camera.get( cv2.cv.CV_CAP_PROP_FRAME_HEIGHT )
+
+	# Return the image width
+	@property
+	def width( self ) :
+		return self.camera.get( cv2.cv.CV_CAP_PROP_FRAME_WIDTH )
+
+	# Return the image height
+	@property
+	def height( self ) :
+		return self.camera.get( cv2.cv.CV_CAP_PROP_FRAME_HEIGHT )
 
 	# Start acquisition
 	def Start( self ) :
@@ -56,9 +63,16 @@ class UsbStereoCapture( threading.Thread ) :
 		# Initialize the cameras
 		self.camera_left = cv2.VideoCapture( 0 )
 		self.camera_right = cv2.VideoCapture( 1 )
-		# Get camera parameters
-		self.width = self.camera_left.get( cv2.cv.CV_CAP_PROP_FRAME_WIDTH )
-		self.height = self.camera_left.get( cv2.cv.CV_CAP_PROP_FRAME_HEIGHT )
+
+	# Return the image width
+	@property
+	def width( self ) :
+		return self.camera_left.get( cv2.cv.CV_CAP_PROP_FRAME_WIDTH )
+
+	# Return the image height
+	@property
+	def height( self ) :
+		return self.camera_left.get( cv2.cv.CV_CAP_PROP_FRAME_HEIGHT )
 
 	# Start acquisition
 	def Start( self ) :
