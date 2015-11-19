@@ -16,7 +16,7 @@ import VisionToolkit as vt
 class StereoVision( QtGui.QWidget ) :
 
 	# Signal sent to update the image in the widget
-	update_image = QtCore.Signal( np.ndarray )
+	update_stereo_images = QtCore.Signal( np.ndarray, np.ndarray )
 
 	# Initialization
 	def __init__( self, parent = None ) :
@@ -33,7 +33,7 @@ class StereoVision( QtGui.QWidget ) :
 		# Set the window title
 		self.setWindowTitle( 'StereoVision' )
 		# Connect the signal to update the image
-		self.update_image.connect( self.UpdateImage )
+		self.update_stereo_images.connect( self.UpdateStereoImages )
 		# Widget to display the images from the cameras
 		self.image_widget = QtGui.QLabel( self )
 		# Widget elements
@@ -96,7 +96,7 @@ class StereoVision( QtGui.QWidget ) :
 		self.pointcloud_viewer = vt.PointCloudViewer()
 
 	# Process the given stereo images
-	def ProcessStereoImages( self, image_left, image_right ) :
+	def UpdateStereoImages( self, image_left, image_right ) :
 		# Get the images
 		self.image_left = image_left
 		self.image_right = image_right
@@ -139,13 +139,8 @@ class StereoVision( QtGui.QWidget ) :
 		else :
 			# Prepare image for display
 			stereo_image = np.concatenate( (image_left_displayed, image_right_displayed), axis=1 )
-		# Send the image to the widget through a signal
-		self.update_image.emit( stereo_image )
-
-	# Update the image in the widget
-	def UpdateImage( self, image ) :
 		# Create a Qt image
-		qimage = QtGui.QImage( image, image.shape[1], image.shape[0], QtGui.QImage.Format_RGB888 )
+		qimage = QtGui.QImage( stereo_image, stereo_image.shape[1], stereo_image.shape[0], QtGui.QImage.Format_RGB888 )
 		# Set the image to the Qt widget
 		self.image_widget.setPixmap( QtGui.QPixmap.fromImage( qimage ) )
 		# Update the widget
@@ -242,7 +237,7 @@ class UsbStereoVision( StereoVision ) :
 		image_left = cv2.cvtColor( image_left, cv2.COLOR_BGR2RGB )
 		image_right = cv2.cvtColor( image_right, cv2.COLOR_BGR2RGB )
 		# Process the images
-		self.ProcessStereoImages( image_left, image_right )
+		self.update_stereo_images.emit( image_left, image_right )
 
 	# Close the camera widget
 	def closeEvent( self, event ) :
@@ -278,7 +273,7 @@ class VmbStereoVision( StereoVision ) :
 		image_left = cv2.cvtColor( frame_left.image, cv2.COLOR_GRAY2RGB )
 		image_right = cv2.cvtColor( frame_right.image, cv2.COLOR_GRAY2RGB )
 		# Process the images
-		self.ProcessStereoImages( image_left, image_right )
+		self.update_stereo_images.emit( image_left, image_right )
 
 	# Close the camera widget
 	def closeEvent( self, event ) :
