@@ -135,10 +135,8 @@ class StereoVision( QtGui.QWidget ) :
 			self.colors = np.array( cv2.cvtColor( rectified_images[0], cv2.COLOR_GRAY2RGB ), dtype=np.float32 ) / 255
 			self.colors = self.colors.reshape(-1, 3)
 			self.pointcloud_viewer.update_pointcloud.emit( self.coordinates, self.colors )
-		# Or display the stereo images
-		else :
-			# Prepare image for display
-			stereo_image = np.concatenate( (image_left_displayed, image_right_displayed), axis=1 )
+		# Prepare image for display
+		else : stereo_image = np.concatenate( (image_left_displayed, image_right_displayed), axis=1 )
 		# Create a Qt image
 		qimage = QtGui.QImage( stereo_image, stereo_image.shape[1], stereo_image.shape[0], QtGui.QImage.Format_RGB888 )
 		# Set the image to the Qt widget
@@ -156,7 +154,6 @@ class StereoVision( QtGui.QWidget ) :
 
 	# Stereo camera calibration
 	def Calibration( self ) :
-		# Calibrate the stereo cameras
 		self.calibration = vt.StereoCameraCalibration()
 		self.button_calibration.setIcon( self.style().standardIcon( QtGui.QStyle.SP_DialogYesButton ) )
 
@@ -180,12 +177,10 @@ class StereoVision( QtGui.QWidget ) :
 
 	# Update the calibration pattern size
 	def UpdatePatternSize( self, _ ) :
-		# Get the calibration pattern dimensions
 		vt.pattern_size = ( self.spinbox_pattern_rows.value(), self.spinbox_pattern_cols.value() )
 
 	# Save the stereo images
 	def SaveImages( self ) :
-		# Save images to disk
 		current_time = time.strftime( '%Y%m%d_%H%M%S' )
 		print( 'Save images {} to disk...'.format( current_time ) )
 		if self.chessboard_enabled :
@@ -197,14 +192,12 @@ class StereoVision( QtGui.QWidget ) :
 
 	# Save the mesh obtained from the disparity
 	def SaveMesh( self ) :
-		# Save images to disk
 		current_time = time.strftime( '%Y%m%d_%H%M%S' )
 		print( 'Save point cloud {} to disk...'.format( current_time ) )
 		vt.WritePly( 'stereo-{}.ply'.format( current_time ), self.coordinates, self.colors )
 
-	# Close the camera widget
+	# Close the widgets
 	def closeEvent( self, event ) :
-		# Close the widgets
 		self.pointcloud_viewer.close()
 		self.disparity.close()
 		event.accept()
