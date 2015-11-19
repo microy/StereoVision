@@ -18,17 +18,16 @@ def ImageCallback( image ) :
 # Main application
 if __name__ == '__main__' :
 	# Initialize the USB camera
-	usbcamera = vt.UsbCamera( ImageCallback )
+	usbcapture = vt.UsbCapture( ImageCallback )
 	# Lower the camera frame rate and resolution
-	usbcamera.camera.set( cv2.cv.CV_CAP_PROP_FRAME_WIDTH, 640 )
-	usbcamera.camera.set( cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, 480 )
-	usbcamera.camera.set( cv2.cv.CV_CAP_PROP_FPS, 25 )
+	usbcapture.camera.set( cv2.cv.CV_CAP_PROP_FRAME_WIDTH, 640 )
+	usbcapture.camera.set( cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, 480 )
+	usbcapture.camera.set( cv2.cv.CV_CAP_PROP_FPS, 25 )
 	# Start capture
-	usbcamera.start()
+	usbcapture.Start()
 	# Wait for user key press
 	raw_input( 'Press <enter> to stop the capture...' )
 	# Stop image acquisition
-	usbcamera.running = False
-	usbcamera.join()
+	usbcapture.Stop()
 	# Cleanup OpenCV
 	cv2.destroyAllWindows()
