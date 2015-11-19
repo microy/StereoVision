@@ -12,7 +12,7 @@
 #
 import sys
 from PySide import QtGui
-import VisionToolkit as vtk
+import VisionToolkit as vt
 
 
 #
@@ -21,6 +21,7 @@ import VisionToolkit as vtk
 if __name__ == '__main__' :
 
 	application = QtGui.QApplication( sys.argv )
-	widget = vtk.StereoVisionWidget()
+#	widget = vt.StereoVisionWidget()
+	widget = vt.VmbStereoVisionNew()
 	widget.show()
 	sys.exit( application.exec_() )

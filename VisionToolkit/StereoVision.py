@@ -154,6 +154,9 @@ class StereoVisionWidget( QtGui.QWidget ) :
 # Stereovision user interface
 class StereoVisionNew( QtGui.QWidget ) :
 
+	# Signal sent to update the image in the widget
+	update_image = QtCore.Signal( np.ndarray )
+
 	# Initialization
 	def __init__( self, parent = None ) :
 		# Initialise QWidget
@@ -168,8 +171,10 @@ class StereoVisionNew( QtGui.QWidget ) :
 		self.disparity_enabled = False
 		# Set the window title
 		self.setWindowTitle( 'StereoVision' )
+		# Connect the signal to update the image
+		self.update_image.connect( self.UpdateImage )
 		# Widget to display the images from the cameras
-		self.image_widget = vt.ImageWidget( self )
+		self.image_widget = QtGui.QLabel( self )
 		# Widget elements
 		self.button_cross = QtGui.QPushButton( 'Cross', self )
 		self.button_cross.setCheckable( True )
@@ -224,38 +229,16 @@ class StereoVisionNew( QtGui.QWidget ) :
 		self.layout_global.setSizeConstraint( QtGui.QLayout.SetFixedSize )
 		# Set the Escape key to close the application
 		QtGui.QShortcut( QtGui.QKeySequence( QtCore.Qt.Key_Escape ), self ).activated.connect( self.close )
-		# Initialize the face array
-		nb_lines, nb_cols = 240, 320
-		vindex = np.array( range( nb_lines * nb_cols ) ).reshape( nb_lines, nb_cols )
-		self.faces = np.empty( ( 2 * (nb_lines - 1) * (nb_cols - 1), 3 ), dtype=np.int )
-		self.faces[ ::2, 0 ] = vindex[:nb_lines - 1, :nb_cols - 1].flatten()
-		self.faces[ ::2, 1 ] = vindex[1:nb_lines, 1:nb_cols].flatten()
-		self.faces[ ::2, 2 ] = vindex[:nb_lines - 1, 1:nb_cols].flatten()
-		self.faces[ 1::2, 0 ] = vindex[:nb_lines - 1, :nb_cols - 1].flatten()
-		self.faces[ 1::2, 1 ] = vindex[1:nb_lines, :nb_cols - 1].flatten()
-		self.faces[ 1::2, 2 ] = vindex[1:nb_lines, 1:nb_cols].flatten()
 		# StereoSGBM
 		self.disparity = vt.StereoSGBM()
 		# Point cloud viewer
 		self.pointcloud_viewer = vt.PointCloudViewer()
-#		self.X, self.Y = np.meshgrid( np.arange( 320 ), np.arange( 240 ) )
-		# Initialize the Vimba driver
-		vt.VmbStartup()
-		# Initialize the stereo cameras
-		self.camera = vt.VmbStereoCamera( camera_left_id, camera_right_id )
-		# Connect the cameras
-		self.camera.Open()
-		# Fix the widget size
-		self.image_widget.setFixedSize( self.camera.camera_left.width, self.camera.camera_left.height/2 )
-		self.image_widget.setScaledContents( True )
-		# Start image acquisition
-		self.camera.StartCapture( self.FrameCallback )
 
-	# Receive the frame sent by the camera
-	def FrameCallback( self, frame_left, frame_right ) :
+	# Process the given stereo images
+	def ProcessStereoImages( self, image_left, image_right ) :
 		# Get the images
-		self.image_left = cv2.cvtColor( frame_left.image, cv2.COLOR_GRAY2RGB )
-		self.image_right = cv2.cvtColor( frame_right.image, cv2.COLOR_GRAY2RGB )
+		self.image_left = image_left
+		self.image_right = image_right
 		# Copy images for display
 		image_left_displayed = np.copy( self.image_left )
 		image_right_displayed = np.copy( self.image_right )
@@ -296,7 +279,16 @@ class StereoVisionNew( QtGui.QWidget ) :
 			# Prepare image for display
 			stereo_image = np.concatenate( (image_left_displayed, image_right_displayed), axis=1 )
 		# Send the image to the widget through a signal
-		self.image_widget.update_image.emit( stereo_image )
+		self.update_image.emit( stereo_image )
+
+	# Update the image in the widget
+	def UpdateImage( self, image ) :
+		# Create a Qt image
+		qimage = QtGui.QImage( image, image.shape[1], image.shape[0], QtGui.QImage.Format_RGB888 )
+		# Set the image to the Qt widget
+		self.image_widget.setPixmap( QtGui.QPixmap.fromImage( qimage ) )
+		# Update the widget
+		self.image_widget.update()
 
 	# Toggle the chessboard preview
 	def ToggleChessboard( self ) :
@@ -356,11 +348,47 @@ class StereoVisionNew( QtGui.QWidget ) :
 
 	# Close the camera widget
 	def closeEvent( self, event ) :
+		# Close the widgets
+		self.pointcloud_viewer.close()
+		self.disparity.close()
+		event.accept()
+
+# Stereovision user interface for Allied Vision cameras
+class VmbStereoVisionNew( StereoVisionNew ) :
+
+	# Initialization
+	def __init__( self, parent = None ) :
+		# Initialise QWidget
+		super( VmbStereoVisionNew, self ).__init__( parent )
+		# Initialize the Vimba driver
+		vt.VmbStartup()
+		# Initialize the stereo cameras
+		self.camera = vt.VmbStereoCamera( '50-0503326223', '50-0503323406' )
+		# Connect the cameras
+		self.camera.Open()
+		# Fix the widget size
+		self.image_widget.setFixedSize( self.camera.camera_left.width, self.camera.camera_left.height/2 )
+		self.image_widget.setScaledContents( True )
+		# Start image acquisition
+		self.camera.StartCapture( self.FrameCallback )
+
+	# Receive the frame sent by the camera
+	def FrameCallback( self, frame_left, frame_right ) :
+		# Check frame status
+		if not frame_left.is_valid or not frame_right.is_valid : return
+		# Get the images
+		image_left = cv2.cvtColor( frame_left.image, cv2.COLOR_GRAY2RGB )
+		image_right = cv2.cvtColor( frame_right.image, cv2.COLOR_GRAY2RGB )
+		# Process the images
+		self.ProcessStereoImages( image_left, image_right )
+
+	# Close the camera widget
+	def closeEvent( self, event ) :
 		# Stop image acquisition
 		self.camera.StopCapture()
 		# Disconnect the camera
 		self.camera.Close()
 		# Shutdown Vimba
 		vt.VmbShutdown()
-		# Close the widget
-		event.accept()
+		# Close the widgets
+		super( VmbStereoVisionNew, self ).closeEvent( event )
