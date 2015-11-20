@@ -210,19 +210,19 @@ class UsbStereoVision( StereoVision ) :
 		# Initialize the parent class
 		super( UsbStereoVision, self ).__init__( parent )
 		# Initialize the USB stereo cameras
-		self.stereo_capture = sv.UsbStereoCapture( self.ImageCallback )
+		self.stereo_camera = sv.UsbStereoCamera()
 		# Lower the camera frame rate and resolution
-		self.stereo_capture.camera_left.set( cv2.cv.CV_CAP_PROP_FRAME_WIDTH, 640 )
-		self.stereo_capture.camera_left.set( cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, 480 )
-		self.stereo_capture.camera_right.set( cv2.cv.CV_CAP_PROP_FRAME_WIDTH, 640 )
-		self.stereo_capture.camera_right.set( cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, 480 )
-		self.stereo_capture.camera_left.set( cv2.cv.CV_CAP_PROP_FPS, 5 )
-		self.stereo_capture.camera_right.set( cv2.cv.CV_CAP_PROP_FPS, 5 )
+		self.stereo_camera.camera_left.set( cv2.cv.CV_CAP_PROP_FRAME_WIDTH, 640 )
+		self.stereo_camera.camera_left.set( cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, 480 )
+		self.stereo_camera.camera_right.set( cv2.cv.CV_CAP_PROP_FRAME_WIDTH, 640 )
+		self.stereo_camera.camera_right.set( cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, 480 )
+		self.stereo_camera.camera_left.set( cv2.cv.CV_CAP_PROP_FPS, 5 )
+		self.stereo_camera.camera_right.set( cv2.cv.CV_CAP_PROP_FPS, 5 )
 		# Fix the widget size
-		self.image_widget.setFixedSize( self.stereo_capture.width * 2, self.stereo_capture.height )
+		self.image_widget.setFixedSize( self.stereo_camera.width * 2, self.stereo_camera.height )
 		self.image_widget.setScaledContents( True )
 		# Start image acquisition
-		self.stereo_capture.Start()
+		self.stereo_camera.StartCapture(  self.ImageCallback  )
 
 	# Receive the frame sent by the camera
 	def ImageCallback( self, image_left, image_right ) :
@@ -235,7 +235,7 @@ class UsbStereoVision( StereoVision ) :
 	# Close the camera widget
 	def closeEvent( self, event ) :
 		# Stop image acquisition
-		self.stereo_capture.Stop()
+		self.stereo_camera.StopCapture()
 		# Close the parent widget
 		super( UsbStereoVision, self ).closeEvent( event )
 
@@ -249,14 +249,14 @@ class VmbStereoVision( StereoVision ) :
 		# Initialize the Vimba driver
 		sv.VmbStartup()
 		# Initialize the Allied Vision stereo cameras
-		self.stereo_capture = sv.VmbStereoCamera( '50-0503326223', '50-0503323406' )
+		self.stereo_camera = sv.VmbStereoCamera( '50-0503326223', '50-0503323406' )
 		# Connect the cameras
-		self.stereo_capture.Open()
+		self.stereo_camera.Open()
 		# Fix the widget size
-		self.image_widget.setFixedSize( self.stereo_capture.camera_left.width, self.stereo_capture.camera_left.height/2 )
+		self.image_widget.setFixedSize( self.stereo_camera.camera_left.width, self.stereo_camera.camera_left.height/2 )
 		self.image_widget.setScaledContents( True )
 		# Start image acquisition
-		self.stereo_capture.StartCapture( self.FrameCallback )
+		self.stereo_camera.StartCapture( self.FrameCallback )
 
 	# Receive the frame sent by the camera
 	def FrameCallback( self, frame_left, frame_right ) :
@@ -271,9 +271,9 @@ class VmbStereoVision( StereoVision ) :
 	# Close the camera widget
 	def closeEvent( self, event ) :
 		# Stop image acquisition
-		self.stereo_capture.StopCapture()
+		self.stereo_camera.StopCapture()
 		# Disconnect the camera
-		self.stereo_capture.Close()
+		self.stereo_camera.Close()
 		# Shutdown Vimba
 		sv.VmbShutdown()
 		# Close the parent widget
