@@ -174,7 +174,7 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 		# Nothing to display
 		if not self.point_cloud_loaded : return
 		# Apply trackball transformation to the initial model-view matrix
-		modelview_matrix = np.dot( self.trackball.transformation, self.modelview_matrix )
+		modelview_matrix = np.dot( self.transformation, self.modelview_matrix )
 		# Send the MVP matrix to the shader
 		gl.glUniformMatrix4fv( gl.glGetUniformLocation( self.shader, b'MVP_Matrix' ),
 			1, gl.GL_FALSE, np.dot( modelview_matrix, self.projection_matrix ) )
