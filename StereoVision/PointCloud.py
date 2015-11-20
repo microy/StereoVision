@@ -1,8 +1,12 @@
 # -*- coding:utf-8 -*-
 
 #
-# Create a Qt application to display a 3D mesh with OpenGL
+# Create a Qt application to display a 3D point cloud with OpenGL
 #
+
+# Inspired from :
+#  - Nate Robins' Programs (http://www.xmission.com/~nate)
+#  - NeHe Productions (http://nehe.gamedev.net)
 
 # External dependencies
 import math
@@ -11,10 +15,8 @@ import OpenGL.GL as gl
 from PySide import QtCore
 from PySide import QtGui
 from PySide import QtOpenGL
-import StereoVision as sv
 
-# Customize the Qt OpenGL widget
-# to view a point cloud
+# Customize the Qt OpenGL widget to display a point cloud
 class PointCloudViewer( QtOpenGL.QGLWidget ) :
 
 	# Signal sent to update the point cloud in the widget
@@ -25,7 +27,7 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 		layout (location = 0) in vec4 Vertex;
 		layout (location = 1) in vec3 Color;
 		uniform mat4 MVP_Matrix;
-		flat out vec4 FragColor;
+		out vec4 FragColor;
 		void main( void ) {
 			FragColor.xyz = Color;
 			FragColor.a = 1.0;
@@ -34,7 +36,7 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 
 	# Fragment shader
 	fragment_shader_source = '''#version 330 core
-		flat in vec4 FragColor;
+		in vec4 FragColor;
 		out vec4 Color;
 		void main( void ) {
 			Color = FragColor;
@@ -46,21 +48,25 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 		super( PointCloudViewer, self ).__init__( QtOpenGL.QGLFormat( QtOpenGL.QGL.SampleBuffers | QtOpenGL.QGL.NoDeprecatedFunctions ), parent )
 		# Connect the signal to update the point cloud
 		self.update_pointcloud.connect( self.UpdatePointCloud )
+		# Set the window title
+		self.setWindowTitle( 'Point Cloud' )
 		# Track mouse events
 		self.setMouseTracking( True )
 		# Change the widget position and size
 		self.setGeometry( 100, 100, 1024, 768 )
-		# Trackball for smooth manipulation
-		self.trackball = sv.Trackball()
+		# Button pressed
+		self.button = 0
+		# Mouse position
+		self.previous_mouse_position = [ 0, 0 ]
+		# Tranformation matrix
+		self.transformation = np.identity( 4, dtype=np.float32 )
 		# Set the Escape key to close the application
 		QtGui.QShortcut( QtGui.QKeySequence( QtCore.Qt.Key_Escape ), self ).activated.connect( self.close )
 		# Set the R key to reset the view
-		QtGui.QShortcut( QtGui.QKeySequence( QtCore.Qt.Key_R ), self ).activated.connect( self.trackball.Reset )
+		QtGui.QShortcut( QtGui.QKeySequence( QtCore.Qt.Key_R ), self ).activated.connect( self.Reset )
 
 	# Initialize OpenGL
 	def initializeGL( self ) :
-		# Initialise the trackball
-		self.trackball.Initialise( self.width(), self.height() )
 		# Default background color
 		gl.glClearColor( 1, 1, 1, 1 )
 		# Enable depth test
@@ -92,14 +98,13 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 		gl.glDeleteShader( vertex_shader )
 		gl.glDeleteShader( fragment_shader )
 		# Initialise the projection transformation matrix
-		self.SetProjectionMatrix( self.width(), self.height() )
+		self.SetProjectionMatrix()
 		# Initialise Model-View transformation matrix
 		self.modelview_matrix = np.identity( 4, dtype=np.float32 )
 		# Position the scene (camera)
 		self.modelview_matrix[3,2] = -30.0
 		# Initialise viewing parameters
 		self.point_cloud_loaded = False
-		self.antialiasing = True
 		# Vertex array object
 		self.vertex_array_id = gl.glGenVertexArrays( 1 )
 		gl.glBindVertexArray( self.vertex_array_id )
@@ -162,27 +167,6 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 		# Refresh display
 		self.update()
 
-	# Close the point cloud
-	def Close( self ) :
-		# Need to initialise ?
-		if not self.point_cloud_loaded : return
-		# Delete buffer objects
-		gl.glDeleteBuffers( 1, np.array([ self.vertex_buffer_id ]) )
-		gl.glDeleteBuffers( 1, np.array([ self.color_buffer_id ]) )
-		# Initialise the model parameters
-		self.point_cloud_loaded = False
-
-	# Compute a perspective matrix
-	def SetProjectionMatrix( self, width, height ) :
-		fovy, aspect, near, far = 45.0, float(width)/height, 0.1, 100.0
-		f = math.tan( math.pi * fovy / 360.0 )
-		self.projection_matrix = np.identity( 4, dtype=np.float32 )
-		self.projection_matrix[0,0] = 1.0 / (f * aspect)
-		self.projection_matrix[1,1] = 1.0 / f
-		self.projection_matrix[2,2] = - (far + near) / (far - near)
-		self.projection_matrix[2,3] = - 1.0
-		self.projection_matrix[3,2] = - 2.0 * near * far / (far - near)
-
 	# Display the point cloud
 	def paintGL( self ) :
 		# Clear all pixels and depth buffer
@@ -201,33 +185,81 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 	def resizeGL( self, width, height ) :
 		# Resize the viewport
 		gl.glViewport( 0, 0, width, height )
-		# Resize the trackball
-		self.trackball.Resize( width, height )
 		# Compute perspective projection matrix
-		self.SetProjectionMatrix( width, height )
+		self.SetProjectionMatrix()
+
+	# Close the point cloud
+	def Close( self ) :
+		# Need to initialise ?
+		if not self.point_cloud_loaded : return
+		# Delete buffer objects
+		gl.glDeleteBuffers( 1, np.array([ self.vertex_buffer_id ]) )
+		gl.glDeleteBuffers( 1, np.array([ self.color_buffer_id ]) )
+		# Initialise the model parameters
+		self.point_cloud_loaded = False
+
+	# Reset the current transformation matrix
+	def Reset( self ) :
+		self.transformation = np.identity( 4, dtype=np.float32 )
 
 	# Mouse button pressed
 	def mousePressEvent( self, event ) :
 		# Left button
-		if int( event.buttons() ) & QtCore.Qt.LeftButton : button = 1
+		if int( event.buttons() ) & QtCore.Qt.LeftButton : self.button = 1
 		# Right button
-		elif int( event.buttons() ) & QtCore.Qt.RightButton : button = 2
+		elif int( event.buttons() ) & QtCore.Qt.RightButton : self.button = 2
 		# Unmanaged
 		else : return
-		# Update the trackball
-		self.trackball.MousePress( [ event.x(), event.y() ], button )
+		# Record mouse position
+		self.previous_mouse_position = [ event.x(), event.y() ]
 
 	# Mouse button released
 	def mouseReleaseEvent( self, _ ) :
-		# Update the trackball
-		self.trackball.MouseRelease()
+		self.button = 0
 
 	# Mouse move
 	def mouseMoveEvent( self, event ) :
-		# Update the trackball
-		if self.trackball.MouseMove( event.x(), event.y() ) :
-			# Refresh display
-			self.update()
+		# Get mouse position
+		mouse_x, mouse_y =  event.x(), event.y()
+		# Rotation
+		if self.button == 1 :
+			# Map the mouse positions
+			previous_position = self.TrackballMapping( self.previous_mouse_position )
+			current_position = self.TrackballMapping( [ mouse_x, mouse_y ] )
+			# Project the rotation axis to the object space
+			rotation_axis = np.dot( self.transformation[:3,:3], np.cross( previous_position, current_position ) )
+			# Rotation angle
+			rotation_angle = math.sqrt( ( ( current_position - previous_position ) ** 2 ).sum() ) * 2.0
+			# Create a rotation matrix according to the given angle and axis
+			c, s = math.cos( rotation_angle ), math.sin( rotation_angle )
+			n = math.sqrt( ( rotation_axis ** 2 ).sum() )
+			if n == 0 : n = 1.0
+			rotation_axis /= n
+			x, y, z = rotation_axis
+			cx, cy, cz = (1 - c) * x, (1 - c) * y, (1 - c) * z
+			R = np.array([ [   cx*x + c, cy*x - z*s, cz*x + y*s, 0],
+					[ cx*y + z*s,   cy*y + c, cz*y - x*s, 0],
+					[ cx*z - y*s, cy*z + x*s,   cz*z + c, 0],
+					[          0,          0,          0, 1] ], dtype=np.float32 ).T
+			# Rotate the transformation matrix
+			self.transformation = np.dot( R, self.transformation )
+		# XY translation
+		elif self.button ==  2 :
+			# Compute the XY-translation
+			translation = np.zeros( 3 )
+			translation[0] -= ( self.previous_mouse_position[0] - mouse_x ) * 0.02
+			translation[1] += ( self.previous_mouse_position[1] - mouse_y ) * 0.02
+			# Project the translation vector to the object space
+			translation = np.dot( self.transformation[:3,:3], translation )
+			# Translate the transformation matrix
+			m = self.transformation
+			m[3] = m[0] * translation[0] + m[1] * translation[1] + m[2] * translation[2] + m[3]
+		# No update
+		else : return
+		# Save the mouse position
+		self.previous_mouse_position = [ mouse_x, mouse_y ]
+		# Refresh display
+		self.update()
 
 	# Wheel action
 	def wheelEvent( self, event ) :
@@ -235,7 +267,34 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 		delta = event.delta()
 		# Normalize the wheel delta
 		delta = delta and delta // abs( delta )
-		# Update the trackball
-		self.trackball.MouseWheel( delta )
+		# Compute the Z-translation
+		translation = np.zeros( 3 )
+		translation[2] -= delta * 2.0
+		# Project the translation vector to the object space
+		translation = np.dot( self.transformation[:3,:3], translation )
+		# Translate the transformation matrix
+		m = self.transformation
+		m[3] = m[0] * translation[0] + m[1] * translation[1] + m[2] * translation[2] + m[3]
 		# Refresh display
 		self.update()
+
+	# Compute a perspective matrix
+	def SetProjectionMatrix( self ) :
+		fovy, aspect, near, far = 45.0, float( self.width() ) / self.height(), 0.1, 100.0
+		f = math.tan( math.pi * fovy / 360.0 )
+		self.projection_matrix = np.identity( 4, dtype=np.float32 )
+		self.projection_matrix[0,0] = 1.0 / (f * aspect)
+		self.projection_matrix[1,1] = 1.0 / f
+		self.projection_matrix[2,2] = - (far + near) / (far - near)
+		self.projection_matrix[2,3] = - 1.0
+		self.projection_matrix[3,2] = - 2.0 * near * far / (far - near)
+
+	# Map the mouse position onto a unit sphere
+	def TrackballMapping( self, mouse_position ) :
+		v = np.zeros( 3 )
+		v[0] = ( 2.0 * mouse_position[0] - self.width() ) / self.width()
+		v[1] = ( self.height() - 2.0 * mouse_position[1] ) / self.height()
+		d = math.sqrt( ( v ** 2 ).sum() )
+		if d > 1.0 : d = 1.0
+		v[2] = math.cos( math.pi / 2.0 * d )
+		return v / math.sqrt( ( v ** 2 ).sum() )
