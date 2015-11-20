@@ -11,6 +11,7 @@ import OpenGL.GL as gl
 from PySide import QtCore
 from PySide import QtGui
 from PySide import QtOpenGL
+import StereoVision as sv
 
 # Customize the Qt OpenGL widget
 # to view a point cloud

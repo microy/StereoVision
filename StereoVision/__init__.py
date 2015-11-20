@@ -10,5 +10,5 @@ from . import Trackball
 from .Trackball import *
 from . import PointCloudViewer
 from .PointCloudViewer import *
-from . import StereoVision
-from .StereoVision import *
+from . import Widget
+from .Widget import *

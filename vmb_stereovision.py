@@ -13,7 +13,6 @@ import StereoVision as sv
 # Main application
 if __name__ == '__main__' :
 	application = QtGui.QApplication( sys.argv )
-#	widget = sv.VmbStereoVision()
-	widget = sv.UsbStereoVision()
+	widget = sv.VmbStereoVision()
 	widget.show()
 	sys.exit( application.exec_() )
