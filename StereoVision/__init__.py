@@ -8,7 +8,7 @@ from . import Vimba
 from .Vimba import *
 from . import Trackball
 from .Trackball import *
-from . import PointCloudViewer
-from .PointCloudViewer import *
+from . import PointCloud
+from .PointCloud import *
 from . import Widget
 from .Widget import *
