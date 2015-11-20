@@ -8,12 +8,12 @@
 # External dependencies
 import sys
 from PySide import QtGui
-import VisionToolkit as vt
+import StereoVision as sv
 
 # Main application
 if __name__ == '__main__' :
 	application = QtGui.QApplication( sys.argv )
-#	widget = vt.VmbStereoVision()
-	widget = vt.UsbStereoVision()
+#	widget = sv.VmbStereoVision()
+	widget = sv.UsbStereoVision()
 	widget.show()
 	sys.exit( application.exec_() )

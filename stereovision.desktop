@@ -2,8 +2,7 @@
 Encoding=UTF-8
 Name=StereoVision
 Comment=StereoVision Application
-Exec=StereoVision
+Exec=stereovision.py
 Terminal=false
 Type=Application
 Categories=Science
-

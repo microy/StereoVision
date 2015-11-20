@@ -7,7 +7,7 @@
 
 # External dependencies
 import cv2
-import VisionToolkit as vt
+import StereoVision as sv
 
 # Image callback function
 def ImageCallback( image ) :
@@ -18,7 +18,7 @@ def ImageCallback( image ) :
 # Main application
 if __name__ == '__main__' :
 	# Initialize the USB camera
-	usbcapture = vt.UsbCapture( ImageCallback )
+	usbcapture = sv.UsbCapture( ImageCallback )
 	# Lower the camera frame rate and resolution
 	usbcapture.camera.set( cv2.cv.CV_CAP_PROP_FRAME_WIDTH, 640 )
 	usbcapture.camera.set( cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, 480 )

@@ -8,12 +8,9 @@
 import math
 import numpy as np
 import OpenGL.GL as gl
-import PySide as Qt
 from PySide import QtCore
 from PySide import QtGui
 from PySide import QtOpenGL
-import VisionToolkit as vt
-
 
 # Customize the Qt OpenGL widget
 # to view a point cloud
@@ -53,7 +50,7 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 		# Change the widget position and size
 		self.setGeometry( 100, 100, 1024, 768 )
 		# Trackball for smooth manipulation
-		self.trackball = vt.Trackball()
+		self.trackball = sv.Trackball()
 		# Set the Escape key to close the application
 		QtGui.QShortcut( QtGui.QKeySequence( QtCore.Qt.Key_Escape ), self ).activated.connect( self.close )
 		# Set the R key to reset the view

@@ -8,7 +8,7 @@
 # External dependencies
 import cv2
 import numpy as np
-import VisionToolkit as vt
+import StereoVision as sv
 
 # Function called by the camera when images are received
 def FrameCallback( frame_left, frame_right ) :
@@ -25,9 +25,9 @@ def FrameCallback( frame_left, frame_right ) :
 # Main application
 if __name__ == '__main__' :
 	# Initialize the Vimba driver
-	vt.VmbStartup()
+	sv.VmbStartup()
 	# Initialize the stereo cameras
-	camera = vt.VmbStereoCamera( '50-0503326223', '50-0503323406' )
+	camera = sv.VmbStereoCamera( '50-0503326223', '50-0503323406' )
 	# Connect the cameras
 	camera.Open()
 	# Start image acquisition
@@ -39,6 +39,6 @@ if __name__ == '__main__' :
 	# Disconnect the camera
 	camera.Close()
 	# Shutdown Vimba
-	vt.VmbShutdown()
+	sv.VmbShutdown()
 	# Cleanup OpenCV
 	cv2.destroyAllWindows()

@@ -2,7 +2,7 @@
 # -*- coding:utf-8 -*-
 
 #
-# Setup for the VisionToolkit package
+# Setup for the StereoVision package
 #
 
 # Setup module
@@ -11,14 +11,14 @@ from setuptools import setup
 # Setup configuration
 setup(
 
-    name = 'VisionToolkit',
+    name = 'StereoVision',
     version = '0.4dev',
-    packages = ['VisionToolkit'],
-    scripts = ['StereoVision', 'show_usbcamera.py', 'show_vmbcamera.py'],
+    packages = ['StereoVision'],
+    scripts = ['stereovision.py', 'show_usbcamera.py', 'show_vmbcamera.py'],
     author = 'Michaël Roy',
     author_email = 'microygh@gmail.com',
-    description = 'Python Computer Vision Toolkit',
+    description = 'Python Stereo Vision Application',
     license = 'MIT',
-    url = 'https://github.com/microy/VisionToolkit'
+    url = 'https://github.com/microy/StereoVision'
 
 )

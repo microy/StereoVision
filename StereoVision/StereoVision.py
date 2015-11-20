@@ -10,7 +10,7 @@ import cv2
 import numpy as np
 from PySide import QtCore
 from PySide import QtGui
-import VisionToolkit as vt
+import StereoVision as sv
 
 # Stereovision user interface
 class StereoVision( QtGui.QWidget ) :
@@ -23,8 +23,8 @@ class StereoVision( QtGui.QWidget ) :
 		# Initialise QWidget
 		super( StereoVision, self ).__init__( parent )
 		# Load the calibration parameter file, if it exists
-		self.calibration = vt.LoadCalibration()
-		if not self.calibration : vt.CreateCalibrationDirectory()
+		self.calibration = sv.LoadCalibration()
+		if not self.calibration : sv.CreateCalibrationDirectory()
 		# Initialize the viewing parameters
 		self.chessboard_enabled = False
 		self.cross_enabled = False
@@ -59,10 +59,10 @@ class StereoVision( QtGui.QWidget ) :
 		self.button_reconstruction.setShortcut( 'F5' )
 		self.button_reconstruction.clicked.connect( self.ToggleReconstruction )
 		self.spinbox_pattern_rows = QtGui.QSpinBox( self )
-		self.spinbox_pattern_rows.setValue( vt.pattern_size[0] )
+		self.spinbox_pattern_rows.setValue( sv.pattern_size[0] )
 		self.spinbox_pattern_rows.valueChanged.connect( self.UpdatePatternSize )
 		self.spinbox_pattern_cols = QtGui.QSpinBox( self )
-		self.spinbox_pattern_cols.setValue( vt.pattern_size[1] )
+		self.spinbox_pattern_cols.setValue( sv.pattern_size[1] )
 		self.spinbox_pattern_cols.valueChanged.connect( self.UpdatePatternSize )
 		self.button_save_images = QtGui.QPushButton( 'Save Images', self )
 		self.button_save_images.setShortcut( 'Space' )
@@ -91,9 +91,9 @@ class StereoVision( QtGui.QWidget ) :
 		# Set the Escape key to close the application
 		QtGui.QShortcut( QtGui.QKeySequence( QtCore.Qt.Key_Escape ), self ).activated.connect( self.close )
 		# StereoSGBM
-		self.disparity = vt.StereoSGBM()
+		self.disparity = sv.StereoSGBM()
 		# Point cloud viewer
-		self.pointcloud_viewer = vt.PointCloudViewer()
+		self.pointcloud_viewer = sv.PointCloudViewer()
 
 	# Process the given stereo images
 	def UpdateStereoImages( self, image_left, image_right ) :
@@ -105,8 +105,8 @@ class StereoVision( QtGui.QWidget ) :
 		image_right_displayed = np.copy( self.image_right )
 		# Preview the calibration chessboard on the image
 		if self.chessboard_enabled :
-			image_left_displayed = vt.PreviewChessboard( image_left_displayed )
-			image_right_displayed = vt.PreviewChessboard( image_right_displayed )
+			image_left_displayed = sv.PreviewChessboard( image_left_displayed )
+			image_right_displayed = sv.PreviewChessboard( image_right_displayed )
 		# Display a cross in the middle of the image
 		if self.cross_enabled :
 			cv2.line( image_left_displayed, (image_left_displayed.shape[1]/2, 0), (image_left_displayed.shape[1]/2, image_left_displayed.shape[0]), (0, 0, 255), 4 )
@@ -116,13 +116,13 @@ class StereoVision( QtGui.QWidget ) :
 		# Display the rectifed images
 		if self.rectification_enabled and self.calibration :
 			# Undistort the images according to the stereo camera calibration parameters
-			rectified_images = vt.StereoRectification( self.calibration, image_left, image_right, True )
+			rectified_images = sv.StereoRectification( self.calibration, image_left, image_right, True )
 			# Prepare image for display
 			stereo_image = np.concatenate( rectified_images, axis=1 )
 		# Display the disparity image
 		elif self.disparity_enabled and self.calibration :
 			# Undistort the images according to the stereo camera calibration parameters
-			rectified_images = vt.StereoRectification( self.calibration, image_left, image_right )
+			rectified_images = sv.StereoRectification( self.calibration, image_left, image_right )
 			rectified_images = cv2.pyrDown( rectified_images[0] ), cv2.pyrDown( rectified_images[1] )
 			# Compute the disparity
 			self.disparity.ComputeDisparity( *rectified_images )
@@ -154,7 +154,7 @@ class StereoVision( QtGui.QWidget ) :
 
 	# Stereo camera calibration
 	def Calibration( self ) :
-		self.calibration = vt.StereoCameraCalibration()
+		self.calibration = sv.StereoCameraCalibration()
 		self.button_calibration.setIcon( self.style().standardIcon( QtGui.QStyle.SP_DialogYesButton ) )
 
 	# Image rectification
@@ -177,15 +177,15 @@ class StereoVision( QtGui.QWidget ) :
 
 	# Update the calibration pattern size
 	def UpdatePatternSize( self, _ ) :
-		vt.pattern_size = ( self.spinbox_pattern_rows.value(), self.spinbox_pattern_cols.value() )
+		sv.pattern_size = ( self.spinbox_pattern_rows.value(), self.spinbox_pattern_cols.value() )
 
 	# Save the stereo images
 	def SaveImages( self ) :
 		current_time = time.strftime( '%Y%m%d_%H%M%S' )
 		print( 'Save images {} to disk...'.format( current_time ) )
 		if self.chessboard_enabled :
-			cv2.imwrite( '{}/left-{}.png'.format( vt.calibration_directory, current_time ), self.image_left )
-			cv2.imwrite( '{}/right-{}.png'.format( vt.calibration_directory, current_time ), self.image_right )
+			cv2.imwrite( '{}/left-{}.png'.format( sv.calibration_directory, current_time ), self.image_left )
+			cv2.imwrite( '{}/right-{}.png'.format( sv.calibration_directory, current_time ), self.image_right )
 		else :
 			cv2.imwrite( 'left-{}.png'.format( current_time ), self.image_left )
 			cv2.imwrite( 'right-{}.png'.format( current_time ), self.image_right )
@@ -194,7 +194,7 @@ class StereoVision( QtGui.QWidget ) :
 	def SaveMesh( self ) :
 		current_time = time.strftime( '%Y%m%d_%H%M%S' )
 		print( 'Save point cloud {} to disk...'.format( current_time ) )
-		vt.WritePly( 'stereo-{}.ply'.format( current_time ), self.coordinates, self.colors )
+		sv.WritePly( 'stereo-{}.ply'.format( current_time ), self.coordinates, self.colors )
 
 	# Close the widgets
 	def closeEvent( self, event ) :
@@ -210,7 +210,7 @@ class UsbStereoVision( StereoVision ) :
 		# Initialize the parent class
 		super( UsbStereoVision, self ).__init__( parent )
 		# Initialize the USB stereo cameras
-		self.stereo_capture = vt.UsbStereoCapture( self.ImageCallback )
+		self.stereo_capture = sv.UsbStereoCapture( self.ImageCallback )
 		# Lower the camera frame rate and resolution
 		self.stereo_capture.camera_left.set( cv2.cv.CV_CAP_PROP_FRAME_WIDTH, 640 )
 		self.stereo_capture.camera_left.set( cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, 480 )
@@ -247,9 +247,9 @@ class VmbStereoVision( StereoVision ) :
 		# Initialize the parent class
 		super( VmbStereoVision, self ).__init__( parent )
 		# Initialize the Vimba driver
-		vt.VmbStartup()
+		sv.VmbStartup()
 		# Initialize the Allied Vision stereo cameras
-		self.stereo_capture = vt.VmbStereoCamera( '50-0503326223', '50-0503323406' )
+		self.stereo_capture = sv.VmbStereoCamera( '50-0503326223', '50-0503323406' )
 		# Connect the cameras
 		self.stereo_capture.Open()
 		# Fix the widget size
@@ -275,6 +275,6 @@ class VmbStereoVision( StereoVision ) :
 		# Disconnect the camera
 		self.stereo_capture.Close()
 		# Shutdown Vimba
-		vt.VmbShutdown()
+		sv.VmbShutdown()
 		# Close the parent widget
 		super( VmbStereoVision, self ).closeEvent( event )

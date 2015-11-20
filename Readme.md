@@ -1,9 +1,9 @@
-# VisionToolkit
+# StereoVision
 
-Implement a computer vision library in Python for research purpose.
+Implement a stereo vision program in Python for research purpose.
 
-- Capture live images from one or two cameras
-- Calibrate the mono or stereo cameras
+- Capture live images from two cameras
+- Calibrate the stereo cameras
 - Reconstruct the 3D scene
 
 Requirements :
@@ -11,7 +11,7 @@ Requirements :
 - `NumPy`
 - `OpenCV`
 - `PySide`
-- `AVT Vimba SDK` (only for AlliedVision GigabitEthernet cameras)
+- `AVT Vimba SDK`
 
 
 Copyright (c) 2014-2015 Michaël Roy (microygh@gmail.com)
