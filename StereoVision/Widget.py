@@ -256,7 +256,7 @@ class VmbStereoVision( StereoVision ) :
 		self.image_widget.setFixedSize( self.stereo_capture.camera_left.width, self.stereo_capture.camera_left.height/2 )
 		self.image_widget.setScaledContents( True )
 		# Start image acquisition
-		self.camera.StartCapture( self.FrameCallback )
+		self.stereo_capture.StartCapture( self.FrameCallback )
 
 	# Receive the frame sent by the camera
 	def FrameCallback( self, frame_left, frame_right ) :
