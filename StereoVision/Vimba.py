@@ -5,9 +5,9 @@
 #
 
 # Inspired from :
-#		- Allied Vision Vimba SDK (https://www.alliedvision.com/en/products/software.html)
-#		- Pymba (https://github.com/morefigs/pymba)
-#		- ROS (http://wiki.ros.org/avt_vimba_camera)
+#  - Allied Vision Vimba SDK (https://www.alliedvision.com/en/products/software.html)
+#  - Pymba (https://github.com/morefigs/pymba)
+#  - ROS (http://wiki.ros.org/avt_vimba_camera)
 
 # External dependencies
 import os
