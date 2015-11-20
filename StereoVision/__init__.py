@@ -2,8 +2,8 @@ from . import Calibration
 from .Calibration import *
 from . import Disparity
 from .Disparity import *
-from . import UsbCapture
-from .UsbCapture import *
+from . import Camera
+from .Camera import *
 from . import Vimba
 from .Vimba import *
 from . import Trackball
