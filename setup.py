@@ -14,7 +14,7 @@ setup(
     name = 'StereoVision',
     version = '0.4dev',
     packages = ['StereoVision'],
-    scripts = ['stereovision.py', 'show_usbcamera.py', 'show_vmbcamera.py'],
+    scripts = ['usb_stereovision.py', 'vmb_stereovision.py'],
     author = 'Michaël Roy',
     author_email = 'microygh@gmail.com',
     description = 'Python Stereo Vision Application',
