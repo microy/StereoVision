@@ -1,25 +1,17 @@
-# -*- coding:utf-8 -*- 
-
+# -*- coding:utf-8 -*-
 
 #
 # Qt interface for the disparity module
 #
 
-
-#
 # External dependencies
-#
 import cv2
 import numpy as np
 from PySide import QtCore
 from PySide import QtGui
 
-
-#
 # Export the point cloud to a PLY file
-#
 def WritePly( filename, coordinates, colors ) :
-	
 	ply_header = (
 '''ply
 format ascii 1.0
@@ -45,17 +37,12 @@ end_header
 		output_file.write( ply_header.format( vertex_count=len(coordinates) ) )
 		np.savetxt( output_file, points, '%f %f %f %d %d %d' )
 
-
-#
 # Customize the Qt widget to setup the stereo BM
-#
 class StereoSGBM( QtGui.QWidget ) :
-
-	#
 	# Initialisation
-	#
 	def __init__( self, parent = None ) :
-		
+		# Initialise QWidget
+		super( StereoSGBM, self ).__init__( parent )
 		# Initialize the StereoSGBM
 		self.min_disparity = 0
 		self.max_disparity = 16
@@ -67,13 +54,8 @@ class StereoSGBM( QtGui.QWidget ) :
 		self.p2 = 32 * 3 * self.sad_window_size ** 2
 		self.max_difference = 1
 		self.full_dp = False
-
-		# Initialise QWidget
-		super( StereoSGBM, self ).__init__( parent )
-
 		# Set the window title
 		self.setWindowTitle( 'StereoSGBM' )
-
 		# Widget elements
 		self.spinbox_min_disparity = QtGui.QSpinBox( self )
 		self.spinbox_min_disparity.setMaximum( 240 )
@@ -107,7 +89,6 @@ class StereoSGBM( QtGui.QWidget ) :
 		if self.full_dp : self.checkbox_full_dp.setCheckState( True )
 		self.button_apply = QtGui.QPushButton( 'Apply', self )
 		self.button_apply.clicked.connect( self.UpdateDisparity )
-
 		# Widget layout
 		self.layout_controls = QtGui.QFormLayout()
 		self.layout_controls.addRow( 'Minimum disparity', self.spinbox_min_disparity )
@@ -124,18 +105,12 @@ class StereoSGBM( QtGui.QWidget ) :
 		self.layout_global.addLayout( self.layout_controls )
 		self.layout_global.addWidget( self.button_apply )
 		self.layout_global.setSizeConstraint( QtGui.QLayout.SetFixedSize )
-
 		# Set the Escape key to close the application
 		QtGui.QShortcut( QtGui.QKeySequence( QtCore.Qt.Key_Escape ), self ).activated.connect( self.close )
-
 		# Initialize the disparity object
 		self.UpdateDisparity()
-
-	#
-	# Compute the stereo correspondence
-	#
+	# Create the disparity object
 	def UpdateDisparity( self ) :
-		
 		# Get the parameters
 		self.min_disparity = self.spinbox_min_disparity.value()
 		self.max_disparity = self.spinbox_max_disparity.value()
@@ -147,7 +122,6 @@ class StereoSGBM( QtGui.QWidget ) :
 		self.p1 = self.spinbox_p1.value()
 		self.p2 = self.spinbox_p2.value()
 		self.full_dp = self.checkbox_full_dp.checkState()
-
 		# Create the disparity object
 		self.sgbm = cv2.StereoSGBM( minDisparity = self.min_disparity,
 			numDisparities = self.max_disparity,
@@ -159,20 +133,14 @@ class StereoSGBM( QtGui.QWidget ) :
 			P1 = self.p1,
 			P2 = self.p2,
 			fullDP = self.full_dp )
-		
-	#
 	# Compute the stereo correspondence
-	#
 	def ComputeDisparity( self, left_image, right_image ) :
-
 		# Compute the disparity map
 		self.disparity = self.sgbm.compute( left_image, right_image ).astype( np.float32 ) / 16.0
-
 	#	self.disparity[0:50,:] = 0
 	#	self.disparity[210:240,:] = 0
 	#	self.disparity[:,0:70] = 0
 	#	self.disparity[:,250:320] = 0
-		
 		# Create the disparity image for display
 		self.disparity_image = self.disparity
 		cv2.normalize( self.disparity_image, self.disparity_image, 0, 255, cv2.NORM_MINMAX )

@@ -18,10 +18,8 @@ from PySide import QtOpenGL
 
 # Customize the Qt OpenGL widget to display a point cloud
 class PointCloudViewer( QtOpenGL.QGLWidget ) :
-
 	# Signal sent to update the point cloud in the widget
 	update_pointcloud = QtCore.Signal( np.ndarray, np.ndarray )
-
 	# Vertex shader
 	vertex_shader_source = '''#version 330 core
 		layout (location = 0) in vec4 Vertex;
@@ -33,7 +31,6 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 			FragColor.a = 1.0;
 			gl_Position = MVP_Matrix * Vertex;
 		}'''
-
 	# Fragment shader
 	fragment_shader_source = '''#version 330 core
 		in vec4 FragColor;
@@ -41,7 +38,6 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 		void main( void ) {
 			Color = FragColor;
 		}'''
-
 	# Initialize the Qt widget
 	def __init__( self, parent = None ) :
 		# Initialise QGLWidget with multisampling enabled and OpenGL 3 core only
@@ -64,7 +60,6 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 		QtGui.QShortcut( QtGui.QKeySequence( QtCore.Qt.Key_Escape ), self ).activated.connect( self.close )
 		# Set the R key to reset the view
 		QtGui.QShortcut( QtGui.QKeySequence( QtCore.Qt.Key_R ), self ).activated.connect( self.Reset )
-
 	# Initialize OpenGL
 	def initializeGL( self ) :
 		# Default background color
@@ -120,7 +115,6 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 	#	gl.glBufferData( gl.GL_ARRAY_BUFFER, 921600, None, gl.GL_STATIC_DRAW )
 	#	gl.glEnableVertexAttribArray( 1 )
 	#	gl.glVertexAttribPointer( 1, 3, gl.GL_FLOAT, gl.GL_FALSE, 0, None )
-
 	# Load the point cloud for display
 	def UpdatePointCloud( self, coordinates, colors ) :
 		# Close previous mesh
@@ -166,7 +160,6 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 		self.point_cloud_loaded = True
 		# Refresh display
 		self.update()
-
 	# Display the point cloud
 	def paintGL( self ) :
 		# Clear all pixels and depth buffer
@@ -180,14 +173,12 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 			1, gl.GL_FALSE, np.dot( modelview_matrix, self.projection_matrix ) )
 		# Draw the mesh
 		gl.glDrawArrays( gl.GL_POINTS, 0, 153600 )
-
 	# Resize the Qt widget and the OpenGL viewport
 	def resizeGL( self, width, height ) :
 		# Resize the viewport
 		gl.glViewport( 0, 0, width, height )
 		# Compute perspective projection matrix
 		self.SetProjectionMatrix()
-
 	# Close the point cloud
 	def Close( self ) :
 		# Need to initialise ?
@@ -197,11 +188,9 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 		gl.glDeleteBuffers( 1, np.array([ self.color_buffer_id ]) )
 		# Initialise the model parameters
 		self.point_cloud_loaded = False
-
 	# Reset the current transformation matrix
 	def Reset( self ) :
 		self.transformation = np.identity( 4, dtype=np.float32 )
-
 	# Mouse button pressed
 	def mousePressEvent( self, event ) :
 		# Left button
@@ -212,11 +201,9 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 		else : return
 		# Record mouse position
 		self.previous_mouse_position = [ event.x(), event.y() ]
-
 	# Mouse button released
 	def mouseReleaseEvent( self, _ ) :
 		self.button = 0
-
 	# Mouse move
 	def mouseMoveEvent( self, event ) :
 		# Get mouse position
@@ -260,7 +247,6 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 		self.previous_mouse_position = [ mouse_x, mouse_y ]
 		# Refresh display
 		self.update()
-
 	# Wheel action
 	def wheelEvent( self, event ) :
 		# Get the mouse wheel delta
@@ -277,7 +263,6 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 		m[3] = m[0] * translation[0] + m[1] * translation[1] + m[2] * translation[2] + m[3]
 		# Refresh display
 		self.update()
-
 	# Compute a perspective matrix
 	def SetProjectionMatrix( self ) :
 		fovy, aspect, near, far = 45.0, float( self.width() ) / self.height(), 0.1, 100.0
@@ -288,7 +273,6 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 		self.projection_matrix[2,2] = - (far + near) / (far - near)
 		self.projection_matrix[2,3] = - 1.0
 		self.projection_matrix[3,2] = - 2.0 * near * far / (far - near)
-
 	# Map the mouse position onto a unit sphere
 	def TrackballMapping( self, mouse_position ) :
 		v = np.zeros( 3 )

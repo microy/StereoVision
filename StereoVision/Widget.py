@@ -1,7 +1,7 @@
 # -*- coding:utf-8 -*-
 
 #
-# Application to calibrate stereo cameras, and to recontruct a 3D scene
+# Qt interfaces for the StereoVision application
 #
 
 # External dependencies
@@ -14,10 +14,8 @@ import StereoVision as sv
 
 # Stereovision user interface
 class StereoVision( QtGui.QWidget ) :
-
 	# Signal sent to update the image in the widget
 	update_stereo_images = QtCore.Signal( np.ndarray, np.ndarray )
-
 	# Initialization
 	def __init__( self, parent = None ) :
 		# Initialise QWidget
@@ -36,6 +34,7 @@ class StereoVision( QtGui.QWidget ) :
 		self.update_stereo_images.connect( self.UpdateStereoImages )
 		# Widget to display the images from the cameras
 		self.image_widget = QtGui.QLabel( self )
+		self.image_widget.setScaledContents( True )
 		# Widget elements
 		self.button_cross = QtGui.QPushButton( 'Cross', self )
 		self.button_cross.setCheckable( True )
@@ -94,7 +93,6 @@ class StereoVision( QtGui.QWidget ) :
 		self.disparity = sv.StereoSGBM()
 		# Point cloud viewer
 		self.pointcloud_viewer = sv.PointCloudViewer()
-
 	# Process the given stereo images
 	def UpdateStereoImages( self, image_left, image_right ) :
 		# Get the images
@@ -143,26 +141,21 @@ class StereoVision( QtGui.QWidget ) :
 		self.image_widget.setPixmap( QtGui.QPixmap.fromImage( qimage ) )
 		# Update the widget
 		self.image_widget.update()
-
 	# Toggle the chessboard preview
 	def ToggleChessboard( self ) :
 		self.chessboard_enabled = not self.chessboard_enabled
-
 	# Toggle the chessboard preview
 	def ToggleCross( self ) :
 		self.cross_enabled = not self.cross_enabled
-
 	# Stereo camera calibration
 	def Calibration( self ) :
 		self.calibration = sv.StereoCameraCalibration()
 		self.button_calibration.setIcon( self.style().standardIcon( QtGui.QStyle.SP_DialogYesButton ) )
-
 	# Image rectification
 	def ToggleRectification( self ) :
 		self.rectification_enabled = not self.rectification_enabled
 		if self.rectification_enabled and self.button_reconstruction.isChecked() :
 			self.button_reconstruction.click()
-
 	# Disparity map
 	def ToggleReconstruction( self ) :
 		self.disparity_enabled = not self.disparity_enabled
@@ -174,11 +167,9 @@ class StereoVision( QtGui.QWidget ) :
 		else :
 			self.disparity.hide()
 			self.pointcloud_viewer.hide()
-
 	# Update the calibration pattern size
 	def UpdatePatternSize( self, _ ) :
 		sv.pattern_size = ( self.spinbox_pattern_rows.value(), self.spinbox_pattern_cols.value() )
-
 	# Save the stereo images
 	def SaveImages( self ) :
 		current_time = time.strftime( '%Y%m%d_%H%M%S' )
@@ -189,13 +180,11 @@ class StereoVision( QtGui.QWidget ) :
 		else :
 			cv2.imwrite( 'left-{}.png'.format( current_time ), self.image_left )
 			cv2.imwrite( 'right-{}.png'.format( current_time ), self.image_right )
-
 	# Save the mesh obtained from the disparity
 	def SaveMesh( self ) :
 		current_time = time.strftime( '%Y%m%d_%H%M%S' )
 		print( 'Save point cloud {} to disk...'.format( current_time ) )
 		sv.WritePly( 'stereo-{}.ply'.format( current_time ), self.coordinates, self.colors )
-
 	# Close the widgets
 	def closeEvent( self, event ) :
 		self.pointcloud_viewer.close()
@@ -204,7 +193,6 @@ class StereoVision( QtGui.QWidget ) :
 
 # Stereovision user interface for USB cameras
 class UsbStereoVision( StereoVision ) :
-
 	# Initialization
 	def __init__( self, parent = None ) :
 		# Initialize the parent class
@@ -220,10 +208,8 @@ class UsbStereoVision( StereoVision ) :
 		self.stereo_camera.camera_right.set( cv2.cv.CV_CAP_PROP_FPS, 5 )
 		# Fix the widget size
 		self.image_widget.setFixedSize( self.stereo_camera.width * 2, self.stereo_camera.height )
-		self.image_widget.setScaledContents( True )
 		# Start image acquisition
 		self.stereo_camera.StartCapture(  self.ImageCallback  )
-
 	# Receive the frame sent by the camera
 	def ImageCallback( self, image_left, image_right ) :
 		# Get the images
@@ -231,7 +217,6 @@ class UsbStereoVision( StereoVision ) :
 		image_right = cv2.cvtColor( image_right, cv2.COLOR_BGR2RGB )
 		# Process the images
 		self.update_stereo_images.emit( image_left, image_right )
-
 	# Close the camera widget
 	def closeEvent( self, event ) :
 		# Stop image acquisition
@@ -241,7 +226,6 @@ class UsbStereoVision( StereoVision ) :
 
 # Stereovision user interface for Allied Vision cameras
 class VmbStereoVision( StereoVision ) :
-
 	# Initialization
 	def __init__( self, parent = None ) :
 		# Initialize the parent class
@@ -254,10 +238,8 @@ class VmbStereoVision( StereoVision ) :
 		self.stereo_camera.Open()
 		# Fix the widget size
 		self.image_widget.setFixedSize( self.stereo_camera.camera_left.width, self.stereo_camera.camera_left.height/2 )
-		self.image_widget.setScaledContents( True )
 		# Start image acquisition
 		self.stereo_camera.StartCapture( self.FrameCallback )
-
 	# Receive the frame sent by the camera
 	def FrameCallback( self, frame_left, frame_right ) :
 		# Check frame status
@@ -267,7 +249,6 @@ class VmbStereoVision( StereoVision ) :
 		image_right = cv2.cvtColor( frame_right.image, cv2.COLOR_GRAY2RGB )
 		# Process the images
 		self.update_stereo_images.emit( image_left, image_right )
-
 	# Close the camera widget
 	def closeEvent( self, event ) :
 		# Stop image acquisition
