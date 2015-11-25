@@ -93,6 +93,7 @@ class StereoVision( QtGui.QWidget ) :
 		self.disparity = sv.StereoSGBM()
 		# Point cloud viewer
 		self.pointcloud_viewer = sv.PointCloudViewer()
+		self.X, self.Y = np.meshgrid( np.arange( 320 ), np.arange( 240 ) )
 	# Process the given stereo images
 	def UpdateStereoImages( self, image_left, image_right ) :
 		# Get the images
@@ -130,9 +131,9 @@ class StereoVision( QtGui.QWidget ) :
 			self.coordinates = np.array( (self.X.flatten(), self.Y.flatten(), self.disparity.disparity.flatten() * 0.5) ).T
 			self.coordinates = self.coordinates.reshape(-1, 3)
 			self.coordinates[:,1] = -self.coordinates[:,1]
-			self.colors = np.array( cv2.cvtColor( rectified_images[0], cv2.COLOR_GRAY2RGB ), dtype=np.float32 ) / 255
+			self.colors = np.array( rectified_images[0], dtype=np.float32 ) / 255
 			self.colors = self.colors.reshape(-1, 3)
-			self.pointcloud_viewer.update_pointcloud.emit( self.coordinates, self.colors )
+			self.pointcloud_viewer.UpdatePointCloud( self.coordinates, self.colors )
 		# Prepare image for display
 		else : stereo_image = np.concatenate( (image_left_displayed, image_right_displayed), axis=1 )
 		# Create a Qt image

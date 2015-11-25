@@ -18,8 +18,6 @@ from PySide import QtOpenGL
 
 # Customize the Qt OpenGL widget to display a point cloud
 class PointCloudViewer( QtOpenGL.QGLWidget ) :
-	# Signal sent to update the point cloud in the widget
-	update_pointcloud = QtCore.Signal( np.ndarray, np.ndarray )
 	# Vertex shader
 	vertex_shader_source = '''#version 330 core
 		layout (location = 0) in vec4 Vertex;
@@ -42,8 +40,6 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 	def __init__( self, parent = None ) :
 		# Initialise QGLWidget with multisampling enabled and OpenGL 3 core only
 		super( PointCloudViewer, self ).__init__( QtOpenGL.QGLFormat( QtOpenGL.QGL.SampleBuffers | QtOpenGL.QGL.NoDeprecatedFunctions ), parent )
-		# Connect the signal to update the point cloud
-		self.update_pointcloud.connect( self.UpdatePointCloud )
 		# Set the window title
 		self.setWindowTitle( 'Point Cloud' )
 		# Track mouse events
@@ -119,8 +115,6 @@ class PointCloudViewer( QtOpenGL.QGLWidget ) :
 	def UpdatePointCloud( self, coordinates, colors ) :
 		# Close previous mesh
 		self.Close()
-		coordinates = coordinates.reshape(-1, 3)
-		colors = colors.reshape(-1, 3)
 	#	mask = coordinates[:, 2] > coordinates[:, 2].min()+10
 	#	coordinates = coordinates[ mask ]
 	#	colors = colors[ mask ]
