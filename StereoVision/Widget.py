@@ -131,11 +131,13 @@ class StereoVision( QtGui.QWidget ) :
 			self.coordinates = np.array( (self.X.flatten(), self.Y.flatten(), self.disparity.disparity.flatten() * 0.5) ).T
 			self.coordinates = self.coordinates.reshape(-1, 3)
 			self.coordinates[:,1] = -self.coordinates[:,1]
-			self.colors = np.array( rectified_images[0], dtype=np.float32 ) / 255
+			self.colors = np.array( cv2.cvtColor( rectified_images[0], cv2.COLOR_BGR2RGB ), dtype=np.float32 ) / 255
 			self.colors = self.colors.reshape(-1, 3)
 			self.pointcloud_viewer.UpdatePointCloud( self.coordinates, self.colors )
 		# Prepare image for display
 		else : stereo_image = np.concatenate( (image_left_displayed, image_right_displayed), axis=1 )
+		# Convert image color format from BGR to RGB
+		stereo_image = cv2.cvtColor( stereo_image, cv2.COLOR_BGR2RGB )
 		# Create a Qt image
 		qimage = QtGui.QImage( stereo_image, stereo_image.shape[1], stereo_image.shape[0], QtGui.QImage.Format_RGB888 )
 		# Set the image to the Qt widget
@@ -213,9 +215,6 @@ class UsbStereoVision( StereoVision ) :
 		self.stereo_camera.StartCapture(  self.ImageCallback  )
 	# Receive the frame sent by the camera
 	def ImageCallback( self, image_left, image_right ) :
-		# Get the images
-		image_left = cv2.cvtColor( image_left, cv2.COLOR_BGR2RGB )
-		image_right = cv2.cvtColor( image_right, cv2.COLOR_BGR2RGB )
 		# Process the images
 		self.update_stereo_images.emit( image_left, image_right )
 	# Close the camera widget
