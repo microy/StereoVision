@@ -12,9 +12,7 @@ Requirements :
 - `OpenCV`
 - `PySide`
 - `PyOpenGL`
-- `Allied Vision Vimba SDK`
 
-
-Copyright (c) 2014-2015 Michaël Roy (microygh@gmail.com)
+Copyright (c) 2014-2016 Michaël Roy (microygh@gmail.com)
 
 All rights reserved in accordance with the MIT License.
