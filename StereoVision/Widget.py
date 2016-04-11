@@ -94,6 +94,23 @@ class StereoVision( QtGui.QWidget ) :
 		# Point cloud viewer
 		self.pointcloud_viewer = sv.PointCloudViewer()
 		self.X, self.Y = np.meshgrid( np.arange( 320 ), np.arange( 240 ) )
+		# Initialize the USB stereo cameras
+		self.stereo_camera = sv.UsbStereoCamera()
+		# Lower the camera frame rate and resolution
+		self.stereo_camera.camera_left.set( cv2.cv.CV_CAP_PROP_FRAME_WIDTH, 640 )
+		self.stereo_camera.camera_left.set( cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, 480 )
+		self.stereo_camera.camera_right.set( cv2.cv.CV_CAP_PROP_FRAME_WIDTH, 640 )
+		self.stereo_camera.camera_right.set( cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, 480 )
+		self.stereo_camera.camera_left.set( cv2.cv.CV_CAP_PROP_FPS, 5 )
+		self.stereo_camera.camera_right.set( cv2.cv.CV_CAP_PROP_FPS, 5 )
+		# Fix the widget size
+		self.image_widget.setFixedSize( self.stereo_camera.width * 2, self.stereo_camera.height )
+		# Start image acquisition
+		self.stereo_camera.StartCapture(  self.ImageCallback  )
+	# Receive the frame sent by the camera
+	def ImageCallback( self, image_left, image_right ) :
+		# Process the images
+		self.update_stereo_images.emit( image_left, image_right )
 	# Process the given stereo images
 	def UpdateStereoImages( self, image_left, image_right ) :
 		# Get the images
@@ -190,72 +207,10 @@ class StereoVision( QtGui.QWidget ) :
 		sv.WritePly( 'stereo-{}.ply'.format( current_time ), self.coordinates, self.colors )
 	# Close the widgets
 	def closeEvent( self, event ) :
+		# Stop image acquisition
+		self.stereo_camera.StopCapture()
+		# Close child widgets
 		self.pointcloud_viewer.close()
 		self.disparity.close()
+		# Close main application
 		event.accept()
-
-# Stereovision user interface for USB cameras
-class UsbStereoVision( StereoVision ) :
-	# Initialization
-	def __init__( self, parent = None ) :
-		# Initialize the parent class
-		super( UsbStereoVision, self ).__init__( parent )
-		# Initialize the USB stereo cameras
-		self.stereo_camera = sv.UsbStereoCamera()
-		# Lower the camera frame rate and resolution
-		self.stereo_camera.camera_left.set( cv2.cv.CV_CAP_PROP_FRAME_WIDTH, 640 )
-		self.stereo_camera.camera_left.set( cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, 480 )
-		self.stereo_camera.camera_right.set( cv2.cv.CV_CAP_PROP_FRAME_WIDTH, 640 )
-		self.stereo_camera.camera_right.set( cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, 480 )
-		self.stereo_camera.camera_left.set( cv2.cv.CV_CAP_PROP_FPS, 5 )
-		self.stereo_camera.camera_right.set( cv2.cv.CV_CAP_PROP_FPS, 5 )
-		# Fix the widget size
-		self.image_widget.setFixedSize( self.stereo_camera.width * 2, self.stereo_camera.height )
-		# Start image acquisition
-		self.stereo_camera.StartCapture(  self.ImageCallback  )
-	# Receive the frame sent by the camera
-	def ImageCallback( self, image_left, image_right ) :
-		# Process the images
-		self.update_stereo_images.emit( image_left, image_right )
-	# Close the camera widget
-	def closeEvent( self, event ) :
-		# Stop image acquisition
-		self.stereo_camera.StopCapture()
-		# Close the parent widget
-		super( UsbStereoVision, self ).closeEvent( event )
-
-# Stereovision user interface for Allied Vision cameras
-class VmbStereoVision( StereoVision ) :
-	# Initialization
-	def __init__( self, parent = None ) :
-		# Initialize the parent class
-		super( VmbStereoVision, self ).__init__( parent )
-		# Initialize the Vimba driver
-		sv.VmbStartup()
-		# Initialize the Allied Vision stereo cameras
-		self.stereo_camera = sv.VmbStereoCamera( '50-0503326223', '50-0503323406' )
-		# Connect the cameras
-		self.stereo_camera.Open()
-		# Fix the widget size
-		self.image_widget.setFixedSize( self.stereo_camera.camera_left.width, self.stereo_camera.camera_left.height/2 )
-		# Start image acquisition
-		self.stereo_camera.StartCapture( self.FrameCallback )
-	# Receive the frame sent by the camera
-	def FrameCallback( self, frame_left, frame_right ) :
-		# Check frame status
-		if not frame_left.is_valid or not frame_right.is_valid : return
-		# Get the images
-		image_left = cv2.cvtColor( frame_left.image, cv2.COLOR_GRAY2RGB )
-		image_right = cv2.cvtColor( frame_right.image, cv2.COLOR_GRAY2RGB )
-		# Process the images
-		self.update_stereo_images.emit( image_left, image_right )
-	# Close the camera widget
-	def closeEvent( self, event ) :
-		# Stop image acquisition
-		self.stereo_camera.StopCapture()
-		# Disconnect the camera
-		self.stereo_camera.Close()
-		# Shutdown Vimba
-		sv.VmbShutdown()
-		# Close the parent widget
-		super( VmbStereoVision, self ).closeEvent( event )
