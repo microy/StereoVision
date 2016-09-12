@@ -123,16 +123,15 @@ class StereoSGBM( QtGui.QWidget ) :
 		self.p2 = self.spinbox_p2.value()
 		self.full_dp = self.checkbox_full_dp.checkState()
 		# Create the disparity object
-		self.sgbm = cv2.StereoSGBM( minDisparity = self.min_disparity,
+		self.sgbm = cv2.StereoSGBM_create( minDisparity = self.min_disparity,
 			numDisparities = self.max_disparity,
-			SADWindowSize = self.sad_window_size,
+			blockSize = 16,
 			uniquenessRatio = self.uniqueness_ratio,
 			speckleWindowSize = self.speckle_window_size,
 			speckleRange = self.speckle_range,
 			disp12MaxDiff = self.max_difference,
 			P1 = self.p1,
-			P2 = self.p2,
-			fullDP = self.full_dp )
+			P2 = self.p2 )
 	# Compute the stereo correspondence
 	def ComputeDisparity( self, left_image, right_image ) :
 		# Compute the disparity map

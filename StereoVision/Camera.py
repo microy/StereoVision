@@ -20,11 +20,11 @@ class UsbStereoCamera( threading.Thread ) :
 	# Return the image width
 	@property
 	def width( self ) :
-		return self.camera_left.get( cv2.cv.CV_CAP_PROP_FRAME_WIDTH )
+		return self.camera_left.get( cv2.CAP_PROP_FRAME_WIDTH )
 	# Return the image height
 	@property
 	def height( self ) :
-		return self.camera_left.get( cv2.cv.CV_CAP_PROP_FRAME_HEIGHT )
+		return self.camera_left.get( cv2.CAP_PROP_FRAME_HEIGHT )
 	# Start acquisition
 	def StartCapture( self, image_callback ) :
 		# Function called when the images are received

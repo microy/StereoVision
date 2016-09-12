@@ -75,7 +75,7 @@ def CameraCalibration( image_files ) :
 	# For each image
 	for filename in image_files :
 		# Load the image
-		image = cv2.imread( filename, cv2.CV_LOAD_IMAGE_GRAYSCALE )
+		image = cv2.imread( filename, cv2.IMREAD_GRAYSCALE )
 		# Resize image
 	#	image_small = cv2.resize( image, None, fx=image_scale, fy=image_scale )
 	#	image_small = cv2.pyrDown( image )
@@ -114,7 +114,7 @@ def CameraCalibration( image_files ) :
 	flags |= cv2.CALIB_FIX_K4
 	flags |= cv2.CALIB_FIX_K5
 	# Camera calibration
-	calibration = cv2.calibrateCamera( obj_points, img_points, img_size, flags=flags )
+	calibration = cv2.calibrateCamera( obj_points, img_points, img_size, None, None, flags=flags )
 	# Store the calibration results in a dictionary
 	parameter_names = ( 'calib_error', 'camera_matrix', 'dist_coefs', 'rvecs', 'tvecs' )
 	calibration = dict( zip( parameter_names, calibration ) )
@@ -161,7 +161,7 @@ def StereoCameraCalibration() :
 	flags |= cv2.CALIB_FIX_K5
 	# Stereo calibration
 	calibration = cv2.stereoCalibrate( cam1['obj_points'], cam1['img_points'], cam2['img_points'],
-		cam1['img_size'], cam1['camera_matrix'], cam1['dist_coefs'], cam2['camera_matrix'], cam2['dist_coefs'],
+		cam1['camera_matrix'], cam1['dist_coefs'], cam2['camera_matrix'], cam2['dist_coefs'], cam1['img_size'],
 		flags=flags, criteria=criteria )
 	# Store the stereo calibration results in a dictionary
 	parameter_names = ( 'calib_error', 'camera_matrix_l', 'dist_coefs_l', 'camera_matrix_r', 'dist_coefs_r', 'R', 'T', 'E', 'F' )

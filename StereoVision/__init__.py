@@ -4,8 +4,6 @@ from . import Disparity
 from .Disparity import *
 from . import Camera
 from .Camera import *
-from . import Vimba
-from .Vimba import *
 from . import PointCloud
 from .PointCloud import *
 from . import Widget

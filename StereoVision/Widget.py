@@ -97,12 +97,12 @@ class StereoVision( QtGui.QWidget ) :
 		# Initialize the USB stereo cameras
 		self.stereo_camera = sv.UsbStereoCamera()
 		# Lower the camera frame rate and resolution
-		self.stereo_camera.camera_left.set( cv2.cv.CV_CAP_PROP_FRAME_WIDTH, 640 )
-		self.stereo_camera.camera_left.set( cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, 480 )
-		self.stereo_camera.camera_right.set( cv2.cv.CV_CAP_PROP_FRAME_WIDTH, 640 )
-		self.stereo_camera.camera_right.set( cv2.cv.CV_CAP_PROP_FRAME_HEIGHT, 480 )
-		self.stereo_camera.camera_left.set( cv2.cv.CV_CAP_PROP_FPS, 5 )
-		self.stereo_camera.camera_right.set( cv2.cv.CV_CAP_PROP_FPS, 5 )
+		self.stereo_camera.camera_left.set( cv2.CAP_PROP_FRAME_WIDTH, 640 )
+		self.stereo_camera.camera_left.set( cv2.CAP_PROP_FRAME_HEIGHT, 480 )
+		self.stereo_camera.camera_right.set( cv2.CAP_PROP_FRAME_WIDTH, 640 )
+		self.stereo_camera.camera_right.set( cv2.CAP_PROP_FRAME_HEIGHT, 480 )
+		self.stereo_camera.camera_left.set( cv2.CAP_PROP_FPS, 5 )
+		self.stereo_camera.camera_right.set( cv2.CAP_PROP_FPS, 5 )
 		# Fix the widget size
 		self.image_widget.setFixedSize( self.stereo_camera.width * 2, self.stereo_camera.height )
 		# Start image acquisition
